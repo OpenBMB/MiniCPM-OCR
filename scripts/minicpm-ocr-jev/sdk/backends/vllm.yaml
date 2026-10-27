@@ -1,0 +1,27 @@
+# Which engine runs the forward pass, and where to reach it.
+#
+# Start the engine with sdk/start_engine.sh, which omits --chat-template on
+# purpose: this SDK sends an interleaved content list and relies on the model's
+# own chat_template.jinja to render it into the training prompt. Point this file
+# at an engine started any other way and the service will refuse to start --
+# see sdk/jev_score/selfcheck.py.
+
+engine: vllm
+
+# Where `vllm serve` is listening. Host and port only; the adapter appends the
+# endpoint paths (/classify, /tokenize, /v1/models).
+base_url: http://127.0.0.1:18499
+
+# What the engine calls the model. Leave it unset: the adapter asks /v1/models,
+# and the only name that works is the one the engine was actually started with.
+# Set it only when one engine serves more than one model.
+# model: minicpm-ocr-jev
+
+# Seconds to wait on one forward pass. Generous because a cold engine spends its
+# first request compiling Triton kernels.
+timeout_sec: 120
+
+# Requests in flight toward the engine. vLLM queues past its own capacity, so
+# this bounds our sockets and memory rather than the engine's throughput; it
+# saturates around 16.
+max_in_flight: 32

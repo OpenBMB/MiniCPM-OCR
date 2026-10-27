@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="452" viewBox="0 0 900 452" role="img" aria-labelledby="title desc">
+<title id="title">OCR benchmark comparison — MiniCPM-OCR 1.0</title>
+<desc id="desc">Benchmark results. Light blue identifies the MiniCPM row; bold scores identify column maxima. Model names, values, and source references are preserved in metadata.</desc>
+<metadata>{&quot;columns&quot;: [&quot;Model&quot;, &quot;Real5-OmniDocBench&quot;, &quot;Wild-OmniDocBench&quot;, &quot;OmniDocBench-v1.6&quot;, &quot;olmOCR-bench&quot;, &quot;OCRBench V2&quot;, &quot;CHAOS-Bench&quot;], &quot;rows&quot;: [[&quot;TeleOCR&quot;, &quot;90.72&quot;, &quot;90.71&quot;, &quot;96.91&quot;, &quot;77.1&quot;, &quot;23.3&quot;, &quot;21.08&quot;], [&quot;OvisOCR2&quot;, &quot;92.29&quot;, &quot;89.91&quot;, &quot;96.58&quot;, &quot;80.3&quot;, &quot;33.3&quot;, &quot;6.38&quot;], [&quot;MinerU2.5-Pro&quot;, &quot;89.94&quot;, &quot;90.06&quot;, &quot;95.69&quot;, &quot;79.5&quot;, &quot;29.1&quot;, &quot;13.90&quot;], [&quot;PaddleOCR-VL-1.6&quot;, &quot;93.19&quot;, &quot;91.49&quot;, &quot;96.34&quot;, &quot;80.2&quot;, &quot;35.2&quot;, &quot;9.32&quot;], [&quot;GLM-OCR&quot;, &quot;90.32&quot;, &quot;90.40&quot;, &quot;95.22&quot;, &quot;75.2&quot;, &quot;45.5&quot;, &quot;8.62&quot;], [&quot;HunyuanOCR-1.5&quot;, &quot;88.70&quot;, &quot;87.01&quot;, &quot;94.74&quot;, &quot;78.6&quot;, &quot;45.0&quot;, &quot;14.88&quot;], [&quot;Surya-OCR-2&quot;, &quot;84.88&quot;, &quot;85.40&quot;, &quot;89.29&quot;, &quot;83.3&quot;, &quot;13.9&quot;, &quot;12.63&quot;], [&quot;Xiaomi-OCR-0&quot;, &quot;92.73&quot;, &quot;92.06&quot;, &quot;96.83&quot;, &quot;82.1&quot;, &quot;47.0&quot;, &quot;17.84&quot;], [&quot;MiniCPM-OCR 1.0&quot;, &quot;93.68&quot;, &quot;92.39&quot;, &quot;96.51&quot;, &quot;82.7&quot;, &quot;54.7&quot;, &quot;29.78&quot;]]}</metadata>
+<rect x="0" y="0" width="900" height="452" fill="#ffffff"/>
+<path d="M12 112H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="98.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">TeleOCR</text>
+<text x="259.167" y="98.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">90.72</text>
+<text x="373.5" y="98.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">90.71</text>
+<text x="487.833" y="98.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">96.91</text>
+<text x="602.167" y="98.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">77.1</text>
+<text x="716.5" y="98.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">23.3</text>
+<text x="830.833" y="98.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">21.08</text>
+<path d="M12 150H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="136.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">OvisOCR2</text>
+<text x="259.167" y="136.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">92.29</text>
+<text x="373.5" y="136.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">89.91</text>
+<text x="487.833" y="136.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">96.58</text>
+<text x="602.167" y="136.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">80.3</text>
+<text x="716.5" y="136.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">33.3</text>
+<text x="830.833" y="136.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">6.38</text>
+<path d="M12 188H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="174.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">MinerU2.5-Pro</text>
+<text x="259.167" y="174.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">89.94</text>
+<text x="373.5" y="174.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">90.06</text>
+<text x="487.833" y="174.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">95.69</text>
+<text x="602.167" y="174.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">79.5</text>
+<text x="716.5" y="174.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">29.1</text>
+<text x="830.833" y="174.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">13.90</text>
+<path d="M12 226H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="212.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">PaddleOCR-VL-1.6</text>
+<text x="259.167" y="212.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">93.19</text>
+<text x="373.5" y="212.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">91.49</text>
+<text x="487.833" y="212.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">96.34</text>
+<text x="602.167" y="212.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">80.2</text>
+<text x="716.5" y="212.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">35.2</text>
+<text x="830.833" y="212.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">9.32</text>
+<path d="M12 264H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="250.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">GLM-OCR</text>
+<text x="259.167" y="250.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">90.32</text>
+<text x="373.5" y="250.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">90.40</text>
+<text x="487.833" y="250.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">95.22</text>
+<text x="602.167" y="250.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">75.2</text>
+<text x="716.5" y="250.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">45.5</text>
+<text x="830.833" y="250.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">8.62</text>
+<path d="M12 302H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="288.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">HunyuanOCR-1.5</text>
+<text x="259.167" y="288.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">88.70</text>
+<text x="373.5" y="288.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">87.01</text>
+<text x="487.833" y="288.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">94.74</text>
+<text x="602.167" y="288.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">78.6</text>
+<text x="716.5" y="288.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">45.0</text>
+<text x="830.833" y="288.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">14.88</text>
+<path d="M12 340H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="326.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">Surya-OCR-2</text>
+<text x="259.167" y="326.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">84.88</text>
+<text x="373.5" y="326.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">85.40</text>
+<text x="487.833" y="326.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">89.29</text>
+<text x="602.167" y="326.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">83.3</text>
+<text x="716.5" y="326.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">13.9</text>
+<text x="830.833" y="326.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">12.63</text>
+<path d="M12 378H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="364.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">Xiaomi-OCR-0</text>
+<text x="259.167" y="364.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">92.73</text>
+<text x="373.5" y="364.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">92.06</text>
+<text x="487.833" y="364.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">96.83</text>
+<text x="602.167" y="364.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">82.1</text>
+<text x="716.5" y="364.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">47.0</text>
+<text x="830.833" y="364.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">17.84</text>
+<rect x="12" y="378" width="876" height="38" fill="#eaf3ff"/>
+<path d="M12 416H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="402.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">MiniCPM-OCR 1.0</text>
+<text x="259.167" y="402.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">93.68</text>
+<text x="373.5" y="402.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">92.39</text>
+<text x="487.833" y="402.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">96.51</text>
+<text x="602.167" y="402.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">82.7</text>
+<text x="716.5" y="402.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">54.7</text>
+<text x="830.833" y="402.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">29.78</text>
+<path d="M12 378H888" fill="none" stroke="#aab6c5" stroke-width="1.5"/>
+<path d="M12 416H888" fill="none" stroke="#aab6c5" stroke-width="1.5"/>
+<path d="M12 16H888" fill="none" stroke="#aab6c5" stroke-width="1.5"/>
+<path d="M12 74H888" fill="none" stroke="#aab6c5" stroke-width="1.5"/>
+<path d="M12 416H888" fill="none" stroke="#aab6c5" stroke-width="1.5"/>
+<text x="20" y="50.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">Model</text>
+<text x="373.5" y="35.75" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">OmniDocBench</text>
+<path d="M202 45H545" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="259.167" y="64.4" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">Real5</text>
+<text x="373.5" y="64.4" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">Wild</text>
+<text x="487.833" y="64.4" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">v1.6</text>
+<text x="602.167" y="40.9" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">olmOCR</text>
+<text x="602.167" y="58.9" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">bench</text>
+<text x="716.5" y="40.9" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">OCRBench</text>
+<text x="716.5" y="58.9" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">V2</text>
+<text x="830.833" y="40.9" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">CHAOS</text>
+<text x="830.833" y="58.9" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">Bench</text>
+<text x="20" y="440.2" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" text-anchor="start" fill="#576574" style="font-variant-numeric:tabular-nums">Bold</text>
+<text x="50.668" y="440.2" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#576574" style="font-variant-numeric:tabular-nums">= column maximum</text>
+<text x="218" y="440.2" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#576574" style="font-variant-numeric:tabular-nums">Blue row = MiniCPM-OCR 1.0</text>
+</svg>

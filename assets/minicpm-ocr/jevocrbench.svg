@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="624" viewBox="0 0 900 624" role="img" aria-labelledby="title desc">
+<title id="title">JevOCRBench — MiniCPM-OCR Jev</title>
+<desc id="desc">Benchmark results. Light blue identifies the MiniCPM row; bold scores identify column maxima. Model names, values, and source references are preserved in metadata.</desc>
+<metadata>{&quot;columns&quot;: [&quot;Model&quot;, &quot;Params&quot;, &quot;Overall&quot;, &quot;Text&quot;, &quot;Formula&quot;, &quot;Table&quot;], &quot;rows&quot;: [[&quot;Gemini 3.8 Flash&quot;, &quot;—&quot;, &quot;0.971&quot;, &quot;0.972&quot;, &quot;0.980&quot;, &quot;0.957&quot;], [&quot;Kimi K3&quot;, &quot;2.8T · A104B&quot;, &quot;0.969&quot;, &quot;0.971&quot;, &quot;0.960&quot;, &quot;0.970&quot;], [&quot;Qwen3.7-Plus&quot;, &quot;—&quot;, &quot;0.943&quot;, &quot;0.958&quot;, &quot;0.917&quot;, &quot;0.930&quot;], [&quot;JEV-VL&quot;, &quot;27B&quot;, &quot;0.940&quot;, &quot;0.963&quot;, &quot;0.907&quot;, &quot;0.916&quot;], [&quot;Qwen3.5&quot;, &quot;397B · A17B&quot;, &quot;0.938&quot;, &quot;0.954&quot;, &quot;0.918&quot;, &quot;0.914&quot;], [&quot;MiniCPM-OCR Jev&quot;, &quot;2B&quot;, &quot;0.935&quot;, &quot;0.945&quot;, &quot;0.931&quot;, &quot;0.910&quot;], [&quot;Gemma 4&quot;, &quot;31B&quot;, &quot;0.905&quot;, &quot;0.910&quot;, &quot;0.908&quot;, &quot;0.877&quot;], [&quot;JEV&quot;, &quot;35B · A3B&quot;, &quot;0.901&quot;, &quot;0.916&quot;, &quot;0.889&quot;, &quot;0.896&quot;], [&quot;Qwen3.5&quot;, &quot;35B · A3B&quot;, &quot;0.898&quot;, &quot;0.911&quot;, &quot;0.870&quot;, &quot;0.883&quot;], [&quot;Qwen3.5&quot;, &quot;9B&quot;, &quot;0.720&quot;, &quot;0.759&quot;, &quot;0.677&quot;, &quot;0.734&quot;], [&quot;Qwen3.5&quot;, &quot;4B&quot;, &quot;0.699&quot;, &quot;0.733&quot;, &quot;0.653&quot;, &quot;0.739&quot;], [&quot;Qwen3.5&quot;, &quot;2B&quot;, &quot;0.506&quot;, &quot;0.507&quot;, &quot;0.502&quot;, &quot;0.506&quot;]], &quot;official_models&quot;: [{&quot;official_name&quot;: &quot;Gemini 3.8 Flash&quot;, &quot;source&quot;: &quot;https://deepmind.google/models/gemini/flash/&quot;}, {&quot;official_name&quot;: &quot;Kimi K3&quot;, &quot;source&quot;: &quot;https://huggingface.co/moonshotai/Kimi-K3&quot;}, {&quot;official_name&quot;: &quot;Qwen3.7-Plus&quot;, &quot;source&quot;: &quot;https://www.alibabacloud.com/help/en/model-studio/newly-released-models&quot;}, {&quot;official_name&quot;: &quot;JEV-27B-VL&quot;, &quot;source&quot;: &quot;https://huggingface.co/autotrust/JEV-27B-VL&quot;}, {&quot;official_name&quot;: &quot;Qwen3.5-397B-A17B&quot;, &quot;source&quot;: &quot;https://huggingface.co/Qwen/Qwen3.5-397B-A17B&quot;}, {&quot;official_name&quot;: &quot;MiniCPM-OCR Jev&quot;, &quot;source&quot;: null}, {&quot;official_name&quot;: &quot;Gemma 4 31B&quot;, &quot;source&quot;: &quot;https://huggingface.co/google/gemma-4-31B-it#benchmark-results&quot;}, {&quot;official_name&quot;: &quot;JEV-35B&quot;, &quot;source&quot;: &quot;https://huggingface.co/autotrust/JEV-35B&quot;}, {&quot;official_name&quot;: &quot;Qwen3.5-35B-A3B&quot;, &quot;source&quot;: &quot;https://huggingface.co/Qwen/Qwen3.5-35B-A3B&quot;}, {&quot;official_name&quot;: &quot;Qwen3.5-9B&quot;, &quot;source&quot;: &quot;https://huggingface.co/Qwen/Qwen3.5-9B&quot;}, {&quot;official_name&quot;: &quot;Qwen3.5-4B&quot;, &quot;source&quot;: &quot;https://huggingface.co/Qwen/Qwen3.5-4B&quot;}, {&quot;official_name&quot;: &quot;Qwen3.5-2B&quot;, &quot;source&quot;: &quot;https://huggingface.co/Qwen/Qwen3.5-2B&quot;}]}</metadata>
+<rect x="0" y="0" width="900" height="624" fill="#ffffff"/>
+<path d="M12 112H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="98.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">Gemini 3.8 Flash</text>
+<text x="277" y="97.9" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">—</text>
+<text x="419" y="98.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.971</text>
+<text x="553" y="98.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.972</text>
+<text x="687" y="98.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.980</text>
+<text x="821" y="98.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.957</text>
+<path d="M12 150H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="136.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">Kimi K3</text>
+<text x="277" y="135.9" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">2.8T · A104B</text>
+<text x="419" y="136.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.969</text>
+<text x="553" y="136.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.971</text>
+<text x="687" y="136.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.960</text>
+<text x="821" y="136.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.970</text>
+<path d="M12 188H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="174.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">Qwen3.7-Plus</text>
+<text x="277" y="173.9" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">—</text>
+<text x="419" y="174.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.943</text>
+<text x="553" y="174.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.958</text>
+<text x="687" y="174.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.917</text>
+<text x="821" y="174.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.930</text>
+<path d="M12 226H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="212.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">JEV-VL</text>
+<text x="277" y="211.9" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">27B</text>
+<text x="419" y="212.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.940</text>
+<text x="553" y="212.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.963</text>
+<text x="687" y="212.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.907</text>
+<text x="821" y="212.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.916</text>
+<path d="M12 264H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="250.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">Qwen3.5</text>
+<text x="277" y="249.9" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">397B · A17B</text>
+<text x="419" y="250.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.938</text>
+<text x="553" y="250.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.954</text>
+<text x="687" y="250.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.918</text>
+<text x="821" y="250.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.914</text>
+<rect x="12" y="264" width="876" height="38" fill="#eaf3ff"/>
+<path d="M12 302H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="288.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">MiniCPM-OCR Jev</text>
+<text x="277" y="287.9" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">2B</text>
+<text x="419" y="288.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.935</text>
+<text x="553" y="288.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.945</text>
+<text x="687" y="288.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.931</text>
+<text x="821" y="288.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.910</text>
+<path d="M12 264H888" fill="none" stroke="#aab6c5" stroke-width="1.5"/>
+<path d="M12 302H888" fill="none" stroke="#aab6c5" stroke-width="1.5"/>
+<path d="M12 340H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="326.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">Gemma 4</text>
+<text x="277" y="325.9" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">31B</text>
+<text x="419" y="326.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.905</text>
+<text x="553" y="326.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.910</text>
+<text x="687" y="326.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.908</text>
+<text x="821" y="326.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.877</text>
+<path d="M12 378H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="364.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">JEV</text>
+<text x="277" y="363.9" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">35B · A3B</text>
+<text x="419" y="364.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.901</text>
+<text x="553" y="364.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.916</text>
+<text x="687" y="364.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.889</text>
+<text x="821" y="364.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.896</text>
+<path d="M12 416H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="402.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">Qwen3.5</text>
+<text x="277" y="401.9" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">35B · A3B</text>
+<text x="419" y="402.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.898</text>
+<text x="553" y="402.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.911</text>
+<text x="687" y="402.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.870</text>
+<text x="821" y="402.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.883</text>
+<path d="M12 454H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="440.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">Qwen3.5</text>
+<text x="277" y="439.9" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">9B</text>
+<text x="419" y="440.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.720</text>
+<text x="553" y="440.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.759</text>
+<text x="687" y="440.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.677</text>
+<text x="821" y="440.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.734</text>
+<path d="M12 492H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="478.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">Qwen3.5</text>
+<text x="277" y="477.9" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">4B</text>
+<text x="419" y="478.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.699</text>
+<text x="553" y="478.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.733</text>
+<text x="687" y="478.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.653</text>
+<text x="821" y="478.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.739</text>
+<path d="M12 530H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="20" y="516.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="400" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">Qwen3.5</text>
+<text x="277" y="515.9" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">2B</text>
+<text x="419" y="516.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.506</text>
+<text x="553" y="516.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.507</text>
+<text x="687" y="516.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.502</text>
+<text x="821" y="516.6" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="400" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">0.506</text>
+<path d="M12 16H888" fill="none" stroke="#aab6c5" stroke-width="1.5"/>
+<path d="M12 74H888" fill="none" stroke="#aab6c5" stroke-width="1.5"/>
+<path d="M12 530H888" fill="none" stroke="#aab6c5" stroke-width="1.5"/>
+<text x="20" y="50.25" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="start" fill="#17212e" style="font-variant-numeric:tabular-nums">Model</text>
+<text x="277" y="49.9" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">Params</text>
+<text x="620" y="35.75" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">JevOCRBench</text>
+<path d="M352 45H888" fill="none" stroke="#e2e7ed" stroke-width="1"/>
+<text x="419" y="64.4" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">Overall</text>
+<text x="553" y="64.4" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">Text</text>
+<text x="687" y="64.4" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">Formula</text>
+<text x="821" y="64.4" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#17212e" style="font-variant-numeric:tabular-nums">Table</text>
+<text x="20" y="554.2" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" text-anchor="start" fill="#576574" style="font-variant-numeric:tabular-nums">Bold</text>
+<text x="50.668" y="554.2" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#576574" style="font-variant-numeric:tabular-nums">= column maximum</text>
+<text x="218" y="554.2" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#576574" style="font-variant-numeric:tabular-nums">Blue row = MiniCPM-OCR Jev</text>
+<text x="20" y="578.2" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#576574" style="font-variant-numeric:tabular-nums">Parameter sizes follow official nominal counts. A = active parameters; — = not disclosed.</text>
+<text x="20" y="596.2" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#576574" style="font-variant-numeric:tabular-nums">All results are reported on JevOCRBench.</text>
+<text x="20" y="614.2" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="400" text-anchor="start" fill="#576574" style="font-variant-numeric:tabular-nums">Jev models are evaluated with the Noul setting, while general models are evaluated with our rubric prompt.</text>
+</svg>

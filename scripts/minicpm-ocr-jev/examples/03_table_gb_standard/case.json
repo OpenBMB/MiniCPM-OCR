@@ -1,0 +1,33 @@
+{
+  "case_id": "table_gb_standard",
+  "category": "table",
+  "lang": "zh",
+  "block_image": "block.png",
+  "reference_render": "reference_render.png",
+  "reference_render_of": "ocr_output",
+  "provenance": {
+    "dataset": "OmniDocBench v1.6",
+    "document": "GB 14536.1-1998 (Chinese national standard), page 145",
+    "block": "crop 2"
+  },
+  "candidates": [
+    {
+      "role": "ground_truth",
+      "text": "<table><thead><tr><td></td><td>$\\Delta U$</td><td>持续时间</td></tr></thead><tbody><tr><td>电压降落</td><td>30%</td><td>0.5s</td></tr><tr><td></td><td>60%</td><td>0.5s</td></tr><tr><td>电压切断</td><td>100%</td><td>电源波形一个周期</td></tr><tr><td></td><td></td><td>0.5s</td></tr><tr><td></td><td></td><td>60.0s</td></tr></tbody></table>",
+      "note": "reference transcription from the source dataset; not itself labelled there"
+    },
+    {
+      "role": "ocr_output",
+      "label": "inconsistent",
+      "producing_model": "withheld",
+      "text": "<table><tr><td></td><td>ΔU</td><td>持续时间</td></tr><tr><td rowspan=\"2\">电压降落</td><td>30%</td><td>0.5a</td></tr><tr><td>60%</td><td>0.5a</td></tr><tr><td rowspan=\"3\">电压倒落</td><td rowspan=\"3\">100%</td><td>电源波形一个周期</td></tr><tr><td>0.5a</td></tr><tr><td>60.0a</td></tr></table>",
+      "label_source": "label carried by the source dataset for this candidate"
+    }
+  ],
+  "what_this_shows": "Three independent OCR errors in one block: the unit second is read as 'a' in three cells (0.5s -> 0.5a, 60.0s -> 60.0a), the term 电压切断 (voltage cut-off) becomes 电压倒落, and the row structure is rebuilt with rowspan. Tables must be sent as HTML; the renderer does not accept other table markup. Note the reference transcription scores LOW (0.04) even though it faithfully reproduces the block. The ranking is still right -- it beats the erroneous one by a wide margin -- but the absolute value is not usable as 'this transcription is correct'. The cause has not been established; the renderer lays tables out at a fixed width, so a small source crop and its render differ a lot in scale, but that is a hypothesis, not a finding. Treat this example as the concrete reason to compare candidates against each other rather than against a threshold.",
+  "observed_prob_yes": {
+    "ground_truth": 0.04075,
+    "ocr_output": 0.00116
+  },
+  "observed_note": "Measured once on the reference setup. Scores are not bitwise reproducible, so expect small differences; large ones mean something in your setup differs."
+}

@@ -1,0 +1,79 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "minicpm-ocr"
+dynamic = ["version"]
+description = "MiniCPM-V OCR SDK: document layout + VLM orchestration frontend with pluggable inference backends"
+readme = { text = "MiniCPM-OCR SDK for document parsing with pluggable inference backends.", content-type = "text/plain" }
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+    "Topic :: Text Processing",
+]
+
+
+dependencies = [
+    "PyYAML>=6.0",
+    "Pillow>=9.0",
+    "requests>=2.28",
+    "numpy>=1.26",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+
+
+layout = [
+    "paddlex>=3.4",
+    "opencv-contrib-python>=4.10",
+    "shapely>=2.0",
+]
+
+
+pdf = [
+    "PyMuPDF>=1.23",
+]
+
+
+crosspage = [
+    "beautifulsoup4>=4.12",
+]
+
+
+upright = [
+    "paddleocr>=3.0",
+    "opencv-contrib-python>=4.10",
+]
+
+
+all = ["minicpm-ocr[layout,pdf,crosspage,upright]"]
+
+[project.urls]
+Homepage = "https://github.com/OpenBMB/MiniCPM-OCR"
+Source = "https://github.com/OpenBMB/MiniCPM-OCR/tree/main/sdk"
+Documentation = "https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpmvocr_tutorial_en.md"
+Issues = "https://github.com/OpenBMB/MiniCPM-OCR/issues"
+
+[project.scripts]
+minicpmvocr = "minicpmvocr.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "minicpmvocr._version.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["minicpmvocr*"]
+
+[tool.setuptools.package-data]
+
+
+minicpmvocr = ["py.typed", "configs/*.yaml"]

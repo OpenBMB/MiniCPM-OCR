@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="350" viewBox="0 0 1200 350" role="img" aria-labelledby="title desc">
+  <title id="title">MiniCPM-OCR — Fast parsing. High accuracy.</title>
+  <desc id="desc">MiniCPM-OCR rapidly turns documents into structured text, tables and formulas. A stack of document pages flows through a lightning arrow into Markdown output. A decision model flags regions for review. Illustrative workflow.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="0.7">
+      <stop stop-color="#FAFBFF"/>
+      <stop offset="0.55" stop-color="#F6F5FF"/>
+      <stop offset="1" stop-color="#EBEEFF"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#3930AC"/>
+      <stop offset="1" stop-color="#6552E6"/>
+    </linearGradient>
+    <linearGradient id="flow" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#B7AFF0" stop-opacity="0"/>
+      <stop offset="1" stop-color="#7765DB" stop-opacity="0.16"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-25%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#40368A" flood-opacity="0.10"/>
+    </filter>
+    <clipPath id="canvas"><rect width="1200" height="350" rx="18"/></clipPath>
+  </defs>
+  <g clip-path="url(#canvas)" font-family="Arial, Helvetica, sans-serif">
+    <rect width="1200" height="350" fill="url(#background)"/>
+    <path d="M576 121H1200V233H576Z" fill="url(#flow)"/>
+    <g fill="none" stroke="#DCDDF5" opacity="0.7">
+      <circle cx="1094" cy="176" r="186"/>
+      <circle cx="1094" cy="176" r="222"/>
+      <circle cx="1094" cy="176" r="258"/>
+    </g>
+
+    <!-- Parsing is the main story; the decision model is a secondary note. -->
+    <rect x="46" y="38" width="6" height="15" rx="3" fill="#6351DB"/>
+    <text x="64" y="50" fill="#6C6199" font-size="12" font-weight="700" letter-spacing="2">DOCUMENT PARSING</text>
+    <text x="43" y="119" fill="url(#brand)" font-size="58" font-weight="750" letter-spacing="-2.2">MiniCPM-OCR</text>
+    <text x="46" y="169" fill="#29263F" font-size="30" font-weight="600" letter-spacing="-0.5">Fast parsing. High accuracy.</text>
+    <text x="47" y="211" fill="#716B85" font-size="17">Text · Tables · Formulas → Markdown</text>
+    <path d="M47 249H554" stroke="#DEDBEF"/>
+    <g fill="none" stroke="#8C80B9" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M52 287h9m0 0v-7h8m-8 7v7h8"/>
+      <circle cx="49" cy="287" r="3" fill="#F7F6FE"/>
+      <circle cx="72" cy="280" r="3" fill="#F7F6FE"/>
+      <circle cx="72" cy="294" r="3" fill="#F7F6FE"/>
+    </g>
+    <text x="87" y="284" fill="#665C83" font-size="16" font-weight="700">Decision model</text>
+    <text x="87" y="307" fill="#81788F" font-size="15">Flags regions that need review</text>
+
+    <!-- Incoming pages and motion trails convey throughput without claiming a number. -->
+    <g fill="none" stroke="#BAB2E9" stroke-linecap="round">
+      <path d="M590 130h48m-69 23h63m-35 23h30" stroke-width="3" opacity="0.7"/>
+      <path d="M591 225h42m-20 21h24" stroke-width="2" opacity="0.5"/>
+    </g>
+    <rect x="634" y="87" width="159" height="206" rx="10" fill="#E5E2F7" stroke="#D3CDEA" transform="rotate(-10 713 190)"/>
+    <rect x="645" y="75" width="159" height="206" rx="10" fill="#F0EEFB" stroke="#D6D0EB" transform="rotate(-5 724 178)"/>
+    <rect x="657" y="63" width="159" height="206" rx="10" fill="white" stroke="#D7D2EC" filter="url(#shadow)"/>
+    <text x="672" y="93" fill="#5D5773" font-size="14" font-weight="700">Document</text>
+    <path d="M672 110h90m-90 12h128m-128 12h115" stroke="#C7C3D5" stroke-width="4" stroke-linecap="round"/>
+    <rect x="672" y="152" width="128" height="56" rx="3" fill="#F6F4FE" stroke="#CFC7EA"/>
+    <path d="M673 170h126m-126 19h126m-84-36v54m43-54v54" stroke="#CFC7EA"/>
+    <text x="673" y="244" fill="#8C80B0" font-family="Georgia, Times New Roman, serif" font-size="21" font-style="italic">x² + y² = r²</text>
+    <text x="738" y="318" text-anchor="middle" fill="#8D85A4" font-size="13">PDFs &amp; images</text>
+
+    <!-- A fast, directional handoff from source document to structured output. -->
+    <path d="M830 170h98m-13-12 13 12-13 12" fill="none" stroke="#6B53CF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M833 137h18m-11 65h23" fill="none" stroke="#BEB3E9" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="875" cy="170" r="27" fill="url(#brand)"/>
+    <path d="M877 151l-14 22h11l-3 17 16-25h-12z" fill="#FFF"/>
+
+    <!-- The output mirrors the text, table and formula in the source page. -->
+    <rect x="944" y="49" width="211" height="236" rx="12" fill="white" stroke="#CFC8EA" filter="url(#shadow)"/>
+    <path d="M956 49h187a12 12 0 0 1 12 12v31H944V61a12 12 0 0 1 12-12Z" fill="#F2EFFC"/>
+    <text x="961" y="77" fill="#6450AE" font-size="15" font-weight="700">Markdown</text>
+    <path d="m1123 66-6 5 6 5m10-10 6 5-6 5" fill="none" stroke="#9C8CC8" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="961" y="119" fill="#534377" font-size="16" font-weight="700"># Document</text>
+    <path d="M962 135h171m-171 11h148" stroke="#BEB4D6" stroke-width="3" stroke-linecap="round"/>
+    <rect x="961" y="163" width="177" height="57" rx="4" fill="#FAF9FD" stroke="#D3C9E9"/>
+    <path d="M962 182h175m-175 19h175m-116-37v55m58-55v55" stroke="#D3C9E9"/>
+    <path d="M969 173h29m30 0h22m35 0h26m-142 19h35m24 0h18m39 0h34m-150 19h26m33 0h26m33 0h19" stroke="#A99AC8" stroke-width="2.2" stroke-linecap="round"/>
+    <text x="961" y="251" fill="#7D699F" font-family="Consolas, Menlo, monospace" font-size="15">$x^2+y^2=r^2$</text>
+    <text x="1049" y="318" text-anchor="middle" fill="#8D85A4" font-size="13">Structured output</text>
+  </g>
+</svg>

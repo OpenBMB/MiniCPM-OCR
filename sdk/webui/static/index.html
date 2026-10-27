@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MiniCPM-V OCR 文档解析</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='13' font-size='13'>📄</text></svg>">
+<link rel="stylesheet" href="/vendor/katex/katex.min.css">
+<style>
+:root{
+  --bg:#0f1115; --panel:#161922; --panel-2:#1d2130; --line:#2a3040;
+  --fg:#e6e9f0; --muted:#8b93a7; --accent:#5b8cff; --accent-dim:#2d4a8a;
+  --ok:#3fb950; --warn:#d29922; --err:#f85149;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg); color:var(--fg); font:14px/1.6 -apple-system,BlinkMacSystemFont,
+  "Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  display:flex; flex-direction:column; overflow:hidden;
+}
+header{
+  display:flex; align-items:center; gap:14px; padding:10px 16px;
+  background:var(--panel); border-bottom:1px solid var(--line); flex:none;
+}
+header h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.3px}
+.spacer{flex:1}
+.pill{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--panel-2);
+  border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.pill.ok{color:var(--ok);border-color:#1d4429}
+.pill.err{color:var(--err);border-color:#5c2326}
+main{flex:1;display:flex;min-height:0}
+
+
+#side{width:290px;flex:none;background:var(--panel);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;min-height:0}
+.sec{padding:12px;border-bottom:1px solid var(--line)}
+.sec h2{font-size:12px;color:var(--muted);margin:0 0 9px;font-weight:600;letter-spacing:.6px}
+#drop{border:1.5px dashed var(--line);border-radius:10px;padding:18px 10px;text-align:center;
+  color:var(--muted);cursor:pointer;transition:.15s;font-size:13px}
+#drop:hover,#drop.over{border-color:var(--accent);color:var(--fg);background:var(--panel-2)}
+#picked{margin-top:8px;font-size:12px;color:var(--muted);max-height:88px;overflow:auto}
+#picked div{padding:1px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+label.row{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;cursor:pointer}
+button{font:inherit;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);
+  color:var(--fg);padding:7px 12px;cursor:pointer;transition:.15s}
+button:hover:not(:disabled){border-color:var(--accent)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;width:100%;margin-top:10px;font-weight:600}
+button.primary:hover:not(:disabled){background:#4a7bef}
+#jobs{flex:1;overflow:auto;padding:8px}
+.job{padding:9px 10px;border-radius:8px;border:1px solid transparent;cursor:pointer;margin-bottom:5px;position:relative}
+.job:hover{background:var(--panel-2)}
+.job.active{background:var(--panel-2);border-color:var(--accent-dim)}
+.job .nm{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:20px}
+.job .meta{font-size:11px;color:var(--muted);margin-top:3px;display:flex;gap:7px;flex-wrap:wrap}
+.job .del{position:absolute;top:7px;right:7px;opacity:0;border:none;background:none;color:var(--muted);
+  padding:0 4px;font-size:15px;line-height:1}
+.job:hover .del{opacity:1}
+.job .del:hover{color:var(--err)}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;vertical-align:middle}
+.dot.done{background:var(--ok)}.dot.failed{background:var(--err)}
+.dot.running,.dot.queued,.dot.loading_models{background:var(--warn)}
+
+
+#center{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--bg)}
+.bar{display:flex;align-items:center;gap:10px;padding:7px 12px;background:var(--panel);
+  border-bottom:1px solid var(--line);flex:none;font-size:12px;flex-wrap:wrap}
+.bar label{display:flex;align-items:center;gap:5px;color:var(--muted);cursor:pointer;user-select:none}
+#stage{flex:1;overflow:auto;padding:16px;display:flex;justify-content:center;align-items:flex-start}
+#canvas{position:relative;line-height:0;box-shadow:0 4px 24px rgba(0,0,0,.5)}
+#canvas img{display:block;max-width:none}
+#canvas svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#canvas rect{fill:transparent;stroke-width:2;vector-effect:non-scaling-stroke;cursor:pointer;transition:.1s}
+#canvas rect:hover{fill:rgba(91,140,255,.16)}
+#canvas rect.sel{fill:rgba(91,140,255,.25);stroke-width:3.5}
+#canvas text{font-size:11px;fill:#fff;paint-order:stroke;stroke:#000;stroke-width:3;
+  stroke-linejoin:round;pointer-events:none;font-weight:700}
+#thumbs{display:flex;gap:7px;padding:8px 12px;overflow-x:auto;background:var(--panel);
+  border-top:1px solid var(--line);flex:none}
+#thumbs .t{flex:none;width:52px;height:70px;border:2px solid var(--line);border-radius:4px;
+  cursor:pointer;background:#fff center/cover no-repeat;position:relative}
+#thumbs .t.active{border-color:var(--accent)}
+#thumbs .t span{position:absolute;bottom:0;right:0;background:rgba(0,0,0,.72);color:#fff;
+  font-size:10px;padding:0 3px;border-radius:3px 0 0 0;line-height:1.5}
+
+
+#right{width:46%;max-width:860px;flex:none;border-left:1px solid var(--line);
+  display:flex;flex-direction:column;background:var(--panel);min-width:0}
+.tabs{display:flex;gap:2px;padding:7px 10px 0;border-bottom:1px solid var(--line);flex:none;align-items:center}
+.tab{padding:6px 14px;border-radius:7px 7px 0 0;cursor:pointer;color:var(--muted);font-size:13px;border:1px solid transparent;border-bottom:none}
+.tab.active{background:var(--bg);color:var(--fg);border-color:var(--line)}
+#panes{flex:1;overflow:auto;min-height:0;background:var(--bg)}
+.pane{display:none;padding:18px 20px}
+.pane.active{display:block}
+#md{font-size:14.5px;word-wrap:break-word}
+#md img{max-width:100%;border-radius:4px;background:#fff}
+#md table{border-collapse:collapse;margin:12px 0;font-size:13px;background:var(--panel);display:block;overflow-x:auto;max-width:100%}
+#md th,#md td{border:1px solid var(--line);padding:5px 9px;text-align:left;vertical-align:top}
+#md th{background:var(--panel-2);font-weight:600}
+#md h1,#md h2,#md h3{margin:1.2em 0 .5em;line-height:1.35}
+#md h1{font-size:1.5em}#md h2{font-size:1.28em}#md h3{font-size:1.1em}
+#md a{color:#79b8ff}
+#md a:hover{color:#a9d1ff}
+#md code{background:var(--panel-2);padding:1px 5px;border-radius:4px;font-size:.9em}
+#md pre{background:var(--panel-2);padding:11px;border-radius:7px;overflow:auto}
+#md blockquote{border-left:3px solid var(--line);margin:1em 0;padding-left:12px;color:var(--muted)}
+#md .katex{font-size:1.04em}
+#md .katex-display{overflow-x:auto;overflow-y:hidden;padding:2px 0}
+#src{white-space:pre-wrap;word-break:break-word;font:12.5px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace;color:#c8cfdd}
+.blk{border:1px solid var(--line);border-radius:8px;padding:9px 11px;margin-bottom:8px;cursor:pointer;background:var(--panel)}
+.blk:hover{border-color:var(--accent-dim)}
+.blk.sel{border-color:var(--accent);background:var(--panel-2)}
+.blk .h{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.blk .tag{padding:1px 7px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line);color:var(--fg);font-size:11px}
+.blk .c{margin-top:6px;font-size:12.5px;color:#c8cfdd;max-height:88px;overflow:hidden;white-space:pre-wrap;word-break:break-word}
+.blk img{max-width:100%;margin-top:6px;border-radius:4px;background:#fff}
+.note{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#9ccfff;
+  background:#10243b;border:1px solid #1d4a7a;border-left-width:3px;
+  padding:8px 11px;border-radius:6px;margin-bottom:14px}
+.note b{color:#cfe6ff;font-weight:600}
+.empty{color:var(--muted);text-align:center;padding:48px 20px;font-size:13px}
+.err{color:var(--err);background:#2b1416;border:1px solid #5c2326;padding:10px 12px;border-radius:8px;margin:10px 0;font-size:13px}
+.badge{font-size:11px;padding:2px 7px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line);color:var(--muted)}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#333a4d;border-radius:5px}
+::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+<header>
+  <h1>MiniCPM-V OCR 文档解析</h1>
+  <span class="pill" id="hEngine">引擎检查中…</span>
+  <span class="pill" id="hModels">模型未加载</span>
+  <div class="spacer"></div>
+  <span class="pill" id="hJob"></span>
+</header>
+
+<main>
+  <aside id="side">
+    <div class="sec">
+      <h2>新建解析</h2>
+      <div id="drop">拖拽文件到这里，或点击选择<br><span style="font-size:11px">PDF（多页）/ PNG / JPG / BMP / WEBP / TIF</span></div>
+      <input type="file" id="file" multiple accept=".pdf,.png,.jpg,.jpeg,.bmp,.webp,.tif,.tiff" hidden>
+      <div id="picked"></div>
+      <label class="row"><input type="checkbox" id="upright" checked> 旋转摆正预处理</label>
+      <button class="primary" id="go" disabled>开始解析</button>
+    </div>
+    <div class="sec" style="padding-bottom:6px"><h2 style="margin:0">解析历史</h2></div>
+    <div id="jobs"></div>
+  </aside>
+
+  <section id="center">
+    <div class="bar">
+      <button id="prev">←</button>
+      <span id="pgInfo" style="color:var(--muted)">—</span>
+      <button id="next">→</button>
+      <label><input type="checkbox" id="showBox" checked> 版面框</label>
+      <label><input type="checkbox" id="showNum" checked> 序号</label>
+      <label><input type="checkbox" id="onlyVlm"> 仅 VLM 块</label>
+      <div class="spacer"></div>
+      <span class="badge" id="uprightInfo" style="display:none"></span>
+      <button id="zoomOut">−</button><span id="zoomVal" style="color:var(--muted);min-width:40px;text-align:center">适应</span><button id="zoomIn">+</button>
+      <button id="zoomFit">适应</button>
+    </div>
+    <div id="stage"><div class="empty">上传 PDF 或图片开始解析，或从左侧历史中打开一次解析结果</div></div>
+    <div id="thumbs" style="display:none"></div>
+  </section>
+
+  <section id="right">
+    <div class="tabs">
+      <div class="tab active" data-p="md">渲染</div>
+      <div class="tab" data-p="src">源码</div>
+      <div class="tab" data-p="blocks">逐块</div>
+      <div class="spacer"></div>
+      <label title="一张表被分页截成两半时，在渲染和下载里把它接回去（页面图与版面框不变）"><input type="checkbox" id="mergeTables"> 合并跨页表格<span id="mergeCount" style="color:#79b8ff"></span></label>
+      <button id="copy" style="padding:4px 10px;font-size:12px">复制</button>
+      <button id="dl" style="padding:4px 10px;font-size:12px;margin-left:5px">下载 .md</button>
+    </div>
+    <div id="panes">
+      <div class="pane active" id="pane-md"><div id="md"><div class="empty">暂无内容</div></div></div>
+      <div class="pane" id="pane-src"><div id="src"></div></div>
+      <div class="pane" id="pane-blocks"><div id="blocks"><div class="empty">暂无内容</div></div></div>
+    </div>
+  </section>
+</main>
+
+<script src="/vendor/marked.min.js"></script>
+<script src="/vendor/purify.min.js"></script>
+<script src="/vendor/katex/katex.min.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const state = {jobs:[], jobId:null, pages:[], page:0, sel:null, zoom:null, poll:null, files:[]};
+
+const LABEL_COLORS = {
+  text:'#5b8cff', content:'#5b8cff', abstract:'#5b8cff', paragraph_title:'#f0883e',
+  doc_title:'#ff7b72', figure_title:'#d2a8ff', table:'#3fb950', display_formula:'#ffa657',
+  inline_formula:'#ffd33d', formula_number:'#8b949e', image:'#a371f7', chart:'#39c5cf',
+  header:'#6e7681', footer:'#6e7681', footnote:'#8b949e', seal:'#f85149',
+  header_image:'#a371f7', footer_image:'#a371f7', reference:'#58a6ff',
+  reference_content:'#58a6ff', vertical_text:'#56d364', number:'#8b949e',
+  aside_text:'#8b949e', algorithm:'#d2a8ff', vision_footnote:'#8b949e', content_:'#5b8cff'
+};
+const colorOf = l => LABEL_COLORS[l] || '#8b949e';
+const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+
+function renderMarkdown(src, imgs){
+  const math = [];
+  const stash = (tex, display) => {
+    math.push({tex, display});
+    return `@@M${math.length-1}@@`;
+  };
+  let text = src
+    .replace(/\$\$([\s\S]+?)\$\$/g, (_,t)=>stash(t,true))
+    .replace(/\\\[([\s\S]+?)\\\]/g, (_,t)=>stash(t,true))
+    .replace(/\\\(([\s\S]+?)\\\)/g, (_,t)=>stash(t,false))
+    .replace(/(?<!\\)\$(?!\$)((?:[^$\n\\]|\\.)+?)(?<!\\)\$(?!\$)/g, (_,t)=>stash(t,false));
+
+  let html = marked.parse(text, {breaks:false, gfm:true});
+  html = DOMPurify.sanitize(html, {
+    ADD_TAGS:['table','thead','tbody','tfoot','tr','th','td','caption','colgroup','col','sub','sup'],
+    ADD_ATTR:['colspan','rowspan','align','style']
+  });
+
+  html = html.replace(/@@M(\d+)@@/g, (_, i) => {
+    const m = math[+i];
+    try {
+      return katex.renderToString(m.tex, {displayMode:m.display, throwOnError:false, strict:false});
+    } catch(e){
+      return `<code>${esc(m.tex)}</code>`;
+    }
+  });
+
+  let k = 0;
+  html = html.replace(/<img(?![^>]*\bsrc=["'][^"']+["'])[^>]*>/g,
+    () => (k < imgs.length ? `<img src="${imgs[k++]}" alt="图块">` : ''));
+  return html;
+}
+
+
+async function health(){
+  try{
+    const h = await (await fetch('/api/health')).json();
+    const e = h.engine||{};
+    const el = $('#hEngine');
+    el.className = 'pill ' + (e.reachable && e.model_match ? 'ok' : 'err');
+    el.textContent = e.reachable
+      ? (e.model_match ? `引擎就绪 ${e.model_name}` : `模型名不匹配：服务端 ${(e.served||[]).join(',')||'无'}`)
+      : '引擎不可达';
+    el.title = e.error || (e.url||'');
+    const m = h.models||{};
+    const mel = $('#hModels');
+    mel.className = 'pill ' + (m.loaded ? 'ok' : '');
+    mel.textContent = m.loaded ? `版面${m.layout?'✓':'✗'} 摆正${m.upright?'✓':'✗'}` : '模型首次解析时加载';
+  }catch(e){ $('#hEngine').className='pill err'; $('#hEngine').textContent='前端异常'; }
+}
+
+
+const STATUS_TEXT = {queued:'排队中', loading_models:'加载模型', running:'解析中', done:'完成', failed:'失败'};
+async function loadJobs(){
+  const d = await (await fetch('/api/jobs')).json();
+  state.jobs = d.jobs||[];
+  const box = $('#jobs');
+  if(!state.jobs.length){ box.innerHTML = '<div class="empty" style="padding:24px 10px">暂无历史</div>'; return; }
+  box.innerHTML = state.jobs.map(j=>{
+    const run = j.status==='running'||j.status==='queued'||j.status==='loading_models';
+    const prog = run && j.pages_done ? ` ${j.pages_done} 页` : (j.pages_total?` ${j.pages_total} 页`:'');
+    return `<div class="job ${j.id===state.jobId?'active':''}" data-id="${j.id}">
+      <button class="del" data-del="${j.id}" title="删除">×</button>
+      <div class="nm">${esc(j.name)}</div>
+      <div class="meta">
+        <span><i class="dot ${j.status}"></i> ${STATUS_TEXT[j.status]||j.status}${prog}</span>
+        ${j.upright?'<span>摆正</span>':''}
+        <span>${esc((j.created_at||'').slice(5,16))}</span>
+        ${j.elapsed_sec?`<span>${j.elapsed_sec}s</span>`:''}
+      </div></div>`;
+  }).join('');
+  box.querySelectorAll('.job').forEach(el=>el.onclick = ev=>{
+    if(ev.target.dataset.del) return;
+    openJob(el.dataset.id);
+  });
+  box.querySelectorAll('.del').forEach(b=>b.onclick = async ev=>{
+    ev.stopPropagation();
+    if(!confirm('删除这条解析记录？')) return;
+    const r = await fetch('/api/jobs/'+b.dataset.del, {method:'DELETE'});
+    if(!r.ok){ alert((await r.json()).error||'删除失败'); return; }
+    if(state.jobId===b.dataset.del){ state.jobId=null; state.pages=[]; renderAll(); }
+    loadJobs();
+  });
+
+  const busy = state.jobs.some(j=>['queued','running','loading_models'].includes(j.status));
+  clearTimeout(state.poll);
+  if(busy) state.poll = setTimeout(()=>{ loadJobs(); if(state.jobId) refreshIfBusy(); }, 1000);
+}
+
+async function refreshIfBusy(){
+  const j = state.jobs.find(x=>x.id===state.jobId);
+  if(j && ['running','loading_models'].includes(j.status)) await openJob(state.jobId, true);
+}
+
+async function openJob(id, keepPage){
+  state.jobId = id;
+  const j = state.jobs.find(x=>x.id===id) || {};
+  $('#hJob').textContent = j.name ? `${j.name}` : '';
+  const mt = $('#mergeTables').checked ? 1 : 0;
+  const d = await (await fetch(`/api/jobs/${id}/result?merge_tables=${mt}`)).json();
+  const prev = state.page;
+  state.pages = d.pages||[];
+  state.merges = d.merges||0;
+  state.page = keepPage ? Math.min(prev, Math.max(0,state.pages.length-1)) : 0;
+  state.sel = null;
+  if((d.job||{}).status === 'failed' && (d.job||{}).error){
+    $('#stage').innerHTML = `<div class="err" style="max-width:560px">解析失败：${esc(d.job.error)}</div>`;
+    $('#thumbs').style.display='none'; $('#md').innerHTML=''; $('#src').textContent=''; $('#blocks').innerHTML='';
+    loadJobs(); return;
+  }
+  renderAll();
+  loadJobs();
+}
+
+
+function curPage(){ return state.pages[state.page]; }
+
+function renderAll(){ renderStage(); renderThumbs(); renderRight(); updateMergeBadge(); }
+
+function updateMergeBadge(){
+
+  const el = $('#mergeCount');
+  if(!$('#mergeTables').checked || !state.jobId){ el.textContent=''; return; }
+  el.textContent = state.merges ? ` ·合并 ${state.merges} 处` : ' ·无可合并';
+}
+
+function renderStage(){
+  const p = curPage(), stage = $('#stage');
+  if(!p){ stage.innerHTML = '<div class="empty">暂无页面</div>'; $('#pgInfo').textContent='—'; return; }
+  $('#pgInfo').textContent = `${state.page+1} / ${state.pages.length}　${p.image_id}`;
+
+  const u = p.upright, ui = $('#uprightInfo');
+  if(u && u.applied){
+    ui.style.display=''; ui.textContent = `摆正 ${u.correction}°（deskew ${u.deskew} + 方向 ${u.label}）`;
+  } else if(u && u.gated){ ui.style.display=''; ui.textContent='摆正：非文档，已跳过';
+  } else if(u){ ui.style.display=''; ui.textContent=`摆正：无需旋转（${u.correction??0}°）`;
+  } else { ui.style.display='none'; }
+
+  const scale = state.zoom || fitScale(p);
+  $('#zoomVal').textContent = state.zoom ? Math.round(scale*100)+'%' : '适应';
+  const w = Math.round(p.width*scale), h = Math.round(p.height*scale);
+  const show = $('#showBox').checked, nums = $('#showNum').checked, onlyVlm = $('#onlyVlm').checked;
+  const blocks = (p.blocks||[]).filter(b => !onlyVlm || !b.skip_vlm);
+
+  stage.innerHTML = `<div id="canvas" style="width:${w}px;height:${h}px">
+    ${p.page_url?`<img src="${p.page_url}" width="${w}" height="${h}" alt="${esc(p.image_id)}">`
+                :'<div class="empty">该页没有保存底图（需要 pipeline.save_pages）</div>'}
+    ${show?`<svg viewBox="0 0 ${p.width} ${p.height}" preserveAspectRatio="none">
+      ${blocks.map(b=>{
+
+
+
+        const rs = b.regions && b.regions.length ? b.regions : [b.bbox];
+        const c = colorOf(b.label), sel = state.sel===b.order?'sel':'';
+        const merged = rs.length>1;
+        return rs.map((r,i)=>{
+          const [x1,y1,x2,y2]=r;
+          const dash = merged ? ' stroke-dasharray="6 3"' : '';
+          const part = merged ? ` · 第${i+1}/${rs.length}段(已并入同一 crop)` : '';
+          return `<rect data-o="${b.order}" x="${x1}" y="${y1}" width="${Math.max(1,x2-x1)}" height="${Math.max(1,y2-y1)}"
+            stroke="${c}"${dash} class="${sel}"><title>${esc(b.label)} · ${(b.score*100).toFixed(1)}% · ${x2-x1}×${y2-y1}${b.skip_vlm?' · 不送VLM':''}${part}</title></rect>`;
+        }).join('');
+      }).join('')}
+      ${nums?blocks.map(b=>{
+        const rs = b.regions && b.regions.length ? b.regions : [b.bbox];
+
+        const score = (b.score*100).toFixed(1);
+        return rs.map((r,i)=>`<text x="${r[0]+3}" y="${r[1]+13}" fill="${colorOf(b.label)}">${b.order}${rs.length>1?`.${i+1}`:''} ${score}%</text>`).join('');
+      }).join(''):''}
+    </svg>`:''}
+  </div>`;
+  stage.querySelectorAll('rect').forEach(r=>r.onclick = ()=>selectBlock(+r.dataset.o, 'canvas'));
+}
+
+function fitScale(p){
+  const st = $('#stage');
+  if(!p.width||!p.height) return 1;
+  return Math.min((st.clientWidth-40)/p.width, (st.clientHeight-40)/p.height, 1.6);
+}
+
+function renderThumbs(){
+  const box = $('#thumbs');
+  if(state.pages.length < 2){ box.style.display='none'; return; }
+  box.style.display='flex';
+  box.innerHTML = state.pages.map((p,i)=>
+    `<div class="t ${i===state.page?'active':''}" data-i="${i}"
+      style="background-image:url('${p.page_url}')"><span>${i+1}</span></div>`).join('');
+  box.querySelectorAll('.t').forEach(t=>t.onclick=()=>{ state.page=+t.dataset.i; state.sel=null; renderAll(); });
+}
+
+function renderRight(){
+  const p = curPage();
+  if(!p){ $('#md').innerHTML='<div class="empty">暂无内容</div>'; $('#src').textContent=''; $('#blocks').innerHTML=''; return; }
+  const imgs = (p.blocks||[]).filter(b=>['image','chart','seal','header_image','footer_image'].includes(b.label) && b.crop_url)
+                             .map(b=>b.crop_url);
+
+
+  let note = '';
+  if(p.merge && p.merge.absorbed)
+    note = `<div class="note"><b>↑</b><div>本页开头的表格是<b>上一页表格的续表</b>，已合并到上一页显示。<br>
+      左侧页面图仍是本页原样 —— 取消勾选「合并跨页表格」可看回本页自己的内容。</div></div>`;
+  else if(p.merge && p.merge.extended)
+    note = `<div class="note"><b>↓</b><div>本页末尾的表格已<b>接上下一页的续表</b>，下面渲染的是合并后的完整表格。</div></div>`;
+  $('#md').innerHTML = note + (p.markdown ? renderMarkdown(p.markdown, imgs)
+    : (p.merge && p.merge.absorbed ? '' : '<div class="empty">该页无文本输出</div>'));
+  $('#src').textContent = p.markdown || '';
+  $('#blocks').innerHTML = (p.blocks||[]).map(b=>`
+    <div class="blk ${state.sel===b.order?'sel':''}" data-o="${b.order}">
+      <div class="h">
+        <span class="tag" style="border-color:${colorOf(b.label)};color:${colorOf(b.label)}">${b.order} ${esc(b.label)}</span>
+        <span>${(b.score*100).toFixed(1)}%</span>
+        <span>${b.bbox[2]-b.bbox[0]}×${b.bbox[3]-b.bbox[1]}</span>
+        ${b.regions && b.regions.length>1?`<span style="color:#79b8ff">跨 ${b.regions.length} 块合并识别</span>`:''}
+        ${b.skip_vlm?'<span>不送 VLM</span>':`<span>${(b.content||'').length} 字</span>`}
+        ${b.merged_into_previous_page?'<span style="color:#79b8ff">已并入上一页</span>':''}
+        ${b.status && b.status!=='ok' && b.status!=='skipped_no_vlm'?`<span style="color:var(--err)">${esc(b.status)}</span>`:''}
+      </div>
+      ${b.skip_vlm && b.crop_url?`<img src="${b.crop_url}" alt="">`:''}
+      ${b.content?`<div class="c">${esc(b.content.slice(0,400))}</div>`:''}
+    </div>`).join('') || '<div class="empty">该页没有检出版面块</div>';
+  $('#blocks').querySelectorAll('.blk').forEach(el=>el.onclick=()=>selectBlock(+el.dataset.o,'list'));
+}
+
+function selectBlock(order, from){
+  state.sel = state.sel===order ? null : order;
+  renderStage();
+
+  $('#blocks').querySelectorAll('.blk').forEach(el=>{
+    const on = +el.dataset.o === state.sel;
+    el.classList.toggle('sel', on);
+    if(on && from==='canvas'){
+      switchTab('blocks');
+      el.scrollIntoView({block:'center', behavior:'smooth'});
+    }
+  });
+  if(from==='list' && state.sel!==null){
+    const r = $('#stage').querySelector(`rect[data-o="${state.sel}"]`);
+    if(r) r.scrollIntoView({block:'center', inline:'center', behavior:'smooth'});
+  }
+}
+
+function switchTab(p){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.p===p));
+  document.querySelectorAll('.pane').forEach(el=>el.classList.toggle('active', el.id==='pane-'+p));
+}
+
+
+function setFiles(list){
+  state.files = Array.from(list||[]);
+  $('#picked').innerHTML = state.files.map(f=>`<div>• ${esc(f.name)} <span style="opacity:.6">${(f.size/1048576).toFixed(1)}M</span></div>`).join('');
+  $('#go').disabled = !state.files.length;
+}
+$('#drop').onclick = ()=>$('#file').click();
+$('#file').onchange = e=>setFiles(e.target.files);
+['dragenter','dragover'].forEach(t=>$('#drop').addEventListener(t, e=>{e.preventDefault();$('#drop').classList.add('over');}));
+['dragleave','drop'].forEach(t=>$('#drop').addEventListener(t, e=>{e.preventDefault();$('#drop').classList.remove('over');}));
+$('#drop').addEventListener('drop', e=>setFiles(e.dataTransfer.files));
+
+$('#go').onclick = async ()=>{
+  if(!state.files.length) return;
+  const fd = new FormData();
+  state.files.forEach(f=>fd.append('files', f, f.name));
+  fd.append('upright', $('#upright').checked ? 'true' : 'false');
+  $('#go').disabled = true; $('#go').textContent = '上传中…';
+  try{
+    const r = await fetch('/api/jobs', {method:'POST', body:fd});
+    const d = await r.json();
+    if(!r.ok){ alert(d.error||'上传失败'); return; }
+    setFiles([]); $('#file').value='';
+    state.jobId = d.id;
+    await loadJobs();
+    openJob(d.id);
+  }catch(e){ alert('上传失败：'+e); }
+  finally{ $('#go').textContent='开始解析'; $('#go').disabled = !state.files.length; }
+};
+
+
+$('#prev').onclick = ()=>{ if(state.page>0){state.page--;state.sel=null;renderAll();} };
+$('#next').onclick = ()=>{ if(state.page<state.pages.length-1){state.page++;state.sel=null;renderAll();} };
+document.addEventListener('keydown', e=>{
+  if(['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) return;
+  if(e.key==='ArrowLeft') $('#prev').click();
+  if(e.key==='ArrowRight') $('#next').click();
+});
+['showBox','showNum','onlyVlm'].forEach(id=>$('#'+id).onchange = renderStage);
+$('#zoomIn').onclick = ()=>{ state.zoom = Math.min((state.zoom||fitScale(curPage()||{}))*1.25, 5); renderStage(); };
+$('#zoomOut').onclick = ()=>{ state.zoom = Math.max((state.zoom||fitScale(curPage()||{}))/1.25, .1); renderStage(); };
+$('#zoomFit').onclick = ()=>{ state.zoom = null; renderStage(); };
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>switchTab(t.dataset.p));
+
+$('#mergeTables').onchange = ()=>{ if(state.jobId) openJob(state.jobId, true); };
+$('#copy').onclick = async ()=>{
+  const p = curPage(); if(!p) return;
+  await navigator.clipboard.writeText(p.markdown||'');
+  $('#copy').textContent='已复制'; setTimeout(()=>$('#copy').textContent='复制', 1200);
+};
+$('#dl').onclick = ()=>{
+  if(!state.jobId) return;
+
+  location.href = `/api/jobs/${state.jobId}/markdown.md?merge_tables=${$('#mergeTables').checked?1:0}`;
+};
+window.addEventListener('resize', ()=>{ if(!state.zoom) renderStage(); });
+
+health(); setInterval(health, 15000); loadJobs();
+</script>
+</body>
+</html>

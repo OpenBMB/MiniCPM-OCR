@@ -1,0 +1,8 @@
+include LICENSE
+recursive-include minicpmvocr *.py *.yaml py.typed
+prune scripts
+prune tests
+prune webdemo
+prune webui
+exclude uv.lock
+global-exclude __pycache__ *.py[cod] .DS_Store

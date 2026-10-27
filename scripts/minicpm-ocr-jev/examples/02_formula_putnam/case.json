@@ -1,0 +1,33 @@
+{
+  "case_id": "formula_putnam_1999",
+  "category": "formula",
+  "lang": "en",
+  "block_image": "block.png",
+  "reference_render": "reference_render.png",
+  "reference_render_of": "ocr_output",
+  "provenance": {
+    "dataset": "OmniDocBench v1.6",
+    "document": "Putnam Mathematical Competition 1999, Solutions, page 3",
+    "block": "crop 7"
+  },
+  "candidates": [
+    {
+      "role": "ground_truth",
+      "text": "$$P''(x) = (k^2 - k)x^{k-2}R(x) + 2kx^{k-1}R'(x) + x^kR''(x).$$",
+      "note": "reference transcription from the source dataset; not itself labelled there"
+    },
+    {
+      "role": "ocr_output",
+      "label": "consistent",
+      "producing_model": "withheld",
+      "text": "\\[ P ^ {\\prime \\prime} (x) = \\left(k ^ {2} - k\\right) x ^ {k - 2} R (x) + 2 k x ^ {k - 1} R ^ {\\prime} (x) + x ^ {k} R ^ {\\prime \\prime} (x). \\]",
+      "label_source": "label carried by the source dataset for this candidate"
+    }
+  ],
+  "what_this_shows": "Both candidates are labelled consistent even though their LaTeX differs substantially: different delimiters, \\prime vs ', \\left( vs (, and extra spacing. Rendering collapses those differences, so both should score high. String comparison against the ground truth would wrongly penalise the second one. Both score high, which is the point: the source data labels both as consistent, and rendering collapses the LaTeX differences that a string comparison would punish.",
+  "observed_prob_yes": {
+    "ground_truth": 0.96813,
+    "ocr_output": 0.96552
+  },
+  "observed_note": "Measured once on the reference setup. Scores are not bitwise reproducible, so expect small differences; large ones mean something in your setup differs."
+}

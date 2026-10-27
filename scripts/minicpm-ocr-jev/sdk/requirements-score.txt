@@ -1,0 +1,25 @@
+# The score layer (sdk/jev_score/): prompt assembly, the backend adapter, softmax, and the
+# thin HTTP shell. Nothing here renders, so none of the renderer's pinned
+# dependencies -- Chromium, Node, the font stack, Markdown -- belongs in this
+# environment. That is the point of the layer: a host that scores pre-rendered
+# images installs this file and nothing else.
+#
+# vLLM is absent on purpose. It runs as its own process, in its own virtual
+# environment (bash serve/setup_backend.sh <venv>), and must not share one with
+# this: vLLM requires only "pillow>=12.3.0" while the pin below is exact, so
+# `pip install -U vllm` in a shared environment would move Pillow forward.
+#
+# Lower bounds, not pins, except where noted. Nothing here touches a prompt, so
+# none of it can move a score.
+fastapi>=0.110
+uvicorn>=0.27
+httpx>=0.27
+pydantic>=2.6
+PyYAML>=6.0
+
+# Pinned, unlike the rest. Pillow only runs on this path for images whose aspect
+# ratio exceeds 199:1, which are padded with white and re-encoded; for every
+# other image the bytes are forwarded untouched. Those padded images do reach the
+# model as Pillow drew them, so the version is held at the renderer's pin rather
+# than left to float.
+Pillow==12.3.0

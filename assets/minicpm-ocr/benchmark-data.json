@@ -1,0 +1,172 @@
+{
+  "source": {
+    "document": "MiniCPM-OCR 1.0 - 飞书云文档.pdf",
+    "received_date": "2026-10-22",
+    "benchmark_page": 6,
+    "throughput_page": 7,
+    "note": "Uncontested benchmark scores from the supplied PDF are retained; unresolved benchmark scores remain null. Absolute and relative throughput values are confirmed by the user on 2026-10-22 against the supplied throughput chart."
+  },
+  "benchmarks": {
+    "scale": "Shared raw score scale from 0 to 100; no per-axis normalization.",
+    "axes": [
+      {
+        "name": "Real5-OmniDocBench",
+        "label": "Real5-\nOmniDocBench"
+      },
+      {
+        "name": "Wild-OmniDocBench",
+        "label": "Wild-\nOmniDocBench"
+      },
+      {
+        "name": "OmniDocBench v1.6",
+        "label": "OmniDocBench\nv1.6"
+      },
+      {
+        "name": "olmOCR-Bench",
+        "label": "olmOCR-Bench"
+      },
+      {
+        "name": "OCRBench v2",
+        "label": "OCRBench v2"
+      },
+      {
+        "name": "CHAOS-Bench",
+        "label": "CHAOS-Bench"
+      }
+    ],
+    "models": [
+      {
+        "name": "MiniCPM-OCR 1.0",
+        "scores": [
+          93.68,
+          92.39,
+          96.51,
+          82.7,
+          54.7,
+          null
+        ],
+        "color": "#6146D8",
+        "status": "pending_confirmation"
+      },
+      {
+        "name": "Xiaomi-OCR-0",
+        "scores": [
+          92.73,
+          92.06,
+          96.83,
+          82.1,
+          47,
+          17.84
+        ],
+        "color": "#DB965C"
+      },
+      {
+        "name": "PaddleOCR-VL-1.6",
+        "scores": [
+          93.188,
+          91.49,
+          null,
+          80.2,
+          35.2,
+          9.32
+        ],
+        "color": "#4CABA3",
+        "status": "pending_confirmation"
+      },
+      {
+        "name": "GLM-OCR",
+        "scores": [
+          null,
+          90.4,
+          null,
+          75.2,
+          45.5,
+          8.62
+        ],
+        "color": "#85A951",
+        "status": "pending_confirmation"
+      },
+      {
+        "name": "MinerU2.5-Pro",
+        "scores": [
+          null,
+          90.06,
+          null,
+          79.5,
+          29.1,
+          13.9
+        ],
+        "color": "#CB7897",
+        "status": "pending_confirmation"
+      },
+      {
+        "name": "HunyuanOCR-1.5",
+        "scores": [
+          88.542,
+          87.01,
+          94.74,
+          78.6,
+          45,
+          14.88
+        ],
+        "color": "#8C97AA"
+      }
+    ]
+  },
+  "throughput": {
+    "unit": "pages/s",
+    "conditions": {
+      "dataset": "OmniDocBench v1.6",
+      "images": 1651,
+      "hardware": "NVIDIA GeForce RTX 5090",
+      "image_concurrency": 1,
+      "sdk_configuration": "Official SDKs and default configurations",
+      "acceleration": "All models use accelerated configurations"
+    },
+    "relative_reference": "MiniCPM-OCR 1.0",
+    "models": [
+      {
+        "name": "MiniCPM-OCR 1.0",
+        "pages_per_second": 1.213,
+        "status": "confirmed",
+        "relative_throughput": 1.0
+      },
+      {
+        "name": "GLM-OCR",
+        "pages_per_second": 1.179,
+        "relative_throughput": 0.97
+      },
+      {
+        "name": "PaddleOCR-VL-1.6",
+        "pages_per_second": 0.818,
+        "relative_throughput": 0.67
+      },
+      {
+        "name": "Xiaomi-OCR-0",
+        "pages_per_second": 0.724,
+        "relative_throughput": 0.6
+      },
+      {
+        "name": "MinerU2.5-Pro-Standard",
+        "pages_per_second": 0.531,
+        "relative_throughput": 0.44
+      },
+      {
+        "name": "MinerU2.5-Pro-Advanced",
+        "pages_per_second": 0.336,
+        "relative_throughput": 0.28
+      },
+      {
+        "name": "Ovis-OCR2",
+        "pages_per_second": 0.317,
+        "relative_throughput": 0.26
+      },
+      {
+        "name": "TeleOCR",
+        "pages_per_second": 0.141,
+        "relative_throughput": 0.12
+      }
+    ],
+    "relative_status": "confirmed"
+  }
+}

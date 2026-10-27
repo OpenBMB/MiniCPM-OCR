@@ -1,0 +1,21 @@
+# Renderer. These three decide what the rendered image looks like, pixel for pixel,
+# so they are pinned to the versions the model was trained and served with.
+# Changing them changes the scores. See README, "Matching the reference renderer".
+playwright==1.62.0
+Pillow==12.3.0
+Markdown==3.10.3
+
+# Forward pass. vLLM is absent from this file on purpose, and not because it is
+# unpinned: it belongs in a separate virtual environment. vLLM requires only
+# "pillow>=12.3.0" while the pin above is exact, so in one shared environment a
+# later `pip install -U vllm` would move Pillow forward and change every score,
+# silently and with no error. Install it on its own:
+#
+#   bash serve/setup_backend.sh <venv dir>
+#
+# See README, "Install / 2. vLLM". Any build that registers
+# Qwen3_5ForConditionalGeneration serves this model; setup_backend.sh checks for
+# that rather than for a version number. Verified with:
+#
+#   vllm   0.32.0 (PyPI wheel)       torch 2.13.0+cu130
+#   vllm   0.1.dev21951+g5ff3bbfb0   torch 2.13.0+cu130   (the serving environment)

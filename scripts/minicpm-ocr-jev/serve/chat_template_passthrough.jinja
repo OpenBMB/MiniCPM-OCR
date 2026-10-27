@@ -1,0 +1,35 @@
+{#-
+  Pass-through chat template.
+
+  The reward model's prompt is not a chat template's business. Its exact bytes --
+  image placeholders, newlines, the empty assistant turn -- are part of the model
+  (see the note in infer_vllm.py), so the client builds them with build_prompt()
+  and ships the result as a single text part. This template's only job is to hand
+  those bytes back unchanged.
+
+  Why it has to exist at all: vLLM's /classify endpoint accepts images only in the
+  chat-messages form, and the chat form always runs a template. A template that
+  assembles the prompt from the parts would put the authority for those bytes in a
+  jinja file, where a stray newline silently shifts every score. This one cannot:
+  it emits text parts verbatim and ignores everything else, so whatever Python
+  produced is exactly what the model sees.
+
+  Images still reach the model: vLLM collects them from the image_url parts, in
+  the order they appear in the message, and binds the Nth image to the Nth
+  placeholder in the rendered prompt. So the client must list the original image
+  first and the rendered image second, matching build_prompt()'s placeholder order.
+
+  Requires --chat-template-content-format openai, so that message.content arrives
+  as the list of parts rather than pre-flattened into a string.
+-#}
+{%- for message in messages -%}
+{%- if message.content is string -%}
+{{- message.content -}}
+{%- else -%}
+{%- for part in message.content -%}
+{%- if part.type == 'text' -%}
+{{- part.text -}}
+{%- endif -%}
+{%- endfor -%}
+{%- endif -%}
+{%- endfor -%}

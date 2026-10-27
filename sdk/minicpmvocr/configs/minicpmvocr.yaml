@@ -1,0 +1,162 @@
+run:
+  run_tag: ''
+  run_root: ${OCR_RUN_ROOT:-${CWD}/runs}
+
+  mode: full
+  seed: 42
+
+
+input:
+  manifest: ''
+  file_path: ''
+  image_dir: ''
+  files_dir: ${OCR_INPUT_DIR:-}
+  limit: 0
+
+
+engine:
+
+  type: vllm
+  model_name: ${OCR_SERVED_NAME:-}
+
+
+  server_urls: []
+  server_url: ${VLLM_URL:-}
+  port: 0
+
+
+  api_key: ''
+  api_style: ''
+  chat_path: ''
+  health_path: ''
+  extra_headers: {}
+  extra_body: {}
+  startup_timeout_sec: 1800
+  request_timeout_sec: 300
+  request_ready_timeout_sec: 600
+  request_retry_interval_sec: 2
+
+  max_model_len: 16384
+  prompt_reserve_tokens: 512
+
+  num_ctx: 8192
+  keep_alive: ''
+  extra_options: {}
+
+
+upright:
+  enabled: false
+  doc_gate: true
+  gate_min_side: 500
+  gate_min_lines: 6
+  min_apply_deg: 0.3
+  cls_long_side: 1600
+  orientation_confirm: true
+  vote_lines: 12
+  vote_min_lines: 5
+  vote_axis_margin: 1.5
+  vote_flip_majority: 0.75
+
+
+  model_dir: ${OCR_UPRIGHT_DIR:-${ASSETS_DIR}/paddle_upright}/PP-LCNet_x1_0_doc_ori
+  det_model_dir: ${OCR_UPRIGHT_DIR:-${ASSETS_DIR}/paddle_upright}/PP-OCRv5_mobile_det
+  textline_model_dir: ${OCR_UPRIGHT_DIR:-${ASSETS_DIR}/paddle_upright}/PP-LCNet_x1_0_textline_ori
+
+layout:
+  enabled: true
+
+
+  provider: ppdoclayout3_paddlex
+  model_dir: ${OCR_LAYOUT_MODEL_DIR:-${ASSETS_DIR}/PP-DocLayoutV3}
+  device: ${OCR_LAYOUT_DEVICE:-cuda}
+
+  threshold: 0.3
+  nms: true
+
+
+  use_chart_recognition: true
+  use_seal_recognition: true
+  use_ocr_for_image_block: false
+
+
+pipeline:
+
+
+  queue_mode: concurrent
+
+
+  max_workers: 32
+  page_workers: 1
+  page_maxsize: 0
+  region_maxsize: 0
+
+
+  overlap_layout: false
+
+
+  layout_workers: 1
+
+
+  save_crops: false
+
+
+  save_pages: false
+
+  render_workers: 0
+
+
+  merge_cross_page_tables: false
+
+
+mm:
+
+
+  downsample_mode: 4x
+
+
+  max_slice_nums: 9
+  image_limit: 36
+
+prompt:
+
+
+  override_mode: legacy
+  prompt_map: ''
+
+
+decode:
+  temperature: 0.01
+  top_p: 0.001
+  top_k: 1
+  repetition_penalty: 1.0
+  no_repeat_ngram_size: 100
+  max_tokens_map: {}
+
+logging:
+  level: INFO
+  progress_log_every: 20
+
+
+tts:
+  enabled: false
+  n: 4
+  sampling:
+    temperature: 0.7
+    top_p: 0.8
+    top_k: 20
+  rm_url: http://127.0.0.1:8000
+  rm_input_form: ''
+  timeout_sec: 120
+  dump_candidates: false
+  fallback_to_greedy: true
+  rm_batch:
+    max_items: 4
+    max_wait_ms: 50
+  force_score: false
+  rm_anchor_min_side: null
+  adaptive:
+    enabled: false
+    tau: 0.98
+    n_max: null
+    rounds: []
+    seed_base: 20260918

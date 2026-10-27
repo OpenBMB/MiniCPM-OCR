@@ -1,0 +1,33 @@
+{
+  "case_id": "text_putnam_2009",
+  "category": "text",
+  "lang": "en",
+  "block_image": "block.png",
+  "reference_render": "reference_render.png",
+  "reference_render_of": "ocr_output",
+  "provenance": {
+    "dataset": "OmniDocBench v1.6",
+    "document": "Putnam Mathematical Competition 2009, Problems, page 1",
+    "block": "crop 10"
+  },
+  "candidates": [
+    {
+      "role": "ground_truth",
+      "text": "(a) $0 \\in S$;\n(b) If $x \\in S$ then $x + 1 \\in S$ and $x - 1 \\in S$; and\n(c) If $x \\in S$ and $x \\notin \\{0, 1\\}$, then $\\frac{1}{x(x-1)} \\in S$.",
+      "note": "reference transcription from the source dataset; not itself labelled there"
+    },
+    {
+      "role": "ocr_output",
+      "label": "inconsistent",
+      "producing_model": "withheld",
+      "text": "(a)(b) If    x \\in S    then    x + 1 \\in S    and    x - 1 \\in S   ; and\\[ 0 \\in S;\\]\\[ (\\mathrm{c}) \\text{ If }x\\in S \\text{ and }x\\not\\in\\{0,1\\}, \\text{ then } \\frac{1}{x(x-1)}\\in S.\\]",
+      "label_source": "label carried by the source dataset for this candidate"
+    }
+  ],
+  "what_this_shows": "The OCR output keeps almost every token of the source but destroys the list ordering: items (a) and (b) are merged, and the content of (a) is emitted afterwards as display math. A text-only metric that ignores order scores this highly; the rendered image makes the error obvious. Behaves as you would hope: the faithful transcription scores high, the reordered one is rejected.",
+  "observed_prob_yes": {
+    "ground_truth": 0.99501,
+    "ocr_output": 0.00702
+  },
+  "observed_note": "Measured once on the reference setup. Scores are not bitwise reproducible, so expect small differences; large ones mean something in your setup differs."
+}

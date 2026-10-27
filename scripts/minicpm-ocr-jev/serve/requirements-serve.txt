@@ -1,0 +1,14 @@
+# Extra dependencies for the HTTP service in this directory. The renderer's own
+# dependencies are in ../requirements.txt, and vLLM is installed separately
+# (see README, "Install / 2. vLLM") -- it runs as its own process and must not
+# share an environment with this service, because it would move the renderer's
+# Pillow pin.
+#
+# These are lower bounds, not pins. Nothing here touches an image or a prompt, so
+# none of it can move a score; pinning it would only make the service harder to
+# install next to something else. The renderer's dependencies are pinned exactly,
+# for the opposite reason.
+fastapi>=0.110
+uvicorn>=0.27
+httpx>=0.27
+pydantic>=2.6

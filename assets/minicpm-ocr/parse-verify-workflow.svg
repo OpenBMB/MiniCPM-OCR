@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="824" height="178" viewBox="0 0 824 178" role="img" aria-labelledby="title desc">
+<title id="title">See Parse + Verify in action (schematic)</title>
+<desc id="desc">1 Document: illustrative input. 2 Parser output: raw OCR output from MiniCPM-OCR 1.0 or another OCR parser. 3 MiniCPM-OCR Jev assessment: quality assessment; score, meaning and schema to confirm before release.</desc>
+<g transform="translate(-88,-811)" font-family="DejaVu Sans, Arial, Helvetica, sans-serif">
+<rect x="88" y="811" width="824" height="178" rx="3" fill="#FAFBFD" stroke="#D8DEE4" stroke-width="1"/>
+<text x="106" y="837" font-size="10" font-weight="600" fill="#656D76" letter-spacing=".6">1  DOCUMENT</text>
+<text x="389" y="837" font-size="10" font-weight="600" fill="#656D76" letter-spacing=".6">2  PARSER OUTPUT</text>
+<text x="671" y="837" font-size="10" font-weight="600" fill="#656D76" letter-spacing=".6">3  JEV ASSESSMENT</text>
+<rect x="107" y="852" width="217" height="115" rx="3" fill="#FFFFFF" stroke="#CDD5DF" stroke-width="1"/>
+<text x="120" y="875" font-size="12" font-weight="600" fill="#656D76">Illustrative input</text>
+<line x1="120" y1="893" x2="290" y2="893" stroke="#CCD1DC" stroke-width="2"/>
+<line x1="120" y1="904" x2="278" y2="904" stroke="#CCD1DC" stroke-width="2"/>
+<line x1="120" y1="915" x2="295" y2="915" stroke="#CCD1DC" stroke-width="2"/>
+<rect x="120" y="930" width="170" height="24" rx="1" fill="#F7F5FD" stroke="#D7CEE9" stroke-width="1"/>
+<line x1="173" y1="930" x2="173" y2="954" stroke="#D7CEE9" stroke-width="1"/>
+<line x1="235" y1="930" x2="235" y2="954" stroke="#D7CEE9" stroke-width="1"/>
+<rect x="389" y="852" width="217" height="115" rx="3" fill="#F2F4F8" stroke="#D8DEE4" stroke-width="1"/>
+<text x="402" y="882" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="13" font-weight="500" fill="#6753C5">[raw OCR output]</text>
+<text x="402" y="910" font-size="10" fill="#656D76">From MiniCPM-OCR 1.0</text>
+<text x="402" y="929" font-size="10" fill="#656D76">or another OCR parser</text>
+<rect x="670" y="852" width="217" height="115" rx="3" fill="#F7F4FF" stroke="#CEC3EB" stroke-width="1"/>
+<text x="683" y="882" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="12" font-weight="500" fill="#6753C5">[quality assessment]</text>
+<text x="683" y="910" font-size="10" fill="#656D76">Score, meaning and schema</text>
+<text x="683" y="929" font-size="10" fill="#656D76">to confirm before release</text>
+<line x1="341" y1="910" x2="372" y2="910" stroke="#7867CF" stroke-width="2"/>
+<path d="M366 904 L373 910 L366 916" fill="none" stroke="#7867CF" stroke-width="2"/>
+<line x1="623" y1="910" x2="654" y2="910" stroke="#7867CF" stroke-width="2"/>
+<path d="M648 904 L655 910 L648 916" fill="none" stroke="#7867CF" stroke-width="2"/>
+</g>
+</svg>
