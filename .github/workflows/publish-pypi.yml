@@ -1,0 +1,88 @@
+name: Publish SDK to PyPI
+
+on:
+  push:
+    tags:
+      - "sdk-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install build tools
+        run: python -m pip install --upgrade build twine
+      - name: Check release tag
+        run: |
+          python - <<'PY'
+          import ast
+          import os
+          from pathlib import Path
+
+          source = ast.parse(Path("sdk/minicpmvocr/_version.py").read_text())
+          version = next(
+              ast.literal_eval(node.value)
+              for node in source.body
+              if isinstance(node, ast.Assign)
+              and any(isinstance(target, ast.Name) and target.id == "__version__" for target in node.targets)
+          )
+          reference = os.environ["GITHUB_REF"]
+          if reference.startswith("refs/tags/"):
+              expected = f"refs/tags/sdk-v{version}"
+              if reference != expected:
+                  raise SystemExit(f"Release tag {reference!r} must match {expected!r}")
+          print(f"Building minicpm-ocr {version}")
+          PY
+      - name: Build SDK distributions
+        run: |
+          python -m unittest discover -s scripts/tests -p test_prepare_pypi_readme.py
+          python scripts/prepare_pypi_readme.py
+          python -m build sdk --outdir dist
+      - name: Validate package metadata
+        run: python -m twine check --strict dist/*
+      - name: Test installed wheel
+        run: |
+          python -m venv "$RUNNER_TEMP/sdk-smoke"
+          "$RUNNER_TEMP/sdk-smoke/bin/python" -m pip install dist/*.whl
+          "$RUNNER_TEMP/sdk-smoke/bin/minicpmvocr" --help
+          "$RUNNER_TEMP/sdk-smoke/bin/minicpmvocr" parse --help
+          "$RUNNER_TEMP/sdk-smoke/bin/python" - <<'PY'
+          from importlib.metadata import version
+          from importlib.resources import files
+          import minicpmvocr
+
+          assert version("minicpm-ocr") == minicpmvocr.__version__
+          assert files("minicpmvocr").joinpath("configs/minicpmvocr.yaml").is_file()
+          print(f"Installed minicpm-ocr {minicpmvocr.__version__}")
+          PY
+      - uses: actions/upload-artifact@v5
+        with:
+          name: sdk-distributions
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/sdk-v')
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/minicpm-ocr
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v6
+        with:
+          name: sdk-distributions
+          path: dist/
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
