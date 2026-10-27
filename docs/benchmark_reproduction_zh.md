@@ -47,7 +47,7 @@
 | :--- | :--- | :--- |
 | OmniDocBench v1.6 | 将整页 Markdown 与 v1.6 full GT 进行元素匹配，计算文本编辑距离、公式 CDM、表格 TEDS 和阅读顺序编辑距离。本轮使用 `quick_match`。 | [OmniDocBench 仓库与评分指南](https://github.com/opendatalab/OmniDocBench#evaluation) |
 | Real5-OmniDocBench | 复用 OmniDocBench v1.5 的标注与评分流程；Scanning、Warping、Screen-Photography、Illumination、Skew 五个场景分别评分，每个场景 1,355 页。本轮总分为五个场景 Overall 的等权平均。 | [Real5 官方数据与评测说明](https://huggingface.co/datasets/PaddlePaddle/Real5-OmniDocBench#evaluation)、[OmniDocBench v1.5 评分仓库](https://github.com/opendatalab/OmniDocBench/tree/v1_5) |
-| Wild-OmniDocBench | 对 1,350 页真实采集图像的整页 Markdown 评分，沿用 OmniDocBench 的标注与指标。本轮使用 v1.6 评分器和与 Wild 页面对应的 v1.5 GT 子集。 | [Wild 官方仓库](https://github.com/VirtualLUOUCAS/Wild_OmniDocBench#evaluation)、[OmniDocBench 评分仓库](https://github.com/opendatalab/OmniDocBench) |
+| Wild-OmniDocBench | 对 1,350 页真实采集图像的整页 Markdown 评分，沿用 OmniDocBench 的标注与指标。本轮使用 v1.6 评分器和与 Wild 页面对应的 v1.5 GT 子集。本项目报告的 Wild-OmniDocBench 分数为使用自适应旋转后的结果。 | [Wild 官方仓库](https://github.com/VirtualLUOUCAS/Wild_OmniDocBench#evaluation)、[OmniDocBench 评分仓库](https://github.com/opendatalab/OmniDocBench) |
 | olmOCR-Bench | 使用官方规则检查 Markdown 中的文本出现/缺失、阅读顺序、表格关系和公式等；先计算各类别测试通过率，再对类别分数等权平均。 | [allenai/olmocr 评分说明](https://github.com/allenai/olmocr/blob/main/olmocr/bench/README.md)、[评分代码](https://github.com/allenai/olmocr/blob/main/olmocr/bench/benchmark.py)、[官方数据集](https://huggingface.co/datasets/allenai/olmOCR-bench) |
 | OCRBench v2 | 将逐题回答写入预测 JSON 的 `predict` 字段，先用 `eval_scripts/eval.py` 按任务类型评分，再用 `eval_scripts/get_score.py` 汇总中英文各任务指标。 | [MultimodalOCR/OCRBench_v2 官方仓库与命令](https://github.com/Yuliang-Liu/MultimodalOCR/tree/main/OCRBench_v2#evaluation) |
 | CHAOS-Bench | 比较模型输出与图像中实际被篡改的词 `ocr_ans`，统计忠实识别的比例；输出原词 `origin_ans` 不计为正确。本轮具体匹配与汇总口径见下文。 | [HunyuanOCR/CHAOS-Bench 官方数据与评测说明](https://github.com/Tencent-Hunyuan/HunyuanOCR/tree/main/benchmarks/CHAOS-Bench) |
@@ -85,7 +85,7 @@ GT 的页面版本必须与评测集对应，不能直接用 v1.6 full GT 替换
 ### 统计口径
 
 - **评测范围**：归档中的六个轨道为 OmniDocBench v1.6、Real5、olmOCR-Bench、Wild 原图、Wild 摆正和 CHAOS-Bench。
-- **Wild**：原图与摆正结果分开报告，两者使用相同 GT 和评分器；摆正属于输入处理变化，不能与原图结果混为同一轨道。
+- **Wild**：本项目报告的分数使用自适应旋转。归档中的原图与摆正结果分开报告，两者使用相同 GT 和评分器；摆正属于输入处理变化，不能与原图结果混为同一轨道。
 - **olmOCR-Bench**：主分数包含 Base 和 Headers & Footers，共八个类别等权平均；如另报 `excl. headers & footers`，则仅对剩余七类等权平均，并明确标注。
 - **CHAOS-Bench**：共 500 页、1,025 个篡改词。本轮在整页 Markdown 中归一化空白、忽略大小写，并按词边界搜索 `ocr_ans`；先算每页命中比例，再对 500 页等权平均并乘以 100。空输出页计零分。该本地实现未将输出与标注 `bbox` 逐一对齐，应与区域裁剪识别结果分开报告。
 
