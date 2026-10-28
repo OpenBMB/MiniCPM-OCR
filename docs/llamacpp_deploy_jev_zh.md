@@ -25,7 +25,7 @@ llama.cpp 是 C++ 实现的轻量推理后端。与其他后端的两点不同�
    - **不带渲染器服务** → 装服务环境 → 起服务
    - **内置渲染器服务** → 装渲染环境 → 起服务
 
-引擎与服务必须装在两个虚拟环境里，不要合并。以下命令都在 `scripts/minicpm-ocr-jev/` 目录下执行。
+引擎与服务必须装在两个虚拟环境里，不要合并。
 
 ## 环境要求
 
@@ -66,21 +66,34 @@ protobuf        >=4.21.0,<5.0.0
 
 ### 转 GGUF
 
-语言模型与视觉编码器（`mmproj`）各转一份。权重目录里必须有 `minicpm_ocr_jev.json`，转换器靠它认出这是 MiniCPM-OCR Jev：
+语言模型与视觉编码器（`mmproj`）各转一份。转换器按 `config.json` 里的 `architectures` 认模型，需要它是 `MiniCPMOCRForSequenceClassification`。原权重目录不改：另建一个转换用目录，其余文件软链过去，只放一份改过的 `config.json`，两份都从这个目录转：
 
 ```bash
-echo '{}' > ./models/MiniCPM-OCR-Jev/minicpm_ocr_jev.json
+cd llama.cpp
+mkdir -p ./models/MiniCPM-OCR-Jev-gguf
+for f in ./models/MiniCPM-OCR-Jev/*; do
+  [ "$(basename "$f")" = config.json ] || ln -sf "$PWD/$f" ./models/MiniCPM-OCR-Jev-gguf/
+done
+python - <<'EOF'
+import json
+c = json.load(open("./models/MiniCPM-OCR-Jev/config.json"))
+c["architectures"] = ["MiniCPMOCRForSequenceClassification"]
+json.dump(c, open("./models/MiniCPM-OCR-Jev-gguf/config.json", "w"), indent=2, ensure_ascii=False)
+EOF
 
-python convert_hf_to_gguf.py ./models/MiniCPM-OCR-Jev \
+python convert_hf_to_gguf.py ./models/MiniCPM-OCR-Jev-gguf \
   --outtype bf16 --outfile ./models/MiniCPM-OCR-Jev-bf16.gguf
 
-python convert_hf_to_gguf.py ./models/MiniCPM-OCR-Jev --mmproj \
+python convert_hf_to_gguf.py ./models/MiniCPM-OCR-Jev-gguf --mmproj \
   --outtype bf16 --outfile ./models/mmproj-MiniCPM-OCR-Jev-bf16.gguf
 ```
+
+`mmproj` 也要从转换用目录转：这样它才带上与训练一致的图片缩放下限，小于下限的块图会先放大再编码；否则小图分数会偏。
 
 ### 启动
 
 ```bash
+cd llama.cpp
 ./build/bin/llama-server \
   -m ./models/MiniCPM-OCR-Jev-bf16.gguf \
   --mmproj ./models/mmproj-MiniCPM-OCR-Jev-bf16.gguf \
@@ -127,6 +140,7 @@ Pillow        12.3.0
 `JEV_BACKEND_CONFIG` 指向 llama.cpp 的后端配置，参数依次为服务端口、引擎地址：
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 JEV_BACKEND_CONFIG=sdk/backends/llamacpp.yaml \
 PATH=/opt/venv-score/bin:$PATH bash sdk/start_score.sh 18501 http://127.0.0.1:18499
 ```
@@ -154,7 +168,7 @@ curl -s http://127.0.0.1:18501/v1/score -H 'Content-Type: application/json' -d '
 {"results": [{"prob_1": 0.00227, "error": null}]}
 ```
 
-三个字段都是必填：`original_image` 是原始块图的 base64，`render_image` 是该候选渲染回图片后的 base64，`ocr_text` 是候选文本本身。base64 **不带** `data:image/png;base64,` 前缀，与镜像接口不同。
+三个字段都是必填：`original_image` 是原始块图的 base64，`render_image` 是该候选渲染回图片后的 base64，`ocr_text` 是候选文本本身。base64 **不带** `data:image/png;base64,` 前缀，与镜像接口一致。
 
 ### 字段与限额
 
@@ -174,12 +188,14 @@ curl -s http://127.0.0.1:18501/v1/score -H 'Content-Type: application/json' -d '
 ### 安装
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 bash sdk/setup_render.sh /opt/venv-render
 ```
 
 它装 Node、CJK 字体、Chromium 与服务依赖。慢网下设两个镜像源：
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 PIP_INDEX_URL=https://<mirror>/simple \
 PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>/playwright \
     bash sdk/setup_render.sh /opt/venv-render
@@ -190,6 +206,7 @@ PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>/playwright \
 参数依次为服务端口、引擎地址：
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 JEV_BACKEND_CONFIG=sdk/backends/llamacpp.yaml \
 PATH=/opt/venv-render/bin:$PATH bash sdk/start_render_score.sh 18500 http://127.0.0.1:18499
 ```
@@ -252,7 +269,7 @@ curl -s http://127.0.0.1:18501/healthz
 ```
 
 ```json
-{"status": "ok", "served_model": "MiniCPM-OCR-Jev-bf16",
+{"status": "ok", "served_model": "./models/MiniCPM-OCR-Jev-bf16.gguf",
  "prompt": {"template_md5": "9aab68e8ba8ab4da17ba9752bddb199c",
             "source": "server_template",
             "last_token": null, "expected_last_token": 271,

@@ -115,9 +115,14 @@ def create_app() -> FastAPI:
             "served_model": served,
             "prompt": {
                 "template_md5": PROMPT_TEMPLATE_MD5,
+                # Who assembled it, which decides which of the checks below could
+                # run at all: an engine that templates for us is interrogated, one
+                # that does not is checked on our side instead.
+                "source": check.prompt_source if check else None,
                 "last_token": check.last_token if check else None,
                 "expected_last_token": check.expected_last_token if check else None,
                 "token_equality": check.token_equality if check else None,
+                "forward_shape": check.forward_shape if check else None,
                 "notes": check.notes if check else [],
             },
         }

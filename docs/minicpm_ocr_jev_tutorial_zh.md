@@ -62,7 +62,7 @@ curl -f http://127.0.0.1:8030/healthz
 curl -s http://127.0.0.1:8030/v1/rm/score -H 'Content-Type: application/json' -d '{
   "input_form": "ternary",
   "items": [
-    {"case_id": "blk-001", "image": "data:image/png;base64,<base64>",
+    {"case_id": "blk-001", "image": "<base64>",
      "ocr_text": "待评分的 OCR 文本", "category": "text"}
   ]
 }'
@@ -78,7 +78,7 @@ curl -s http://127.0.0.1:8030/v1/rm/score -H 'Content-Type: application/json' -d
 }
 ```
 
-`image` 传 `data:image/png;base64,` 或 `data:image/jpeg;base64,` 前缀加 base64 正文。`category` 必须与块真实类型一致（`text` / `formula` / `table`），填错不报错但分数会偏。**用分数前必须先看** `verdict`——`0.0` 与 `-1.0` 是打分失败时的固定返回值，不是低分。
+`image` 传图片文件（PNG 或 JPEG）的 base64 正文，**不带** `data:image/png;base64,` 这类前缀。`category` 必须与块真实类型一致（`text` / `formula` / `table`），填错不报错但分数会偏。**用分数前必须先看** `verdict`——`0.0` 与 `-1.0` 是打分失败时的固定返回值，不是低分。
 
 更多端点（`/v1/rm/score_best`、`/v1/rm/score_best_batch`）与完整字段定义见 [Docker 镜像 API 参考](./minicpm_ocr_jev_docker_api_zh.md)。
 
