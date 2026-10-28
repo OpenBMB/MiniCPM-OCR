@@ -1,8 +1,7 @@
 # Extra dependencies for the HTTP service in this directory. The renderer's own
-# dependencies are in ../requirements.txt, and vLLM is installed separately
-# (see README, "Install / 2. vLLM") -- it runs as its own process and must not
-# share an environment with this service, because it would move the renderer's
-# Pillow pin.
+# dependencies are in ../requirements.txt, and vLLM is installed separately --
+# it runs as its own process and must not share an environment with this
+# service, because it would move the renderer's Pillow pin.
 #
 # These are lower bounds, not pins. Nothing here touches an image or a prompt, so
 # none of it can move a score; pinning it would only make the service harder to

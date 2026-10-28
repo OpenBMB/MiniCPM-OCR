@@ -15,6 +15,11 @@ chat template:
   raw        SGLang's /classify takes the finished prompt string and applies no
              template at all. That is what `build_prompt()` already returns.
 
+  ocr_text   llama.cpp's and Ollama's /v1/systemone take the candidate text bare
+             and wrap it in a template baked into the GGUF. Neither of the two
+             arrangements above fits: `raw` would be wrapped a second time, and
+             the segments carry the prompt's own punctuation around the text.
+
 Both are built from the same source, so they cannot disagree about the words.
 What they *can* disagree about is the handful of tokens a template adds at the
 end, which is why `selfcheck.py` exists.
@@ -53,12 +58,15 @@ class PromptParts:
 
     `text_after_original` and `text_after_render` are the two text segments that
     sit between and after the two image placeholders. `raw` is the same prompt as
-    a finished string, for engines that do not apply a template.
+    a finished string, for engines that do not apply a template. `ocr_text` is the
+    candidate text with nothing around it, for engines that hold the template
+    themselves and want only the part that varies.
     """
 
     text_after_original: str
     text_after_render: str
     raw: str
+    ocr_text: str
 
 
 def build_parts(ocr_text: str) -> PromptParts:
@@ -79,4 +87,5 @@ def build_parts(ocr_text: str) -> PromptParts:
         text_after_original=f"\nOCR文本：\n{ocr_text}\n",
         text_after_render="\n" + INSTRUCTION,
         raw=build_prompt(ocr_text),
+        ocr_text=ocr_text,
     )

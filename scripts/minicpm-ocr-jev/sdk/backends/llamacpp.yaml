@@ -1,0 +1,27 @@
+# Which engine runs the forward pass, and where to reach it.
+#
+# Start the engine with llama-server; the deployment guide is
+# docs/llamacpp_deploy_jev_zh.md. Two things differ from the vLLM path:
+# the prompt comes from a template baked into the GGUF and cannot be read back,
+# so the startup gate reports it as unverifiable rather than green; and
+# /v1/systemone answers with class probabilities instead of raw logits, which
+# the adapter declares so the score layer does not softmax them a second time.
+
+engine: llamacpp
+
+# Where llama-server is listening. Host and port only; the adapter appends the
+# endpoint paths (/v1/systemone, /v1/models).
+base_url: http://127.0.0.1:18499
+
+# What the engine calls the model. Leave it unset: llama-server serves the one
+# GGUF it was started with and the scoring endpoint takes no model name, so the
+# adapter asks /v1/models only to report an identity in /healthz.
+# model: MiniCPM-OCR-Jev-bf16
+
+# Seconds to wait on one forward pass.
+timeout_sec: 120
+
+# Requests in flight toward the engine. llama-server serves -np slots sharing one
+# context window and queues the rest; this bounds our sockets and memory rather
+# than the engine's throughput.
+max_in_flight: 32

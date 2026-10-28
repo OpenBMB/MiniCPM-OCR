@@ -14,7 +14,12 @@ renders; the threshold belongs to whoever is using the number.
 """
 from .backends import Backend, BackendError, load_backend
 from .prompt import INSTRUCTION, PROMPT_TEMPLATE_MD5, PromptParts, build_parts
-from .scorer import ScoreInput, Scorer, softmax_prob_1
+from .scorer import (
+    ScoreInput,
+    Scorer,
+    prob_1_from_probabilities,
+    softmax_prob_1,
+)
 from .selfcheck import EXPECTED_LAST_TOKEN, SelfCheckFailed, SelfCheckResult, run_selfcheck
 
 __all__ = [
@@ -30,6 +35,7 @@ __all__ = [
     "SelfCheckResult",
     "build_parts",
     "load_backend",
+    "prob_1_from_probabilities",
     "run_selfcheck",
     "softmax_prob_1",
 ]

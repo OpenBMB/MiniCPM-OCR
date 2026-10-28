@@ -39,7 +39,7 @@ cd scripts/minicpm-ocr-jev
 docker build -f serve/Dockerfile -t minicpm-ocr-jev-1-0:latest .
 ```
 
-On a slow network you need two mirror arguments; see [`scripts/minicpm-ocr-jev/README.md`](../scripts/minicpm-ocr-jev/README.md).
+On a slow network add `--build-arg PIP_INDEX_URL=https://<mirror>/simple` and `--build-arg PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>`.
 
 Run (mount the weights, map the port):
 
@@ -62,7 +62,7 @@ Once the service is ready you can score. A single scoring request looks like thi
 curl -s http://127.0.0.1:8030/v1/rm/score -H 'Content-Type: application/json' -d '{
   "input_form": "ternary",
   "items": [
-    {"case_id": "blk-001", "image": "data:image/png;base64,<base64>",
+    {"case_id": "blk-001", "image": "<base64>",
      "ocr_text": "the OCR text to be scored", "category": "text"}
   ]
 }'
@@ -78,9 +78,9 @@ curl -s http://127.0.0.1:8030/v1/rm/score -H 'Content-Type: application/json' -d
 }
 ```
 
-`image` takes a `data:image/png;base64,` or `data:image/jpeg;base64,` prefix followed by the base64 body. `category` must match the real type of the block (`text` / `formula` / `table`); getting it wrong raises no error but skews the score. **Always read** `verdict` **before using a score** — `0.0` and `-1.0` are the fixed values returned when scoring failed, not low scores.
+`image` takes the base64 body of the image file (PNG or JPEG) with **no** prefix such as `data:image/png;base64,`. `category` must match the real type of the block (`text` / `formula` / `table`); getting it wrong raises no error but skews the score. **Always read** `verdict` **before using a score** — `0.0` and `-1.0` are the fixed values returned when scoring failed, not low scores.
 
-For the other endpoints (`/v1/rm/score_best`, `/v1/rm/score_best_batch`) and the full field definitions, see the [Docker image API reference](./minicpm_ocr_jev_docker_api_en.md). For the directory layout and build details, see [`scripts/minicpm-ocr-jev/README.md`](../scripts/minicpm-ocr-jev/README.md).
+For the other endpoints (`/v1/rm/score_best`, `/v1/rm/score_best_batch`) and the full field definitions, see the [Docker image API reference](./minicpm_ocr_jev_docker_api_en.md).
 
 
 ### Option 2: SDK deployment

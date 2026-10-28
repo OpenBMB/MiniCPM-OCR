@@ -37,6 +37,16 @@ __all__ = ["VLLMBackend"]
 class VLLMBackend:
     """Talks to one `vllm serve` process over HTTP."""
 
+    #: Who assembles the prompt. The engine does, from the model's own template,
+    #: so `selfcheck.py` has to interrogate it rather than check our own output.
+    prompt_source = "engine"
+
+    #: `/classify` returns the value head's two raw logits -- the request asks for
+    #: them with `use_activation: false` -- and `scorer.py` applies the softmax.
+    #: Spelled out rather than left to the default, so the two families stay
+    #: visible side by side in `sdk/backends/`.
+    output_kind = "logits"
+
     #: What the three request keys above are worth, in one place, so that the
     #: forward and tokenize paths cannot drift apart. `selfcheck` only proves the
     #: prompt is right if it asks the same question the scorer will ask.

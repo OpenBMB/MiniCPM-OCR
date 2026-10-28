@@ -4,7 +4,7 @@
 
 [← Back to the homepage](../README.md) · [MiniCPM-OCR 1.0](./minicpm_ocr_1dot0_en.md)
 
-MiniCPM-OCR Jev is a **2B OCR correctness decision model** for text, formula, and table regions. Given an image and its corresponding OCR result, it returns a **quality score from 0 to 1** to help select reliable results and locate content that needs review. It works with different parsing models to assess OCR results at the region level and can select among several candidates for the same region.
+MiniCPM-OCR Jev is a **2B OCR quality assessment model** for text, formula, and table regions. It assigns a score between 0 and 1 to existing OCR candidates, helping route results to human review or select the best of several candidates. This page covers the model highlights, architecture, inputs and outputs, and usage; see the [MiniCPM-OCR Jev benchmark table on the homepage](../README.md#jev-benchmark) for the full model comparison.
 
 ## Model Highlights
 
@@ -15,8 +15,6 @@ MiniCPM-OCR Jev is a **2B OCR correctness decision model** for text, formula, an
 
 MiniCPM-OCR Jev is **trained from Qwen3.5-2B**. It retains the architecture of the vision encoder and language backbone, replacing the language model output head `lm_head` with a **binary classification head** to learn whether an OCR candidate is correct.
 
-<!-- The base model and binary classification task are documented in finetune_jev_en.md. The description of the vision encoder and language backbone architecture follows the original model introduction. Retaining the architecture does not mean these parameters are frozen during training; see the fine-tuning guide for training settings. -->
-
 ### Inputs and outputs
 
 | Item | Description |
@@ -26,7 +24,7 @@ MiniCPM-OCR Jev is **trained from Qwen3.5-2B**. It retains the architecture of t
 | Candidate content | OCR text and an image rendered from that text |
 | Output | A quality score between 0 and 1; a higher score indicates that the model is more likely to judge the candidate correct |
 
-Internally, the model uses a matched original region image, candidate text, and rendered image. When calling the Docker image or the SDK service with a built-in renderer, provide the original region image, candidate text, and the correct region `category` (`text`, `formula`, or `table`); the service handles rendering. The SDK service without a renderer requires the caller to supply the rendered image. See the [deployment guide](./minicpm_ocr_jev_tutorial_en.md) for request fields and image encoding formats. [Usage examples](./minicpm_ocr_jev_api_en.md) for the free cloud API are coming soon.
+Internally, the model uses a matched original region image, candidate text, and rendered image. When calling the [cloud API](./minicpm_ocr_jev_api_en.md), the Docker image, or the SDK service with a built-in renderer, provide the original region image, candidate text, and the correct region `category` (`text`, `formula`, or `table`); the service handles rendering. The SDK service without a renderer requires the caller to supply the rendered image. See the [deployment guide](./minicpm_ocr_jev_tutorial_en.md) for request fields and image encoding formats.
 
 ## Use cases
 
@@ -34,15 +32,13 @@ Internally, the model uses a matched original region image, candidate text, and 
 
 Score the parsed result for each region and choose a threshold using samples from your application. Results above the threshold proceed automatically; the rest go to human review. A higher threshold typically reduces the number of results that pass automatically, so monitor both the accuracy of automatically accepted results and the volume of human review.
 
-The figure below shows accuracy at different review-free rates for legal documents, financial receipts, and complex documents, helping assess how accuracy changes as the volume of human review decreases.
-
-<p align="center"><a href="../assets/minicpm-ocr/review-free-en.png"><img src="../assets/minicpm-ocr/review-free-en.png" alt="Accuracy versus review-free ratio for legal documents, financial receipts, and complex documents at different review-free ratios." width="100%"></a></p>
+![Accuracy versus review-free ratio for legal documents, financial receipts, and complex documents at different review-free ratios.](../assets/minicpm-ocr/review-free-en.png)
 
 ### Selecting across models to improve parsing quality
 
-Use the same layout segmentation to have several OCR models parse each region. MiniCPM-OCR Jev scores the candidates for the same region, replaces low-scoring blocks with higher-scoring results from other models, and combines them in reading order, improving overall parsing quality.
+Use the same layout segmentation to have several OCR models parse each region. MiniCPM-OCR Jev scores the candidates for the same region, selects the highest-scoring candidate, and combines the selected results in reading order. If all candidates fall below the application threshold, the region can still be sent for human review.
 
-<p align="center"><a href="../assets/minicpm-ocr/multi-models-improvements-en.png"><img src="../assets/minicpm-ocr/multi-models-improvements-en.png" alt="Parsing quality gains from MiniCPM-OCR Jev scoring and selection: Overall gains for MiniCPM-OCR 1.0, Xiaomi OCR, and PaddleOCR-VL 1.6 relative to each parser used alone." width="100%"></a></p>
+![Parsing quality gains from MiniCPM-OCR Jev scoring and selection: Overall gains for MiniCPM-OCR 1.0, Xiaomi OCR, and PaddleOCR-VL 1.6 relative to each parser used alone.](../assets/minicpm-ocr/multi-models-improvements-en.png)
 
 Candidates for the same region must use the same crop and content boundaries. MiniCPM-OCR Jev selects from existing candidates, so the final quality depends on their coverage and correctness.
 
@@ -50,15 +46,43 @@ Candidates for the same region must use the same crop and content boundaries. Mi
 
 The figure below compares the original image with candidates 1 and 2, showing how MiniCPM-OCR Jev scores text, formula, and table candidates.
 
-<p align="center"><a href="../assets/minicpm-ocr/jev-case-en.png"><img src="../assets/minicpm-ocr/jev-case-en.png" alt="Three examples for text, formulas, and tables. Each compares the original image with candidates 1 and 2 and shows their MiniCPM-OCR Jev scores." width="100%"></a></p>
+![Three examples for text, formulas, and tables. Each compares the original image with candidates 1 and 2 and shows their MiniCPM-OCR Jev scores.](../assets/minicpm-ocr/jev-case-en.png)
+
+## Model weights
+
+See [Model weights on the homepage](../README.md#model-weights) for the official weights. The FlagOS-adapted BF16 versions for multiple chips are listed under [Model downloads](./flagos_deploy_en.md#model-downloads).
+
+## Inference
+
+| Deployment method | Guide |
+| :--- | :--- |
+| Cloud API | [Single-candidate scoring, best-of-N for one block, and batched best-of-N](./minicpm_ocr_jev_api_en.md) |
+| Docker / SDK local deployment | [Environment setup, rendering options, and service startup](./minicpm_ocr_jev_tutorial_en.md) |
+| vLLM backend | [Service configuration with and without a built-in renderer](./vllm_deploy_jev_en.md) |
+| FlagOS | [Torch-FL deployment guide for multiple chips](./flagos_deploy_en.md) |
+
+When using results from the cloud API, Docker, or a service with a built-in renderer, check `verdict` before using the score. Only `scored` means model scoring completed. Fixed return values for precheck, rendering, or forward-pass failures must not be treated as low model scores.
+
+## Parsing pipeline integration
+
+When placing MiniCPM-OCR Jev after MiniCPM-OCR 1.0 or another parser, organize the data and results as follows:
+
+1. Preserve the page and region identifiers, original region images, region categories, and candidate OCR text while parsing documents.
+2. Submit the original image, category, and candidate text through the API or a service with a built-in renderer, which renders and scores the candidate. If rendered images are already available, use a service without a renderer.
+3. Check the return status and associate valid scores with their original candidates. Apply your chosen threshold to route results to automatic acceptance or human review; for multiple models, compare candidate scores within each region.
+4. Output the selected results in the original reading order and retain regions awaiting review so reviewers can refer back to the source.
+
+Use `score` for single-candidate scoring, `score_best` to select among several candidates for one block, and `score_best_batch` for batched selection across multiple blocks. See the [API documentation](./minicpm_ocr_jev_api_en.md) for request fields, response handling, and Python examples.
+
+## Fine-tuning
+
+To adapt the model to specific document types or parsers, prepare original region images, candidate text, corresponding rendered images, and human correct/incorrect labels, and reserve independent validation data. The [ms-swift fine-tuning guide](./finetune_jev_en.md) covers training and inference environments, the data format, binary classification head configuration, training commands, and JevOCRBench evaluation. A [Chinese version](./finetune_jev_zh.md) is also available.
 
 ## Evaluation
 
-[JevOCRBench](https://huggingface.co/datasets/openbmb/JevOCRBench) evaluates OCR correctness decisions at the block level. Each sample contains an original region image, candidate OCR text, and a rendering of that text, with a human-annotated correct/incorrect label. The metric is **AUROC** (reported as AUROC ×100 on this page), which measures the ability to distinguish correct from incorrect candidates; higher is better.
+[JevOCRBench](https://huggingface.co/datasets/openbmb/JevOCRBench) evaluates OCR quality assessment at the block level. Each sample contains an original region image, candidate OCR text, and a rendering of that text, with a human-annotated correct/incorrect label. The metric is **AUROC** (reported as AUROC ×100 on this page), which measures the ability to distinguish correct from incorrect candidates; higher is better.
 
-The table below reports overall and per-category AUROC (×100) on JevOCRBench, with the complete model comparison for text, formulas, and tables.
-
-<p align="center"><a href="../assets/minicpm-ocr/jev-benchmark-score-table.png"><img src="../assets/minicpm-ocr/jev-benchmark-score-table.png" alt="Overall, text, formula, and table AUROC results on JevOCRBench, highlighting MiniCPM-OCR Jev." width="100%"></a></p>
+See the [JevOCRBench results table on the homepage](../README.md#jev-benchmark) for the full comparison of Overall, Text, Formula, and Table scores.
 
 ### Validated parsers
 
@@ -70,60 +94,13 @@ The cross-parser experiment uses the same **200 samples** randomly drawn from Je
 
 In this experiment, AUROC (×100) ranges from **91.9 to 93.4**, with a maximum difference of **1.5 points**. These results describe performance on the samples and parser combinations above. Validate separately on your target data when using other parsers or new document types.
 
-<a id="calibration"></a>
-
-## Choosing a review threshold
-
-AUROC measures how well scores distinguish correct from incorrect results; it does not directly determine the accuracy of automatically accepted results. For deployment, choose a threshold using human-labelled samples from your application:
-
-1. Collect samples that cover your actual document types and OCR errors, and label each region's candidate correct or incorrect.
-2. Score the candidates with MiniCPM-OCR Jev and measure the **automatic acceptance rate** and **accuracy of accepted results** at several thresholds.
-3. Choose a threshold based on the error level your application can tolerate, then verify it on independent samples. Revalidate when the parser or document distribution changes.
-
-To interpret scores as probabilities of correctness, also check whether score ranges match the observed proportion of correct results. The existing AUROC results do not establish a universal default threshold.
-
-## Model weights
-
-MiniCPM-OCR Jev provides BF16 weights and GGUF, AWQ, and GPTQ quantized versions, available from the following links:
-
-| Version | Hugging Face | ModelScope |
-| :--- | :--- | :--- |
-| BF16 | [MiniCPM-OCR-1.0-Jev](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev) | [MiniCPM-OCR-Jev](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev) |
-| GGUF | [MiniCPM-OCR-1.0-Jev-gguf](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev-gguf) | [MiniCPM-OCR-Jev-gguf](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-gguf) |
-| AWQ | [MiniCPM-OCR-1.0-Jev-AWQ](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev-AWQ) | [MiniCPM-OCR-Jev-AWQ](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-AWQ) |
-| GPTQ | [MiniCPM-OCR-1.0-Jev-GPTQ](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev-GPTQ) | [MiniCPM-OCR-Jev-GPTQ](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-GPTQ) |
-
-The FlagOS-adapted BF16 versions for multiple chips are listed under [Model downloads](./flagos_deploy_en.md#model-downloads).
-
-## Inference
-
-| Deployment method | Guide |
-| :--- | :--- |
-| Free cloud API | [Usage examples](./minicpm_ocr_jev_api_en.md) (coming soon) |
-| Docker / SDK local deployment | [Environment setup, rendering options, and service startup](./minicpm_ocr_jev_tutorial_en.md) |
-| vLLM backend | [Service configuration with and without a built-in renderer](./vllm_deploy_jev_en.md) |
-| FlagOS | [Torch-FL deployment guide for multiple chips](./flagos_deploy_en.md) |
-
-When using results from Docker or a service with a built-in renderer, check `verdict` before using the score. Only `scored` means model scoring completed. Fixed return values for precheck, rendering, or forward-pass failures must not be treated as low model scores.
-
-## Pipeline integration
-
-When placing MiniCPM-OCR Jev after MiniCPM-OCR 1.0 or another parser, organize the data and results as follows:
-
-1. Preserve the page and region identifiers, original region images, region categories, and candidate OCR text while parsing documents.
-2. Submit the original image, category, and candidate text through the API of the Docker image or a service with a built-in renderer, which renders and scores the candidate. If rendered images are already available, use a service without a renderer.
-3. Check the return status and associate valid scores with their original candidates. Apply your chosen threshold to route results to automatic acceptance or human review; for multiple models, compare candidate scores within each region.
-4. Output the selected results in the original reading order and retain regions awaiting review so reviewers can refer back to the source.
-
-Use `score` for single-candidate scoring, `score_best` to select among several candidates for one block, and `score_best_batch` for batched selection across multiple blocks. See the [Docker image API reference](./minicpm_ocr_jev_docker_api_en.md) for request fields, response handling, and usage examples.
-
-## Fine-tuning
-
-To adapt the model to specific document types or parsers, prepare original region images, candidate text, corresponding rendered images, and human correct/incorrect labels, and reserve independent validation data. The [ms-swift fine-tuning guide](./finetune_jev_en.md) covers training and inference environments, the data format, binary classification head configuration, training commands, and JevOCRBench evaluation. A [Chinese version](./finetune_jev_zh.md) is also available.
-
-## FAQ and Troubleshooting
-
-See the [FAQ](./faq_en.md) for common questions about installation, model downloads, GPU memory, input formats, and unexpected outputs.
+> AUROC measures how well scores distinguish correct from incorrect results; it does not directly determine the accuracy of automatically accepted results. For deployment, choose a threshold using human-labelled samples from your application:
+>
+> 1. Collect samples that cover your actual document types and OCR errors, and label each region's candidate correct or incorrect.
+> 2. Score the candidates with MiniCPM-OCR Jev and measure the **automatic acceptance rate** and **accuracy of accepted results** at several thresholds.
+> 3. Choose a threshold based on the error level your application can tolerate, then verify it on independent samples. Revalidate when the parser or document distribution changes.
+>
+> To interpret scores as probabilities of correctness, also check whether score ranges match the observed proportion of correct results. The existing AUROC results do not establish a universal default threshold.
 
 ## License
 

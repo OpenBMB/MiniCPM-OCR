@@ -25,7 +25,7 @@ Ollama 把 MiniCPM-OCR Jev 当作决策模型（decision model）来服务。与
    - **不带渲染器服务** → 装服务环境 → 起服务
    - **内置渲染器服务** → 装渲染环境 → 起服务
 
-引擎与服务必须装在两个虚拟环境里，不要合并。以下命令都在 `scripts/minicpm-ocr-jev/` 目录下执行。
+引擎与服务必须装在两个虚拟环境里，不要合并。
 
 ## 环境要求
 
@@ -47,7 +47,7 @@ Ollama 把 MiniCPM-OCR Jev 当作决策模型（decision model）来服务。与
 curl -fsSL https://ollama.com/install.sh | sh
 
 # macOS
-brew install ollama
+# brew install ollama
 
 # Windows
 # 从 https://ollama.com/download/windows 下载安装
@@ -78,8 +78,6 @@ ollama show ocr-jev    # Capabilities: decision, vision
 ```bash
 ollama serve    # 默认端口 11434
 ```
-
-每个请求是一次前向，不生成任何 token，固定两张图：先原图、后渲染图。bf16 权重约占 4.4GB 显存。模型没有 LM head，文本生成类端点不可用。
 
 ---
 
@@ -112,6 +110,7 @@ Pillow        12.3.0
 `JEV_BACKEND_CONFIG` 指向 Ollama 的后端配置，参数依次为服务端口、引擎地址：
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 JEV_BACKEND_CONFIG=sdk/backends/ollama.yaml \
 PATH=/opt/venv-score/bin:$PATH bash sdk/start_score.sh 18501 http://127.0.0.1:11434
 ```
@@ -139,7 +138,7 @@ curl -s http://127.0.0.1:18501/v1/score -H 'Content-Type: application/json' -d '
 {"results": [{"prob_1": 0.00227, "error": null}]}
 ```
 
-三个字段都是必填：`original_image` 是原始块图的 base64，`render_image` 是该候选渲染回图片后的 base64，`ocr_text` 是候选文本本身。base64 **不带** `data:image/png;base64,` 前缀，与镜像接口不同。
+三个字段都是必填：`original_image` 是原始块图的 base64，`render_image` 是该候选渲染回图片后的 base64，`ocr_text` 是候选文本本身。base64 **不带** `data:image/png;base64,` 前缀，与镜像接口一致。
 
 ### 字段与限额
 
@@ -159,12 +158,14 @@ curl -s http://127.0.0.1:18501/v1/score -H 'Content-Type: application/json' -d '
 ### 安装
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 bash sdk/setup_render.sh /opt/venv-render
 ```
 
 它装 Node、CJK 字体、Chromium 与服务依赖。慢网下设两个镜像源：
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 PIP_INDEX_URL=https://<mirror>/simple \
 PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>/playwright \
     bash sdk/setup_render.sh /opt/venv-render
@@ -175,6 +176,7 @@ PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>/playwright \
 参数依次为服务端口、引擎地址：
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 JEV_BACKEND_CONFIG=sdk/backends/ollama.yaml \
 PATH=/opt/venv-render/bin:$PATH bash sdk/start_render_score.sh 18500 http://127.0.0.1:11434
 ```

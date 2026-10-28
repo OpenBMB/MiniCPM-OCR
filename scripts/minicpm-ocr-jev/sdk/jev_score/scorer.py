@@ -26,7 +26,14 @@ from .backends import Backend, BackendError, load_backend
 from .images import to_data_url
 from .prompt import PROMPT_TEMPLATE_MD5, build_parts
 
-__all__ = ["Scorer", "ScoreInput", "BackendError", "PROMPT_TEMPLATE_MD5", "softmax_prob_1"]
+__all__ = [
+    "Scorer",
+    "ScoreInput",
+    "BackendError",
+    "PROMPT_TEMPLATE_MD5",
+    "softmax_prob_1",
+    "prob_1_from_probabilities",
+]
 
 
 @dataclass(frozen=True)
@@ -62,6 +69,45 @@ def softmax_prob_1(logits: Sequence[float]) -> float:
     return exp_b / (exp_a + exp_b)
 
 
+#: How far a declared probability pair may stray from summing to 1 before we stop
+#: believing it is one. Loose enough for float32 round-trips through JSON, far
+#: tighter than any logit pair would land by accident.
+_PROB_SUM_TOLERANCE = 1e-3
+
+
+def prob_1_from_probabilities(scores: Sequence[float]) -> float:
+    """P(class 1) from a pair the engine already softmaxed.
+
+    Takes the number rather than recomputing it: a softmax applied twice is a
+    different, flatter function, and it fails silently -- every score still lands
+    in (0, 1) and the ranking survives, so no smoke test notices.
+
+    The pair is checked rather than trusted. An adapter that declared
+    `output_kind = "probabilities"` while handing over raw logits is the one
+    mistake this path makes possible, and it is visible here: logits do not lie
+    in [0, 1] and sum to 1.
+    """
+    if len(scores) != 2:
+        raise ValueError(
+            f"expected 2 class probabilities from the engine, got {len(scores)}. "
+            "This checkpoint may not be a 2-class decision model."
+        )
+    p0, p1 = float(scores[0]), float(scores[1])
+    if not (0.0 <= p0 <= 1.0 and 0.0 <= p1 <= 1.0):
+        raise ValueError(
+            f"the engine's two class scores are {p0!r} and {p1!r}, which are not "
+            "probabilities. The adapter declares output_kind='probabilities'; if "
+            "this engine returns raw logits, that declaration is what is wrong."
+        )
+    if abs(p0 + p1 - 1.0) > _PROB_SUM_TOLERANCE:
+        raise ValueError(
+            f"the engine's two class probabilities sum to {p0 + p1!r}, not 1. "
+            "Either a class is missing from the response or these are not a "
+            "distribution over the two classes."
+        )
+    return p1
+
+
 class Scorer:
     """The score layer, as a library. `sdk/jev_score/server.py` is the thin HTTP shell over it."""
 
@@ -76,12 +122,18 @@ class Scorer:
         and "the engine was down" are different facts, and a library that
         conflates them hands its caller a number that looks like a judgement.
         """
-        logits = await self.backend.forward(
+        scores = await self.backend.forward(
             build_parts(item.ocr_text),
             to_data_url(item.original),
             to_data_url(item.render),
         )
-        return softmax_prob_1(logits)
+        # Which of the two families this engine belongs to is the adapter's to
+        # declare, not ours to guess -- and getting it wrong is the one failure
+        # here that returns a plausible number instead of an error. See
+        # backends/base.py for why the second family exists at all.
+        if getattr(self.backend, "output_kind", "logits") == "probabilities":
+            return prob_1_from_probabilities(scores)
+        return softmax_prob_1(scores)
 
     async def score_many(self, items: Sequence[ScoreInput]) -> list[float]:
         """`score` over a batch, concurrently, results in input order.

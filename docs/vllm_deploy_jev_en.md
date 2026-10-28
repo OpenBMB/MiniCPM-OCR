@@ -23,7 +23,7 @@ Both services share one forward engine. The only difference is where the render 
    - **Score service** → install the service environment → start the service
    - **Render+score service** → install the render environment → start the service
 
-The engine and the service must go into two separate virtual environments; do not merge them. All commands below run from `scripts/minicpm-ocr-jev/`.
+The engine and the service must go into two separate virtual environments; do not merge them.
 
 ## Requirements
 
@@ -43,6 +43,7 @@ Both services need a vLLM engine to connect to.
 Install and start it with the bundled scripts; the arguments are GPU index, port, and weights path, in that order:
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 bash serve/setup_backend.sh /opt/venv-vllm
 PATH=/opt/venv-vllm/bin:$PATH bash sdk/start_engine.sh 0 18499 /path/to/weights
 ```
@@ -99,6 +100,7 @@ Pillow        12.3.0
 The arguments are the service port and the engine address, in that order:
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 PATH=/opt/venv-score/bin:$PATH bash sdk/start_score.sh 18501 http://127.0.0.1:18499
 ```
 
@@ -123,7 +125,7 @@ curl -s http://127.0.0.1:18501/v1/score -H 'Content-Type: application/json' -d '
 {"results": [{"prob_1": 0.00227, "error": null}]}
 ```
 
-All three fields are required: `original_image` is the base64 of the original block image, `render_image` is the base64 of that candidate rendered back into an image, and `ocr_text` is the candidate text itself. The base64 carries **no** `data:image/png;base64,` prefix, unlike the image API.
+All three fields are required: `original_image` is the base64 of the original block image, `render_image` is the base64 of that candidate rendered back into an image, and `ocr_text` is the candidate text itself. The base64 carries **no** `data:image/png;base64,` prefix, the same as the image API.
 
 ### Fields and limits
 
@@ -143,12 +145,14 @@ This service calls the scoring layer in-process: it does **not** need a separate
 ### Install
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 bash sdk/setup_render.sh /opt/venv-render
 ```
 
 It installs Node, CJK fonts, Chromium and the service dependencies. On a slow network, point it at two mirrors:
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 PIP_INDEX_URL=https://<mirror>/simple \
 PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>/playwright \
     bash sdk/setup_render.sh /opt/venv-render
@@ -159,6 +163,7 @@ PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>/playwright \
 The arguments are the service port and the engine address, in that order:
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 PATH=/opt/venv-render/bin:$PATH bash sdk/start_render_score.sh 18500 http://127.0.0.1:18499
 ```
 

@@ -23,8 +23,7 @@
 #   is the bare-metal equivalent of that Dockerfile, so it does too -- and that
 #   is the whole difference between the two files.
 #
-# ⚠ Expect a different score here than from the published image, and read
-# "Matching the reference renderer" in the README before comparing numbers. Even
+# ⚠ Expect a different score here than from the published image. Even
 # with the font environment pinned, a self-installed Chromium on a different
 # kernel and GPU draws subtly different pixels, and rendered text is model input.
 # Rankings hold; the digits after the second decimal place are not promised.
