@@ -10,13 +10,14 @@
   <a href="./docs/minicpm_ocr_jev_en.md"><strong>MiniCPM-OCR Jev</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev" title="Hugging Face"><img src="./assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-Jev" title="ModelScope"><img src="./assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
 </p>
 
-<p align="center"><sub>
+<p align="center">
   <a href="#quick-start">Get Started</a> &nbsp;·&nbsp;
   <a href="#model-weights">Model Weights</a> &nbsp;·&nbsp;
-  <a href="https://platform.modelbest.cn/console/playground/document-parse">Online Demo (China)</a> &nbsp;·&nbsp;
-  <a href="https://platform.modelbest.ai/console/playground/document-parse">Online Demo (Global)</a>
+  <a href="#api">API</a> &nbsp;·&nbsp;
+  <a href="#skill">Skill</a> &nbsp;·&nbsp;
+  Online Demo (<a href="https://platform.modelbest.cn/console/playground/document-parse">CN</a> / <a href="https://platform.modelbest.ai/console/playground/document-parse">Global</a>)
   &nbsp;|&nbsp; English &nbsp;·&nbsp; <a href="./README_zh.md">中文</a>
-</sub></p>
+</p>
 
 </div>
 
@@ -31,7 +32,7 @@
 - 🏆 **SOTA document parsing**: MiniCPM-OCR 1.0 achieves a **SOTA score of 93.68 on Real5-OmniDocBench**, a benchmark for real-world document parsing, and demonstrates leading parsing capabilities on OmniDocBench v1.6, Wild-OmniDocBench, and olmOCR-Bench. It supports Chinese and English documents and PDFs, handling both standard documents and challenging capture conditions, including scans, curved pages, photographs, skewed pages, and recaptured documents.
 - ⚡ **Efficient inference.** With DSpark decoding acceleration ([**DSpark-BF16**](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark), [**DSpark-GGUF**](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark-gguf)), MiniCPM-OCR 1.0 improves **end-to-end processing efficiency by 55%**. Its throughput is approximately **1.49×** that of PaddleOCR-VL-1.6 and **3.62×** that of MinerU2.5 Pro, reducing the time needed for large-scale document parsing.
 - 🔍 **General recognition and information extraction**: MiniCPM-OCR 1.0 achieves a **SOTA score of 54.7 on OCRBench v2**, demonstrating strong general OCR capabilities. It **also supports key information extraction (KIE)**, extracting relevant document content for downstream information management and automated processing.
-- 🛠️ **Easy deployment and development**: MiniCPM-OCR 1.0 supports **vLLM, SGLang, llama.cpp, and Ollama from day one**, with multiple chip platforms and quantized versions available at release. It **supports further fine-tuning** and provides a **pip SDK, a full-featured API, and established agent workflows** for application integration and customization. Online demos are available for [China](https://platform.modelbest.cn/console/playground/document-parse) and [global](https://platform.modelbest.ai/console/playground/document-parse) users.
+- 🛠️ **Easy deployment and development**: MiniCPM-OCR 1.0 supports **vLLM, SGLang, llama.cpp, and Ollama from day one**, with multiple chip platforms and quantized versions available at release. It **supports further fine-tuning** and provides a **[pip SDK](#local-deployment)** and a **[full-featured API](#api)** for application integration and customization. You can also **[get started quickly with SKILL.md](#skill)**. Try the Online Demo ([CN](https://platform.modelbest.cn/console/playground/document-parse) / [Global](https://platform.modelbest.ai/console/playground/document-parse)) to explore parsing results.
 
 ### SOTA Performance, Higher Throughput
 

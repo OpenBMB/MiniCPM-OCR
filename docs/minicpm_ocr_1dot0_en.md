@@ -11,7 +11,7 @@ MiniCPM-OCR 1.0 is a **1.3B** model for document parsing, text recognition, and 
 - 🏆 **SOTA document parsing**: MiniCPM-OCR 1.0 achieves a **SOTA score of 93.68 on Real5-OmniDocBench**, a benchmark for real-world document parsing, and demonstrates leading parsing capabilities on OmniDocBench v1.6, Wild-OmniDocBench, and olmOCR-Bench. It supports Chinese and English documents and PDFs, handling both standard documents and challenging capture conditions, including scans, curved pages, photographs, skewed pages, and recaptured documents.
 - ⚡ **Efficient inference.** With DSpark decoding acceleration ([**DSpark-BF16**](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark), [**DSpark-GGUF**](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark-gguf)), MiniCPM-OCR 1.0 improves **end-to-end processing efficiency by 55%**. Its throughput is approximately **1.49×** that of PaddleOCR-VL-1.6 and **3.62×** that of MinerU2.5 Pro, reducing the time needed for large-scale document parsing.
 - 🔍 **General recognition and information extraction**: MiniCPM-OCR 1.0 achieves a **SOTA score of 54.7 on OCRBench v2**, demonstrating strong general OCR capabilities. It also supports key information extraction (KIE), extracting relevant document content for downstream information management and automated processing.
-- 🛠️ **Easy deployment and development**: MiniCPM-OCR 1.0 supports **vLLM, SGLang, llama.cpp, and Ollama from day one**, with multiple chip platforms and quantized versions available at release. It **supports further fine-tuning** and provides a **pip SDK, a full-featured API, and established agent workflows** for application integration and customization. Online demos are available for [China](https://platform.modelbest.cn/console/playground/document-parse) and [global](https://platform.modelbest.ai/console/playground/document-parse) users.
+- 🛠️ **Easy deployment and development**: MiniCPM-OCR 1.0 supports **vLLM, SGLang, llama.cpp, and Ollama from day one**, with multiple chip platforms and quantized versions available at release. It **supports further fine-tuning** and provides a **[pip SDK](../README.md#local-deployment)** and a **[full-featured API](../README.md#api)** for application integration and customization. You can also **[get started quickly with SKILL.md](../README.md#skill)**. Try the Online Demo ([CN](https://platform.modelbest.cn/console/playground/document-parse) / [Global](https://platform.modelbest.ai/console/playground/document-parse)) to explore parsing results.
 
 ## Model Base and Architecture
 
@@ -100,11 +100,25 @@ The figure includes selected models to show differences across benchmarks. See t
 
 ## Throughput
 
+### System Comparison at Concurrency 1
+
 On an NVIDIA GeForce RTX 5090, using all 1,651 images in OmniDocBench v1.6, image-level concurrency of 1, and each system's accelerated configuration, MiniCPM-OCR 1.0 achieves **1.2 pages/s**. Relative throughput is normalized to MiniCPM-OCR 1.0 at **1.00×**; a higher value indicates faster processing.
 
 <p align="center"><a href="../assets/minicpm-ocr/throughput-comparison.png"><img src="../assets/minicpm-ocr/throughput-comparison.png" alt="OCR system throughput with accelerated configurations; MiniCPM-OCR 1.0 achieves 1.2 pages/s with relative throughput of 1.00×." width="100%"></a></p>
 
 These are parsing throughput results; the exact timing boundaries remain to be documented. With image-level concurrency set to 1, recognition regions within a page can still be processed concurrently. Deployment speed also depends on page content, backend, concurrency, and hardware configuration.
+
+### Throughput at Different Concurrency Levels
+
+The table below shows MiniCPM-OCR 1.0 throughput at different image-level concurrency settings on an NVIDIA GeForce RTX 5090, using all 1,651 images in OmniDocBench v1.6. Speedup is relative to the **1.217 pages/s** baseline at image-level concurrency 1 in this table. In this test, **image-level concurrency 8 achieves the highest throughput at 2.133 pages/s, a 1.75× speedup over concurrency 1**.
+
+| Image-Level Concurrency | Throughput (pages/s) | Speedup |
+| ---: | ---: | ---: |
+| 1 | 1.217 | 1.00× |
+| 2 | 1.613 | 1.33× |
+| 4 | 1.888 | 1.55× |
+| 6 | 2.031 | 1.67× |
+| **8** | **2.133** | **1.75×** |
 
 ## Reproduction
 

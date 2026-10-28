@@ -11,7 +11,7 @@ MiniCPM-OCR 1.0 是面向文档解析、文字识别与关键信息抽取的 **1
 - 🏆 **SOTA 的文档解析能力**：MiniCPM-OCR 1.0 在真实场景文档解析评测 **Real5-OmniDocBench 上取得 93.68 的 SOTA 成绩**，并在 OmniDocBench v1.6、Wild-OmniDocBench 和 olmOCR-Bench 等评测中展现领先的解析能力。模型支持中英双语文档与 PDF 解析，兼顾标准文档和复杂采集条件，在扫描、弯曲、拍照、倾斜及翻拍等场景下保持稳定表现。
 - ⚡ **高效推理。** 基于 DSpark 解码加速（[**DSpark-BF16**](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark)、[**DSpark-GGUF**](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark-gguf)），MiniCPM-OCR 1.0 的**端到端处理效率提升 55%**。其处理吞吐量约为 PaddleOCR-VL-1.6 的 **1.49 倍**、MinerU2.5 Pro 的 **3.62 倍**，降低大规模文档解析的时间开销。
 - 🔍 **通用识别与信息抽取**：MiniCPM-OCR 1.0 在 **OCRBench v2 上取得 54.7 的 SOTA** 成绩，具备扎实的通用 OCR 能力；同时支持关键信息抽取（KIE），可根据业务需求提取文档中的关键内容，支持后续信息整理与自动化处理。
-- 🛠️ **部署与开发友好**：MiniCPM-OCR 1.0 首日**适配 vLLM、SGLang、llama.cpp 和 Ollama**，同步提供多芯片适配与多种量化版本。模型**支持二次微调**，提供 **pip SDK、功能完备的 API 和成熟的 Agentic 用法**，方便应用集成与定制开发；同时提供在线体验（[国内](https://platform.modelbest.cn/console/playground/document-parse)、[海外](https://platform.modelbest.ai/console/playground/document-parse)），方便用户在线体验解析效果。
+- 🛠️ **部署与开发友好**：MiniCPM-OCR 1.0 首日**适配 vLLM、SGLang、llama.cpp 和 Ollama**，同步提供多芯片适配与多种量化版本。模型**支持二次微调**，提供 **[pip SDK](../README_zh.md#local-deployment)** 和**[功能完备的 API](../README_zh.md#api)**，方便应用集成与定制开发，也可**[通过 SKILL.md 快速上手](../README_zh.md#skill)**；同时提供在线体验（[国内](https://platform.modelbest.cn/console/playground/document-parse) / [海外](https://platform.modelbest.ai/console/playground/document-parse)），方便用户查看解析效果。
 
 ## 模型基座与结构
 
@@ -100,11 +100,25 @@ SDK 的 `pipeline.max_workers` 控制识别块请求数，`pipeline.page_workers
 
 ## 吞吐
 
+### 单并发下的系统对比
+
 在 NVIDIA GeForce RTX 5090 上，使用 OmniDocBench v1.6 的 1,651 张图像、图片级并发度为 1，并启用各系统加速配置时，MiniCPM-OCR 1.0 的吞吐为 **1.2 pages/s**。相对吞吐以 MiniCPM-OCR 1.0 为 **1.00×**，数值越高表示处理速度越快。
 
 <p align="center"><a href="../assets/minicpm-ocr/throughput-comparison.png"><img src="../assets/minicpm-ocr/throughput-comparison.png" alt="各 OCR 系统在加速配置下的吞吐；MiniCPM-OCR 1.0 为 1.2 pages/s，相对吞吐为 1.00×。" width="100%"></a></p>
 
 这里报告各系统的解析吞吐，精确计时范围仍待补充。图片级并发度为 1 时，页内识别块仍可并发处理；实际部署速度还取决于页面内容、后端、并发和硬件配置。
+
+### 多并发吞吐
+
+在 NVIDIA GeForce RTX 5090 上，使用 OmniDocBench v1.6 的全部 1,651 张图像，下表展示 MiniCPM-OCR 1.0 在不同图片级并发数下的吞吐。加速比以本表图片级并发数为 1 时的 **1.217 pages/s** 为基准。本组测试中，**图片级并发数为 8 时吞吐最高，达到 2.133 pages/s，为单并发的 1.75 倍**。
+
+| 图片级并发数 | 吞吐（pages/s） | 加速比 |
+| ---: | ---: | ---: |
+| 1 | 1.217 | 1.00× |
+| 2 | 1.613 | 1.33× |
+| 4 | 1.888 | 1.55× |
+| 6 | 2.031 | 1.67× |
+| **8** | **2.133** | **1.75×** |
 
 ## 复现
 
