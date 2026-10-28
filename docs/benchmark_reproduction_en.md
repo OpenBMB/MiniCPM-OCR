@@ -1,10 +1,10 @@
-# MiniCPM-OCR 1.0 Reproduction Guide
+# Reproducing Performance and Efficiency Evaluation Results
 
 [← Back to README](../README.md) · [Model guide](./minicpm_ocr_1dot0_en.md)
 
 This document summarizes the inference settings, scoring methods, and official sources for evaluating MiniCPM-OCR 1.0, along with the test settings and deployment guides for the parsing-efficiency comparison. Complete evaluation scripts, exact versions, and timing boundaries remain to be added.
 
-## Evaluation Reproduction
+## Performance Reproduction
 
 ### Evaluation Settings
 

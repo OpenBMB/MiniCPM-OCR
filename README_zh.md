@@ -61,24 +61,27 @@
 
 从左至右依次为原始文档、检测到的版面和渲染后的 Markdown。
 
-#### 英文文档
-
-<p align="center"><a href="./assets/minicpm-ocr/minicpm-english-examples-3-column.gif"><img src="./assets/minicpm-ocr/minicpm-english-examples-3-column.gif" alt="英文文档解析动画：原始文档、检测到的版面和渲染后的 Markdown。" width="100%"></a></p>
-
 #### 中文文档
 
 <p align="center"><a href="./assets/minicpm-ocr/minicpm-chinese-examples-3-column.gif"><img src="./assets/minicpm-ocr/minicpm-chinese-examples-3-column.gif" alt="中文文档解析动画：原始文档、检测到的版面和渲染后的 Markdown。" width="100%"></a></p>
 
 <details>
-<summary>更多案例</summary>
+<summary>更多中文案例</summary>
 
 原图与解析结果对照。
 
-**中文文档**
-
 <p align="center"><a href="./assets/minicpm-ocr/minicpm-ocr-chinese-cases.png"><img src="./assets/minicpm-ocr/minicpm-ocr-chinese-cases.png" alt="中文案例的原图与解析结果：手写笔记、复杂公式、报纸、财务报表、盖印文件、插图与关键信息抽取。" width="100%"></a></p>
 
-**英文文档**
+</details>
+
+#### 英文文档
+
+<p align="center"><a href="./assets/minicpm-ocr/minicpm-english-examples-3-column.gif"><img src="./assets/minicpm-ocr/minicpm-english-examples-3-column.gif" alt="英文文档解析动画：原始文档、检测到的版面和渲染后的 Markdown。" width="100%"></a></p>
+
+<details>
+<summary>更多英文案例</summary>
+
+原图与解析结果对照。
 
 <p align="center"><a href="./assets/minicpm-ocr/minicpm-ocr-english-cases.png"><img src="./assets/minicpm-ocr/minicpm-ocr-english-cases.png" alt="英文案例的原图与解析结果：手写笔记、历史文献、扫描文档、报纸、财务报表与关键信息抽取。" width="100%"></a></p>
 

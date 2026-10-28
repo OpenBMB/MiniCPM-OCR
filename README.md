@@ -65,21 +65,23 @@ Left to right: original document, detected layout, and rendered Markdown.
 
 <p align="center"><a href="./assets/minicpm-ocr/minicpm-english-examples-3-column.gif"><img src="./assets/minicpm-ocr/minicpm-english-examples-3-column.gif" alt="English document animation: original, detected layout, and rendered Markdown." width="100%"></a></p>
 
+<details>
+<summary>More English Examples</summary>
+
+Original documents and parsed results, side by side.
+
+<p align="center"><a href="./assets/minicpm-ocr/minicpm-ocr-english-cases.png"><img src="./assets/minicpm-ocr/minicpm-ocr-english-cases.png" alt="English examples comparing inputs and results: handwriting, historical and scanned documents, newspapers, financial statements, and key information extraction." width="100%"></a></p>
+
+</details>
+
 #### Chinese Documents
 
 <p align="center"><a href="./assets/minicpm-ocr/minicpm-chinese-examples-3-column.gif"><img src="./assets/minicpm-ocr/minicpm-chinese-examples-3-column.gif" alt="Chinese document animation: original, detected layout, and rendered Markdown." width="100%"></a></p>
 
-
 <details>
-<summary>More Examples</summary>
+<summary>More Chinese Examples</summary>
 
 Original documents and parsed results, side by side.
-
-**English Documents**
-
-<p align="center"><a href="./assets/minicpm-ocr/minicpm-ocr-english-cases.png"><img src="./assets/minicpm-ocr/minicpm-ocr-english-cases.png" alt="English examples comparing inputs and results: handwriting, historical and scanned documents, newspapers, financial statements, and key information extraction." width="100%"></a></p>
-
-**Chinese Documents**
 
 <p align="center"><a href="./assets/minicpm-ocr/minicpm-ocr-chinese-cases.png"><img src="./assets/minicpm-ocr/minicpm-ocr-chinese-cases.png" alt="Chinese examples comparing inputs and results: handwritten notes, complex formulas, newspapers, financial statements, stamped documents, illustrations, and key information extraction." width="100%"></a></p>
 

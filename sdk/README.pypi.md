@@ -12,14 +12,14 @@
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_jev_en.md"><strong>MiniCPM-OCR Jev</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev" title="Hugging Face"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-Jev" title="ModelScope"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
 </p>
 
-<p align="center"><sub>
+<p align="center">
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#quick-start">Get Started</a> &nbsp;·&nbsp;
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#model-weights">Model Weights</a> &nbsp;·&nbsp;
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#api">API</a> &nbsp;·&nbsp;
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#skill">Skill</a> &nbsp;·&nbsp;
   Online Demo (<a href="https://platform.modelbest.cn/console/playground/document-parse">CN</a> / <a href="https://platform.modelbest.ai/console/playground/document-parse">Global</a>)
   &nbsp;|&nbsp; English &nbsp;·&nbsp; <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md">中文</a>
-</sub></p>
+</p>
 
 </div>
 
@@ -67,21 +67,23 @@ Left to right: original document, detected layout, and rendered Markdown.
 
 <p align="center"><a href="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/minicpm-english-examples-3-column.gif"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/minicpm-english-examples-3-column.gif" alt="English document animation: original, detected layout, and rendered Markdown." width="100%"></a></p>
 
+<details>
+<summary>More English Examples</summary>
+
+Original documents and parsed results, side by side.
+
+<p align="center"><a href="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/minicpm-ocr-english-cases.png"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/minicpm-ocr-english-cases.png" alt="English examples comparing inputs and results: handwriting, historical and scanned documents, newspapers, financial statements, and key information extraction." width="100%"></a></p>
+
+</details>
+
 #### Chinese Documents
 
 <p align="center"><a href="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/minicpm-chinese-examples-3-column.gif"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/minicpm-chinese-examples-3-column.gif" alt="Chinese document animation: original, detected layout, and rendered Markdown." width="100%"></a></p>
 
-
 <details>
-<summary>More Examples</summary>
+<summary>More Chinese Examples</summary>
 
 Original documents and parsed results, side by side.
-
-**English Documents**
-
-<p align="center"><a href="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/minicpm-ocr-english-cases.png"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/minicpm-ocr-english-cases.png" alt="English examples comparing inputs and results: handwriting, historical and scanned documents, newspapers, financial statements, and key information extraction." width="100%"></a></p>
-
-**Chinese Documents**
 
 <p align="center"><a href="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/minicpm-ocr-chinese-cases.png"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/minicpm-ocr-chinese-cases.png" alt="Chinese examples comparing inputs and results: handwritten notes, complex formulas, newspapers, financial statements, stamped documents, illustrations, and key information extraction." width="100%"></a></p>
 

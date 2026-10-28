@@ -6,6 +6,8 @@ MiniCPM-OCR parses PDFs and images into Markdown, including body text, tables (H
 
 The runtime has two parts: the SDK handles layout detection, cropping, and result assembly; the inference service (vLLM in this tutorial) runs the recognition model and accelerates inference through DSpark speculative decoding, which requires both the main model and a draft model from the same release. The two parts use separate Python environments and run in separate terminals.
 
+> **Data privacy**: When you deploy the SDK and inference service locally as described in this tutorial, document processing and model inference take place locally. No cloud OCR service is required, and original documents, images, and parsing results do not need to be uploaded to the cloud, helping protect data privacy. Installing dependencies and downloading models for the first time require an internet connection.
+
 ---
 ## Requirements
 
