@@ -40,7 +40,7 @@ The figure below shows accuracy at different review-free rates for legal documen
 
 ### Selecting across models to improve parsing quality
 
-Use the same layout segmentation to have several OCR models parse each region. MiniCPM-OCR Jev scores the candidates for the same region, selects the highest-scoring candidate, and combines the selected results in reading order. If all candidates fall below the application threshold, the region can still be sent for human review.
+Use the same layout segmentation to have several OCR models parse each region. MiniCPM-OCR Jev scores the candidates for the same region, replaces low-scoring blocks with higher-scoring results from other models, and combines them in reading order, improving overall parsing quality.
 
 <p align="center"><a href="../assets/minicpm-ocr/multi-models-improvements-en.png"><img src="../assets/minicpm-ocr/multi-models-improvements-en.png" alt="Parsing quality gains from MiniCPM-OCR Jev scoring and selection: Overall gains for MiniCPM-OCR 1.0, Xiaomi OCR, and PaddleOCR-VL 1.6 relative to each parser used alone." width="100%"></a></p>
 

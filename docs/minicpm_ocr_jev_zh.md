@@ -40,7 +40,7 @@ MiniCPM-OCR Jev **基于 Qwen3.5-2B 训练**，保留其视觉编码器和语言
 
 ### 多模型择优，提升解析质量
 
-基于同一份版面分割结果，让多个 OCR 模型分别解析各区域。MiniCPM-OCR Jev 对同一区域的候选结果评分，选择得分最高的候选，再按阅读顺序组合输出。若所有候选均低于业务阈值，该区域仍可进入人工复核流程。
+基于同一份版面分割结果，让多个 OCR 模型分别解析各区域。MiniCPM-OCR Jev 对同一区域的候选结果评分，把其中低分的块替换成其他模型的高分结果，再按阅读顺序组合输出，带来整体的解析质量提升。
 
 <p align="center"><a href="../assets/minicpm-ocr/multi-models-improvements-zh.png"><img src="../assets/minicpm-ocr/multi-models-improvements-zh.png" alt="MiniCPM-OCR Jev 评分筛选带来的解析质量提升：MiniCPM-OCR 1.0、Xiaomi OCR 与 PaddleOCR-VL 1.6 相对各自单独解析的 Overall 增益。" width="100%"></a></p>
 
