@@ -15,7 +15,7 @@
 <p align="center"><sub>
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#quick-start">Get Started</a> &nbsp;·&nbsp;
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#model-weights">Model Weights</a> &nbsp;·&nbsp;
-  <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#api">API</a> &nbsp;·&nbsp;
+  <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#api">Free API</a> &nbsp;·&nbsp;
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#skill">Skill</a> &nbsp;·&nbsp;
   Online Demo (<a href="https://platform.modelbest.cn/console/playground/document-parse">CN</a> / <a href="https://platform.modelbest.ai/console/playground/document-parse">Global</a>)
   &nbsp;|&nbsp; English &nbsp;·&nbsp; <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md">中文</a>
@@ -141,7 +141,9 @@ Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL_en.
 
 If you have already cloned this repository, you can use `./docs/SKILL_en.md` directly.
 
-### API
+<a id="api"></a>
+
+### Free API
 
 Use the API to access MiniCPM-OCR 1.0 recognition and MiniCPM-OCR Jev quality scoring.
 
