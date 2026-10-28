@@ -4,14 +4,34 @@
 
 [← 返回首页](../README_zh.md) · [MiniCPM-OCR Jev](./minicpm_ocr_jev_zh.md)
 
-MiniCPM-OCR 1.0 是面向文档解析、文字识别与关键信息抽取的 **1.3B** 模型。本页介绍模型亮点、模型结构、文档解析与 KIE 用法、部署选择和分项评测；完整实验结果见 [首页](../README_zh.md#ocr-benchmark)。
+**MiniCPM-OCR 1.0**（1.3B）是 [MiniCPM-V/o](https://github.com/openbmb/MiniCPM-V) 家族首个 OCR 专用模型，面向以文字为中心的文档理解，覆盖文本、表格、公式、图表与印章识别和结构化信息抽取。本页介绍模型亮点、技术规格、使用方法、模型下载、完整评测、效率结果和典型示例。
 
 ## 模型亮点
 
 - 🏆 **SOTA 的文档解析能力**：MiniCPM-OCR 1.0 在真实场景文档解析评测 **Real5-OmniDocBench 上取得 93.68 的 SOTA 成绩**，并在 OmniDocBench v1.6、Wild-OmniDocBench 和 olmOCR-Bench 等评测中展现领先的解析能力。模型支持中英双语文档与 PDF 解析，兼顾标准文档和复杂采集条件，在扫描、弯曲、拍照、倾斜及翻拍等场景下保持稳定表现。
 - ⚡ **高效推理。** 基于 DSpark 解码加速（[**DSpark-BF16**](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark)、[**DSpark-GGUF**](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark-gguf)），MiniCPM-OCR 1.0 的**端到端处理效率提升 55%**。其处理吞吐量约为 PaddleOCR-VL-1.6 的 **1.49 倍**、MinerU2.5 Pro 的 **3.62 倍**，降低大规模文档解析的时间开销。
-- 🔍 **通用识别与信息抽取**：MiniCPM-OCR 1.0 在 **OCRBench v2 上取得 54.7 的 SOTA** 成绩，具备扎实的通用 OCR 能力；同时支持关键信息抽取（KIE），可根据业务需求提取文档中的关键内容，支持后续信息整理与自动化处理。
-- 🛠️ **部署与开发友好**：MiniCPM-OCR 1.0 首日**适配 vLLM、SGLang、llama.cpp 和 Ollama**，同步提供多芯片适配与多种量化版本。模型**支持二次微调**，提供 **[pip SDK](https://pypi.org/project/minicpm-ocr/)** 和**[功能完备的 API](../README_zh.md#api)**，方便应用集成与定制开发，也可**[通过 SKILL.md 快速上手](../README_zh.md#skill)**；同时提供在线体验（[国内](https://platform.modelbest.cn/console/playground/document-parse) / [海外](https://platform.modelbest.ai/console/playground/document-parse)），方便用户查看解析效果。
+- 🔍 **通用识别与信息抽取**：MiniCPM-OCR 1.0 在 **OCRBench v2 上取得 54.7 的 SOTA** 成绩，具备扎实的通用 OCR 能力；**同时支持关键信息抽取（KIE）**，可根据业务需求提取文档中的关键内容，支持后续信息整理与自动化处理。
+- 🛠️ **部署与开发友好**：MiniCPM-OCR 1.0 首日**适配 vLLM、SGLang、llama.cpp 和 Ollama**，同步提供多芯片适配与多种量化版本。模型**支持二次微调**，提供 **[pip SDK](https://pypi.org/project/minicpm-ocr/)** 和 **[功能完备的 API](./minicpm_ocr_api_zh.md)**，方便应用集成与定制开发，也可 **[通过 SKILL.md 快速上手](./SKILL.md)**；同时提供在线体验（[国内](https://platform.modelbest.cn/console/playground/document-parse) / [海外](https://platform.modelbest.ai/console/playground/document-parse)），方便用户查看解析效果。
+
+## 使用方式
+
+### Skill
+
+让编码 Agent 按 [skill](./SKILL.md) 完成环境配置、模型下载和首次文档解析。将以下指令发送给 Agent：
+
+```text
+Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL.md
+```
+
+已克隆本仓库时，也可直接使用 `./docs/SKILL.md`。
+
+### 免费 API
+
+通过免费 API 接入 MiniCPM-OCR 1.0 的识别能力，见 [API 调用示例](./minicpm_ocr_api_zh.md)。
+
+### 本地部署
+
+在自己的设备上运行模型，将 PDF 和图片解析为 Markdown 或 JSON，见 [SDK 使用与部署教程](./minicpmvocr_tutorial.md)。[推理](#推理)章节列出了各后端的部署入口。
 
 ## 模型基座与结构
 
@@ -67,9 +87,16 @@ Extract the "店名", "金额". Format the output as a JSON object with keys: "�
 
 ## 模型权重
 
-标准版、GGUF 量化版和 DSpark 版的下载入口统一见 [首页模型权重](../README_zh.md#model-weights)；FlagOS 适配的 BF16 多芯片版本见 [下载列表](./flagos_deploy_zh.md#model-downloads)。
+| 权重 | Hugging Face | ModelScope |
+| :--- | :--- | :--- |
+| 主模型 BF16 | [下载](https://huggingface.co/openbmb/MiniCPM-OCR-1.0) | [下载](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0) |
+| 主模型 GGUF | [下载](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-gguf) | [下载](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-gguf) |
+| 主模型 AWQ | [下载](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-AWQ) | [下载](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-AWQ) |
+| 主模型 GPTQ | [下载](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-GPTQ) | [下载](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-GPTQ) |
+| DSpark 采样头 BF16 | [下载](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark) | [下载](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-DSpark) |
+| DSpark 采样头 GGUF | [下载](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark-gguf) | [下载](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-DSpark-gguf) |
 
-**DSpark 需要同一次发布的配套主模型和 draft 模型**，不能与标准版权重混用。权重选择与启动参数见 [DSpark 加速说明](./minicpmvocr_tutorial.md#3-启动服务)。
+**DSpark 需要主模型与配套的草稿模型（采样头）共同运行**。例如，BF16 部署将 `openbmb/MiniCPM-OCR-1.0` 与 `openbmb/MiniCPM-OCR-1.0-DSpark` 搭配使用；普通解码无需草稿模型。权重选择与启动参数见 [DSpark 加速说明](./minicpmvocr_tutorial.md#3-启动服务)。FlagOS 适配的 BF16 多芯片版本见 [下载列表](./flagos_deploy_zh.md#model-downloads)。
 
 ## 推理
 
@@ -92,11 +119,30 @@ SDK 的 `pipeline.max_workers` 控制识别块请求数，`pipeline.page_workers
 
 ## 评测
 
+### SOTA 表现，更高吞吐
+
+在图示的开源 OCR 模型对比中，MiniCPM-OCR 1.0 的解析吞吐量达到 1.2 pages/s，在 OmniDocBench v1.6、Real5-OmniDocBench、Wild-OmniDocBench 和 olmOCR-Bench 四项文档解析基准上取得最佳综合表现。
+
+<p align="center"><a href="../assets/minicpm-ocr/efficiency-performance-zh.png"><img src="../assets/minicpm-ocr/efficiency-performance-zh.png" alt="开源 OCR 模型的吞吐量与解析质量对比；横轴为吞吐量（页/秒，对数刻度），纵轴为四项文档解析基准的等权平均分。" width="90%"></a></p>
+
+<sub>测试设置与复现说明见 [复现文档](./benchmark_reproduction_zh.md)；各模型的吞吐数值见[吞吐评测](#吞吐)。</sub>
+
+### 各基准效果对比
+
+<p align="center"><a href="../assets/minicpm-ocr/benchmark-radar.png"><img src="../assets/minicpm-ocr/benchmark-radar.png" alt="MiniCPM-OCR 1.0 与其他 OCR 模型在六项评测上的雷达图；部分数值待确认。" width="80%"></a></p>
+
 下图展示六项基准的分项对比，各面板保留对应基准的原始分数，分数越高越好。不同基准的分数不宜直接相互比较。
 
 <p align="center"><a href="../assets/minicpm-ocr/benchmark-comparison.png"><img src="../assets/minicpm-ocr/benchmark-comparison.png" alt="MiniCPM-OCR 1.0 在 Real5-OmniDocBench、Wild-OmniDocBench、OmniDocBench v1.6、olmOCR-Bench、OCRBench v2 与 CHAOS-Bench 上的分项柱状图。" width="100%"></a></p>
 
-图中选取部分模型展示分项差异，完整的 14 模型结果见 [首页实验表格](../README_zh.md#ocr-benchmark)。
+图中选取部分模型展示分项差异，完整评测结果如下。
+
+<details>
+<summary>点击查看 MiniCPM-OCR 1.0 完整评测结果</summary>
+
+<p align="center"><a href="../assets/minicpm-ocr/ocr-benchmarks.png"><img src="../assets/minicpm-ocr/ocr-benchmarks.png" alt="OCR 模型在 OmniDocBench v1.6、Real5、Wild、olmOCR-Bench、CHAOS-Bench 和 OCRBench v2 上的详细结果。" width="100%"></a></p>
+
+</details>
 
 ## 吞吐
 
@@ -106,7 +152,27 @@ SDK 的 `pipeline.max_workers` 控制识别块请求数，`pipeline.page_workers
 
 <p align="center"><a href="../assets/minicpm-ocr/throughput-comparison.png"><img src="../assets/minicpm-ocr/throughput-comparison.png" alt="各 OCR 系统在加速配置下的吞吐；MiniCPM-OCR 1.0 为 1.2 pages/s，相对吞吐为 1.00×。" width="100%"></a></p>
 
-这里报告各系统的解析吞吐，精确计时范围仍待补充。图片级并发度为 1 时，页内识别块仍可并发处理；实际部署速度还取决于页面内容、后端、并发和硬件配置。
+详细吞吐与延迟对比如下。Pages / s 越高越好（↑）；P95、P99 分别表示样本处理耗时的第 95、99 百分位，数值越低越好（↓）。
+
+| 模型 | Pages / s ↑ | P95 样本耗时 ↓ | P99 样本耗时 ↓ |
+| --- | ---: | ---: | ---: |
+| **MiniCPM-OCR 1.0** | **1.217** | **2.1** | **3.8** |
+| GLM-OCR | 1.179 | 2.0 | 4.7 |
+| PaddleOCR-VL-1.6 | 0.818 | 2.8 | 6.0 |
+| Xiaomi-OCR-0 | 0.724 | 4.0 | 7.9 |
+| HunyuanOCR-1.5 | 0.416 | 7.2 | 9.2 |
+| LightOnOCR-3 | 0.340 | 9.1 | 9.4 |
+| MinerU2.5-Pro | 0.336 | 10.0 | 15.4 |
+| OvisOCR2 | 0.317 | 10.4 | 19.6 |
+| Unlimited-OCR2 | 0.246 | 11.8 | 19.5 |
+| TeleOCR | 0.141 | 13.2 | 18.6 |
+| Surya OCR 2 | 0.122 | 39.6 | 51.1 |
+| dots.ocr | 0.112 | 27.4 | 63.0 |
+| Nanonets-OCR-s | 0.102 | 21.7 | 144.4 |
+| chandra-ocr-2 | 0.068 | 38.4 | 161.0 |
+| DeepSeek-OCR-2 | 0.063 | 22.5 | 66.7 |
+
+测试时一次处理一张图，图内的多个识别区域可并发处理。
 
 ### 多并发吞吐
 
@@ -120,9 +186,40 @@ SDK 的 `pipeline.max_workers` 控制识别块请求数，`pipeline.page_workers
 | 6 | 2.031 | 1.67× |
 | **8** | **2.133** | **1.75×** |
 
+## 典型示例
+
+从左至右依次为原始文档、检测到的版面和渲染后的 Markdown。
+
+### 英文文档
+
+<p align="center"><a href="../assets/minicpm-ocr/minicpm-english-examples-3-column.gif"><img src="../assets/minicpm-ocr/minicpm-english-examples-3-column.gif" alt="英文文档解析动画：原始文档、检测到的版面和渲染后的 Markdown。" width="100%"></a></p>
+
+### 中文文档
+
+<p align="center"><a href="../assets/minicpm-ocr/minicpm-chinese-examples-3-column.gif"><img src="../assets/minicpm-ocr/minicpm-chinese-examples-3-column.gif" alt="中文文档解析动画：原始文档、检测到的版面和渲染后的 Markdown。" width="100%"></a></p>
+
+<details>
+<summary>更多案例</summary>
+
+原图与解析结果对照。
+
+**中文文档**
+
+<p align="center"><a href="../assets/minicpm-ocr/minicpm-ocr-chinese-cases.png"><img src="../assets/minicpm-ocr/minicpm-ocr-chinese-cases.png" alt="中文案例的原图与解析结果：手写笔记、复杂公式、报纸、财务报表、盖印文件、插图与关键信息抽取。" width="100%"></a></p>
+
+**英文文档**
+
+<p align="center"><a href="../assets/minicpm-ocr/minicpm-ocr-english-cases.png"><img src="../assets/minicpm-ocr/minicpm-ocr-english-cases.png" alt="英文案例的原图与解析结果：手写笔记、历史文献、扫描文档、报纸、财务报表与关键信息抽取。" width="100%"></a></p>
+
+</details>
+
 ## 复现
 
 测试设置、DSpark 对照要求与待补充的评测信息见 [复现文档](./benchmark_reproduction_zh.md)；已记录的 SDK 实测环境见 [已验证版本](./SKILL.md#9-已验证版本)。
+
+## 常见问题
+
+安装、模型下载、显存、输入格式与输出异常等常见问题见 [FAQ](./faq_zh.md)。
 
 ## 许可
 
