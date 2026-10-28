@@ -138,7 +138,9 @@ Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL_en.
 
 If you have already cloned this repository, you can use `./docs/SKILL_en.md` directly.
 
-### API
+<a id="api"></a>
+
+### Free API
 
 Use the API to access MiniCPM-OCR 1.0 recognition and MiniCPM-OCR Jev quality scoring.
 
