@@ -109,10 +109,10 @@ Image-level concurrency and recognition concurrency for regions within a page ar
 - [SDK tutorial](./minicpmvocr_tutorial_en.md): Install the environment, connect an inference backend, parse documents, and check outputs.
 - [vLLM deployment guide](./vllm_deploy_en.md): Deploy the API service and check recognition results.
 
-A comparison with and without DSpark must use the same main-model weights, dataset, hardware, and SDK configuration, changing only whether DSpark is enabled. The deployment examples start the service; complete comparison commands and logs for reproducing the 62% improvement remain to be added.
+A comparison with and without DSpark must use the same main-model weights, dataset, hardware, and SDK configuration, changing only whether DSpark is enabled. The deployment examples start the service; complete comparison commands and logs for reproducing the 55% improvement remain to be added.
 
 ### Interpreting Results
 
-Enabling DSpark decoding acceleration improves MiniCPM-OCR 1.0's end-to-end processing efficiency by **62%**. This improvement describes the benefit of DSpark acceleration and does not replace throughput comparisons with other systems.
+Enabling DSpark decoding acceleration improves MiniCPM-OCR 1.0's end-to-end processing efficiency by **55%**. This improvement describes the benefit of DSpark acceleration and does not replace throughput comparisons with other systems.
 
-MiniCPM-OCR 1.0 achieves a parsing throughput of **1.213 pages/s**, compared with **1.179 pages/s** for GLM-OCR. With MiniCPM-OCR 1.0 as the relative-throughput baseline (**1.00×**), GLM-OCR, PaddleOCR-VL-1.6, MinerU2.5-Pro-Standard, and MinerU2.5-Pro-Advanced achieve **0.97×, 0.67×, 0.44×, and 0.28×**, respectively. For complete values and comparison charts, see the [model guide's Throughput section](./minicpm_ocr_1dot0_en.md#throughput).
+MiniCPM-OCR 1.0 achieves a parsing throughput of **1.217 pages/s**, compared with **1.179 pages/s** for GLM-OCR. With MiniCPM-OCR 1.0 as the relative-throughput baseline (**1.00×**), GLM-OCR, PaddleOCR-VL-1.6, and MinerU2.5-Pro achieve **0.97×, 0.67×, and 0.28×**, respectively. For complete values and comparison charts, see the [model guide's Throughput section](./minicpm_ocr_1dot0_en.md#throughput).

@@ -5,9 +5,9 @@
 <p align="center"><strong>MiniCPM-OCR · Fast, accurate parsing for real-world documents.</strong></p>
 
 <p align="center">
-  <a href="./docs/minicpm_ocr_1dot0_zh.md"><strong>MiniCPM-OCR 1.0</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0" title="Hugging Face"><img src="./assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0" title="ModelScope"><img src="./assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
+  <a href="./docs/minicpm_ocr_1dot0_zh.md"><strong>MiniCPM-OCR 1.0 模型指南</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0" title="Hugging Face"><img src="./assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0" title="ModelScope"><img src="./assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
   &emsp;
-  <a href="./docs/minicpm_ocr_jev_zh.md"><strong>MiniCPM-OCR Jev</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev" title="Hugging Face"><img src="./assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev" title="ModelScope"><img src="./assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
+  <a href="./docs/minicpm_ocr_jev_zh.md"><strong>MiniCPM-OCR Jev 模型指南</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev" title="Hugging Face"><img src="./assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev" title="ModelScope"><img src="./assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
 </p>
 
 <p align="center">
@@ -36,11 +36,11 @@
 
 ### SOTA 表现，更高吞吐
 
-在图示的开源 OCR 模型对比中，MiniCPM-OCR 1.0 的解析吞吐量达到 1.2 pages/s，在 OmniDocBench v1.6、Real5-OmniDocBench、Wild-OmniDocBench 和 olmOCR-Bench 四项文档解析基准上取得最高等权平均分。
+在图示的开源 OCR 模型对比中，MiniCPM-OCR 1.0 的解析吞吐量达到 1.2 pages/s，在 OmniDocBench v1.6、Real5-OmniDocBench、Wild-OmniDocBench 和 olmOCR-Bench 四项文档解析基准上取得最佳综合表现。
 
 <p align="center"><a href="./assets/minicpm-ocr/efficiency-performance-zh.png"><img src="./assets/minicpm-ocr/efficiency-performance-zh.png" alt="开源 OCR 模型的吞吐量与解析质量对比；横轴为吞吐量（页/秒，对数刻度），纵轴为四项文档解析基准的等权平均分。" width="90%"></a></p>
 
-<sub>平均分：OmniDocBench v1.6、Real5-OmniDocBench、Wild-OmniDocBench 和 olmOCR-Bench 四项基准的等权平均分；横轴为吞吐量（页/秒），采用对数刻度。测试设置与复现说明见 [复现文档](./docs/benchmark_reproduction_zh.md)；各模型的吞吐数值见 [模型指南的吞吐评测](./docs/minicpm_ocr_1dot0_zh.md#吞吐)。</sub>
+<sub>测试设置与复现说明见 [复现文档](./docs/benchmark_reproduction_zh.md)；各模型的吞吐数值见 [模型指南的吞吐评测](./docs/minicpm_ocr_1dot0_zh.md#吞吐)。</sub>
 
 <a id="ocr-benchmark"></a>
 
@@ -55,7 +55,7 @@
 
 </details>
 
-各基准柱状图与吞吐明细见 [OCR 模型指南](./docs/minicpm_ocr_1dot0_zh.md#评测)。
+各基准柱状图与吞吐明细见 [MiniCPM-OCR 1.0 模型指南](./docs/minicpm_ocr_1dot0_zh.md#评测)。
 
 ### 典型示例
 
@@ -119,7 +119,7 @@
 
 <p align="center"><a href="./assets/minicpm-ocr/jev-case-zh.png"><img src="./assets/minicpm-ocr/jev-case-zh.png" alt="文本、公式和表格的原图、两份 OCR 候选结果及其 Jev 评分。" width="100%"></a></p>
 
-详见 [模型指南](./docs/minicpm_ocr_jev_zh.md)、[使用场景](./docs/minicpm_ocr_jev_zh.md#使用场景)、[跨模型评测](./docs/minicpm_ocr_jev_zh.md#已验证的解析器) 和 [判别示例](./docs/minicpm_ocr_jev_zh.md#示例)。
+使用方法、技术规格、评测结果和效率结果详见 [MiniCPM-OCR Jev 模型指南](./docs/minicpm_ocr_jev_zh.md)。
 
 <a id="quick-start"></a>
 
