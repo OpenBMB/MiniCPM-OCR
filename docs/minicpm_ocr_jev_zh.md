@@ -4,7 +4,7 @@
 
 [← 返回首页](../README_zh.md) · [MiniCPM-OCR 1.0](./minicpm_ocr_1dot0_zh.md)
 
-MiniCPM-OCR Jev 是面向文本、公式和表格区域的 **2B OCR 质量判别模型**。它对已有 OCR 候选结果给出 0–1 评分，可用于安排人工复核或从多个候选结果中择优。本页介绍模型亮点、模型结构、输入输出和具体用法；完整模型对比见 [首页 MiniCPM-OCR Jev 评测表](../README_zh.md#jev-benchmark)。
+MiniCPM-OCR Jev 是面向文本、公式和表格区域的 **2B OCR 正确性判别模型**。它对已有 OCR 候选结果给出 0–1 评分，可用于安排人工复核或从多个候选结果中择优。本页介绍模型亮点、模型结构、输入输出和具体用法；完整模型对比见 [首页 MiniCPM-OCR Jev 评测表](../README_zh.md#jev-benchmark)。
 
 ## 模型亮点
 

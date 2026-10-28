@@ -4,7 +4,7 @@
 
 [← Back to the homepage](../README.md) · [MiniCPM-OCR 1.0](./minicpm_ocr_1dot0_en.md)
 
-MiniCPM-OCR Jev is a **2B OCR quality assessment model** for text, formula, and table regions. It assigns a score between 0 and 1 to existing OCR candidates, helping route results to human review or select the best of several candidates. This page covers the model highlights, architecture, inputs and outputs, and usage; see the [MiniCPM-OCR Jev benchmark table on the homepage](../README.md#jev-benchmark) for the full model comparison.
+MiniCPM-OCR Jev is a **2B OCR correctness decision model** for text, formula, and table regions. It assigns a score between 0 and 1 to existing OCR candidates, helping route results to human review or select the best of several candidates. This page covers the model highlights, architecture, inputs and outputs, and usage; see the [MiniCPM-OCR Jev benchmark table on the homepage](../README.md#jev-benchmark) for the full model comparison.
 
 ## Model Highlights
 
