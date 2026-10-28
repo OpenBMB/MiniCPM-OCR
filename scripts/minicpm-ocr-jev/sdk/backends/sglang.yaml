@@ -1,0 +1,25 @@
+# Which engine runs the forward pass, and where to reach it.
+#
+# Start the engine with sdk/start_engine_sglang.sh. Unlike the vLLM path, this
+# one applies no chat template: the SDK sends the finished prompt string and
+# SGLang runs it as given. What the startup gate checks therefore moves to our
+# side of the wire -- see the `client` branch in sdk/jev_score/selfcheck.py.
+
+engine: sglang
+
+# Where sglang.launch_server is listening. Host and port only; the adapter
+# appends the endpoint paths (/classify, /get_model_info).
+base_url: http://127.0.0.1:18499
+
+# What the engine calls the model. Leave it unset: the adapter asks
+# /get_model_info, which reports the checkpoint path the server was started
+# with. Set it only to pin a name in a log.
+# model: minicpm-ocr-jev
+
+# Seconds to wait on one forward pass. Generous because a cold engine spends its
+# first request capturing CUDA graphs.
+timeout_sec: 120
+
+# Requests in flight toward the engine. SGLang queues past its own capacity, so
+# this bounds our sockets and memory rather than the engine's throughput.
+max_in_flight: 32

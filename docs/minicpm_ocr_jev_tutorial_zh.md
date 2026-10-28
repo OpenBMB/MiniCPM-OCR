@@ -39,7 +39,7 @@ cd scripts/minicpm-ocr-jev
 docker build -f serve/Dockerfile -t minicpm-ocr-jev-1-0:latest .
 ```
 
-慢网下需要加两个镜像源参数，详见 [`scripts/minicpm-ocr-jev/README.md`](../scripts/minicpm-ocr-jev/README.md)。
+慢网下加上 `--build-arg PIP_INDEX_URL=https://<mirror>/simple` 和 `--build-arg PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>`。
 
 运行（挂载权重、映射端口）：
 
@@ -80,7 +80,7 @@ curl -s http://127.0.0.1:8030/v1/rm/score -H 'Content-Type: application/json' -d
 
 `image` 传 `data:image/png;base64,` 或 `data:image/jpeg;base64,` 前缀加 base64 正文。`category` 必须与块真实类型一致（`text` / `formula` / `table`），填错不报错但分数会偏。**用分数前必须先看** `verdict`——`0.0` 与 `-1.0` 是打分失败时的固定返回值，不是低分。
 
-更多端点（`/v1/rm/score_best`、`/v1/rm/score_best_batch`）与完整字段定义见 [Docker 镜像 API 参考](./minicpm_ocr_jev_docker_api_zh.md)。目录结构与构建细节见 [`scripts/minicpm-ocr-jev/README.md`](../scripts/minicpm-ocr-jev/README.md)。
+更多端点（`/v1/rm/score_best`、`/v1/rm/score_best_batch`）与完整字段定义见 [Docker 镜像 API 参考](./minicpm_ocr_jev_docker_api_zh.md)。
 
 
 ### 方式二：SDK 本地部署
