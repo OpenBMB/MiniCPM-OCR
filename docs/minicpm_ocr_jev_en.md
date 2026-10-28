@@ -4,7 +4,7 @@
 
 [← Back to the homepage](../README.md) · [MiniCPM-OCR 1.0](./minicpm_ocr_1dot0_en.md)
 
-MiniCPM-OCR Jev is a **2B OCR quality assessment model** for text, formula, and table regions. It assigns a score between 0 and 1 to existing OCR candidates, helping route results to human review or select the best of several candidates. This page covers the model highlights, architecture, inputs and outputs, and usage; see the [MiniCPM-OCR Jev benchmark table on the homepage](../README.md#jev-benchmark) for the full model comparison.
+MiniCPM-OCR Jev is a **2B OCR correctness decision model** for text, formula, and table regions. It assigns a score between 0 and 1 to existing OCR candidates, helping route results to human review or select the best of several candidates. This page covers the model highlights, architecture, inputs and outputs, and usage; see the [MiniCPM-OCR Jev benchmark table on the homepage](../README.md#jev-benchmark) for the full model comparison.
 
 ## Model Highlights
 
@@ -38,7 +38,7 @@ Score the parsed result for each region and choose a threshold using samples fro
 
 ### Selecting across models to improve parsing quality
 
-Use the same layout segmentation to have several OCR models parse each region. MiniCPM-OCR Jev scores the candidates for the same region, selects the highest-scoring candidate, and combines the selected results in reading order. If all candidates fall below the application threshold, the region can still be sent for human review.
+Use the same layout segmentation to have several OCR models parse each region. MiniCPM-OCR Jev scores the candidates for the same region, replaces low-scoring blocks with higher-scoring results from other models, and combines them in reading order, improving overall parsing quality.
 
 <p align="center"><a href="../assets/minicpm-ocr/multi-models-improvements-en.png"><img src="../assets/minicpm-ocr/multi-models-improvements-en.png" alt="Parsing quality gains from MiniCPM-OCR Jev scoring and selection: Overall gains for MiniCPM-OCR 1.0, Xiaomi OCR, and PaddleOCR-VL 1.6 relative to each parser used alone." width="100%"></a></p>
 
