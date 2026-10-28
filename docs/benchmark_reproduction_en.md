@@ -1,4 +1,4 @@
-# Reproducing Performance and Efficiency Evaluation Results
+# Reproducing MiniCPM-OCR Performance and Efficiency Evaluation Results
 
 [← Back to README](../README.md) · [Model guide](./minicpm_ocr_1dot0_en.md)
 

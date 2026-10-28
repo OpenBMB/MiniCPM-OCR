@@ -1,4 +1,4 @@
-# 复现性能和效率评测结果
+# 复现 MiniCPM-OCR 性能和效率评测结果
 
 [← 返回 README](../README_zh.md) · [模型指南](./minicpm_ocr_1dot0_zh.md)
 
