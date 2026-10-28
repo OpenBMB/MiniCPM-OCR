@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "minicpm-ocr"
 dynamic = ["version"]
-description = "MiniCPM-V OCR SDK: document layout + VLM orchestration frontend with pluggable inference backends"
+description = "MiniCPM-OCR SDK: document layout + VLM orchestration frontend with pluggable inference backends"
 readme = { file = "README.pypi.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
 license = "Apache-2.0"

@@ -7,7 +7,7 @@ Common issues with installation, model download, GPU memory, input formats and u
 ### `pip install minicpmvocr` package not found
 **Cause**: The PyPI distribution is named `minicpm-ocr`; the Python import and command are named `minicpmvocr`.
 
-**Solution**: Run `python -m pip install "minicpm-ocr[all]==1.0.0"`. For development from this repository, use `python -m pip install -e "./sdk[all]"`.
+**Solution**: Run `python -m pip install "minicpm-ocr[all]==1.0.2"`. For development from this repository, use `python -m pip install -e "./sdk[all]"`.
 
 ### `minicpmvocr parse` reports `--config` missing
 **Cause**: An older SDK version is installed. The current `parse` command supports a built-in quickstart configuration.
