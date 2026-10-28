@@ -10,14 +10,14 @@
   <a href="./docs/minicpm_ocr_jev_en.md"><strong>MiniCPM-OCR Jev</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev" title="Hugging Face"><img src="./assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-Jev" title="ModelScope"><img src="./assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
 </p>
 
-<p align="center"><sub>
+<p align="center">
   <a href="#quick-start">Get Started</a> &nbsp;·&nbsp;
   <a href="#model-weights">Model Weights</a> &nbsp;·&nbsp;
   <a href="#api">API</a> &nbsp;·&nbsp;
   <a href="#skill">Skill</a> &nbsp;·&nbsp;
   Online Demo (<a href="https://platform.modelbest.cn/console/playground/document-parse">CN</a> / <a href="https://platform.modelbest.ai/console/playground/document-parse">Global</a>)
   &nbsp;|&nbsp; English &nbsp;·&nbsp; <a href="./README_zh.md">中文</a>
-</sub></p>
+</p>
 
 </div>
 
