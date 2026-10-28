@@ -13,7 +13,7 @@
 <p align="center">
   <a href="#quick-start">开始使用</a> &nbsp;·&nbsp;
   <a href="#model-weights">模型权重</a> &nbsp;·&nbsp;
-  <a href="#api">Free API</a> &nbsp;·&nbsp;
+  <a href="#api">免费API</a> &nbsp;·&nbsp;
   <a href="#skill">Skill</a> &nbsp;·&nbsp;
   在线体验（<a href="https://platform.modelbest.cn/console/playground/document-parse">国内</a> / <a href="https://platform.modelbest.ai/console/playground/document-parse">海外</a>）
   &nbsp;|&nbsp; <a href="./README.md">English</a> &nbsp;·&nbsp; 中文
@@ -138,9 +138,9 @@ Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL.md
 
 <a id="api"></a>
 
-### Free API
+### 免费API
 
-通过 API 接入 MiniCPM-OCR 1.0 的识别能力和 MiniCPM-OCR Jev 的质量判别能力。
+通过免费API接入 MiniCPM-OCR 1.0 的识别能力和 MiniCPM-OCR Jev 的质量判别能力。
 
 [MiniCPM-OCR 1.0 调用示例](./docs/minicpm_ocr_api_zh.md) &emsp;·&emsp; [MiniCPM-OCR Jev 调用示例](./docs/minicpm_ocr_jev_api_zh.md)（即将提供）
 
