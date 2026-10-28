@@ -25,7 +25,7 @@ Both services share one forward engine. The only difference is where the render 
    - **Score service** → install the service environment → start the service
    - **Render+score service** → install the render environment → start the service
 
-The engine and the service must go into two separate virtual environments; do not merge them. All commands below run from `scripts/minicpm-ocr-jev/`.
+The engine and the service must go into two separate virtual environments; do not merge them.
 
 ## Requirements
 
@@ -66,21 +66,34 @@ These are used only during conversion and have nothing to do with the two servic
 
 ### Convert to GGUF
 
-Convert the language model and the vision encoder (`mmproj`) separately. The weights directory must contain `minicpm_ocr_jev.json`, which is how the converter recognises a MiniCPM-OCR Jev checkpoint:
+Convert the language model and the vision encoder (`mmproj`) separately. The converter identifies the model by `architectures` in `config.json`, which has to be `MiniCPMOCRForSequenceClassification`. The original weights directory stays untouched: create a separate conversion directory, symlink every other file into it, put an edited copy of `config.json` there, and run both conversions from it:
 
 ```bash
-echo '{}' > ./models/MiniCPM-OCR-Jev/minicpm_ocr_jev.json
+cd llama.cpp
+mkdir -p ./models/MiniCPM-OCR-Jev-gguf
+for f in ./models/MiniCPM-OCR-Jev/*; do
+  [ "$(basename "$f")" = config.json ] || ln -sf "$PWD/$f" ./models/MiniCPM-OCR-Jev-gguf/
+done
+python - <<'EOF'
+import json
+c = json.load(open("./models/MiniCPM-OCR-Jev/config.json"))
+c["architectures"] = ["MiniCPMOCRForSequenceClassification"]
+json.dump(c, open("./models/MiniCPM-OCR-Jev-gguf/config.json", "w"), indent=2, ensure_ascii=False)
+EOF
 
-python convert_hf_to_gguf.py ./models/MiniCPM-OCR-Jev \
+python convert_hf_to_gguf.py ./models/MiniCPM-OCR-Jev-gguf \
   --outtype bf16 --outfile ./models/MiniCPM-OCR-Jev-bf16.gguf
 
-python convert_hf_to_gguf.py ./models/MiniCPM-OCR-Jev --mmproj \
+python convert_hf_to_gguf.py ./models/MiniCPM-OCR-Jev-gguf --mmproj \
   --outtype bf16 --outfile ./models/mmproj-MiniCPM-OCR-Jev-bf16.gguf
 ```
+
+Convert the `mmproj` from the conversion directory too: that is what gives it the same lower bound on image size as in training, so a block image below it is upscaled before encoding. Without it, small images score off.
 
 ### Start
 
 ```bash
+cd llama.cpp
 ./build/bin/llama-server \
   -m ./models/MiniCPM-OCR-Jev-bf16.gguf \
   --mmproj ./models/mmproj-MiniCPM-OCR-Jev-bf16.gguf \
@@ -127,6 +140,7 @@ Pillow        12.3.0
 `JEV_BACKEND_CONFIG` points at the llama.cpp backend config; the arguments are the service port and the engine address, in that order:
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 JEV_BACKEND_CONFIG=sdk/backends/llamacpp.yaml \
 PATH=/opt/venv-score/bin:$PATH bash sdk/start_score.sh 18501 http://127.0.0.1:18499
 ```
@@ -154,7 +168,7 @@ curl -s http://127.0.0.1:18501/v1/score -H 'Content-Type: application/json' -d '
 {"results": [{"prob_1": 0.00227, "error": null}]}
 ```
 
-All three fields are required: `original_image` is the base64 of the original block image, `render_image` is the base64 of that candidate rendered back into an image, and `ocr_text` is the candidate text itself. The base64 carries **no** `data:image/png;base64,` prefix, unlike the image API.
+All three fields are required: `original_image` is the base64 of the original block image, `render_image` is the base64 of that candidate rendered back into an image, and `ocr_text` is the candidate text itself. The base64 carries **no** `data:image/png;base64,` prefix, the same as the image API.
 
 ### Fields and limits
 
@@ -174,12 +188,14 @@ This service calls the scoring layer in-process: it does **not** need a separate
 ### Install
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 bash sdk/setup_render.sh /opt/venv-render
 ```
 
 It installs Node, CJK fonts, Chromium and the service dependencies. On a slow network, point it at two mirrors:
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 PIP_INDEX_URL=https://<mirror>/simple \
 PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>/playwright \
     bash sdk/setup_render.sh /opt/venv-render
@@ -190,6 +206,7 @@ PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>/playwright \
 The arguments are the service port and the engine address, in that order:
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 JEV_BACKEND_CONFIG=sdk/backends/llamacpp.yaml \
 PATH=/opt/venv-render/bin:$PATH bash sdk/start_render_score.sh 18500 http://127.0.0.1:18499
 ```
@@ -252,7 +269,7 @@ curl -s http://127.0.0.1:18501/healthz
 ```
 
 ```json
-{"status": "ok", "served_model": "MiniCPM-OCR-Jev-bf16",
+{"status": "ok", "served_model": "./models/MiniCPM-OCR-Jev-bf16.gguf",
  "prompt": {"template_md5": "9aab68e8ba8ab4da17ba9752bddb199c",
             "source": "server_template",
             "last_token": null, "expected_last_token": 271,

@@ -10,11 +10,11 @@ This is the interface reference for the Docker image of [MiniCPM-OCR Jev Local D
 
 ### `input_form`
 
-Every scoring request carries `input_form` at the top level of the body. It is currently fixed to `"ternary"` (original image + render image + text). Any other value is rejected with 422.
+Every scoring request carries `input_form` at the top level of the body. It is currently fixed to `"ternary"` (original image + render image + text). Any other value is rejected with 422. `score_best_batch` needs it once more inside every item; without it the request is rejected with 422.
 
 ### `image` / `render_image` / `render_images`
 
-All image fields accept a data URL: `data:image/png;base64,<base64>` or `data:image/jpeg;base64,<base64>`. The MIME type in the prefix must match the real format.
+All image fields take the base64 body of the image file (PNG or JPEG) with **no** prefix such as `data:image/png;base64,`. With a prefix, that item returns `encode_error`.
 
 ### `category`
 
@@ -70,9 +70,9 @@ One score per block, one candidate per block. Suited to quality screening, routi
 curl -s http://127.0.0.1:8030/v1/rm/score -H 'Content-Type: application/json' -d '{
   "input_form": "ternary",
   "items": [
-    {"case_id": "blk-001", "image": "data:image/png;base64,<base64>",
+    {"case_id": "blk-001", "image": "<base64>",
      "ocr_text": "the OCR text to be scored", "category": "text"},
-    {"case_id": "blk-002", "image": "data:image/png;base64,<base64>",
+    {"case_id": "blk-002", "image": "<base64>",
      "ocr_text": "\\frac{1}{2}", "category": "formula"}
   ]
 }'
@@ -122,7 +122,7 @@ Picks the best of N candidates for one block. Suited to single-block tests and l
 ```bash
 curl -s http://127.0.0.1:8030/v1/rm/score_best -H 'Content-Type: application/json' -d '{
   "input_form": "ternary",
-  "image": "data:image/png;base64,<base64>",
+  "image": "<base64>",
   "category": "text",
   "candidates": ["candidate A", "candidate B", "candidate C"]
 }'
@@ -162,15 +162,15 @@ Several blocks each pick their own best, in a single HTTP request. **Recommended
 curl -s http://127.0.0.1:8030/v1/rm/score_best_batch -H 'Content-Type: application/json' -d '{
   "input_form": "ternary",
   "items": [
-    {"case_id": "blk-001", "image": "data:image/png;base64,<base64>",
+    {"input_form": "ternary", "case_id": "blk-001", "image": "<base64>",
      "category": "text", "candidates": ["text candidate A", "text candidate B"]},
-    {"case_id": "blk-002", "image": "data:image/png;base64,<base64>",
+    {"input_form": "ternary", "case_id": "blk-002", "image": "<base64>",
      "category": "formula", "candidates": ["\\frac{1}{2}", "1/2"]}
   ]
 }'
 ```
 
-The fields inside `items[]` are the same as a single-block `score_best` request, except that `case_id` is required so the blocks can be told apart. `render_images` is likewise given per block.
+The fields inside `items[]` are the same as a single-block `score_best` request, `input_form` included — it goes both at the top level and in every item — except that `case_id` is required so the blocks can be told apart. `render_images` is likewise given per block.
 
 ```json
 {
@@ -206,9 +206,9 @@ The fields inside `items[]` are the same as a single-block `score_best` request,
 
 | Field | Where it appears | Meaning |
 |---|---|---|
-| `input_form` | top level of the request | fixed to `"ternary"` |
+| `input_form` | top level of the request; also `items[]` in batch | fixed to `"ternary"` |
 | `case_id` | `items[]` | the caller's own block identifier, echoed back unchanged |
-| `image` | `items[]` | the original block image, as a data URL |
+| `image` | `items[]` | the original block image, base64 with no `data:` prefix |
 | `ocr_text` | `items[]` (score) | the single text to be scored |
 | `candidates` | top level (score_best) / `items[]` (batch) | the array of candidate texts |
 | `category` | everywhere | `text` / `formula` / `table` |

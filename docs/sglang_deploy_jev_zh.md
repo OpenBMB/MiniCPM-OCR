@@ -23,12 +23,13 @@
    - **不带渲染器服务** → 装服务环境 → 起服务
    - **内置渲染器服务** → 装渲染环境 → 起服务
 
-引擎与服务必须装在两个虚拟环境里，不要合并。以下命令都在 `scripts/minicpm-ocr-jev/` 目录下执行。
+引擎与服务必须装在两个虚拟环境里，不要合并。
 
 ## 环境要求
 
-- **GPU**：NVIDIA，显存 ≥8GB
+- **GPU**：NVIDIA，显存 ≥16GB
 - **驱动**：≥535
+- **CUDA toolkit**：版本需与 PyTorch 所用的 CUDA 版本一致（如 PyTorch 为 cu130，则装 CUDA 13.0）
 - **Python**：≥3.10
 - **SGLang**：最新稳定版
 - **固定版本**：`Pillow` 12.3.0、`playwright` 1.62.0（仅内置渲染器服务）
@@ -47,6 +48,7 @@ pip install "sglang[all]"
 启动：
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 python -m sglang.launch_server \
   --model-path ./models/MiniCPM-OCR-Jev \
   --is-embedding \
@@ -55,8 +57,8 @@ python -m sglang.launch_server \
 ```
 
 - `--is-embedding`：走池化路径而不是文本生成。不加则没有 `/classify` 可调。
-- `--json-model-override-args`：权重的 `config.json` 写的是生成类 `Qwen3_5ForConditionalGeneration` 时需要它，覆盖成分类类才会返回 value head 的两个 logit；不加则加载生成类、返回 2048 维 hidden state。这是加载期覆盖，不改动磁盘上的权重文件。`config.json` 本身已写 `Qwen3_5VLForSequenceClassification` 时，这一项可以省略。
-- 类别数取自 `config.json`：有 `id2label` 则用 `len(id2label)`，否则用 `num_labels`，两者必须有其一。
+- `--json-model-override-args`：权重的 `config.json` 写的是生成类 `Qwen3_5ForConditionalGeneration` 时需要它，覆盖成分类类才会返回 value head 的两个 logit；不加则没有 score 头，`--is-embedding` 的池化路径直接返回 2048 维（`hidden_size`）hidden state。这是加载期覆盖，不改动磁盘上的权重文件。`config.json` 本身已写 `Qwen3_5VLForSequenceClassification` 时，这一项可以省略。
+- 类别数取自 `config.json`：有 `id2label` 则用 `len(id2label)`，否则用 `num_labels`，两者都没有时按 2 类处理。
 - 不要加 `--chat-template`：SGLang 不套模板，SDK 直接把拼好的整串 prompt 发过去。
 
 起服后确认引擎就绪：
@@ -98,6 +100,7 @@ Pillow        12.3.0
 `JEV_BACKEND_CONFIG` 指向 SGLang 的后端配置，参数依次为服务端口、引擎地址：
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 JEV_BACKEND_CONFIG=sdk/backends/sglang.yaml \
 PATH=/opt/venv-score/bin:$PATH bash sdk/start_score.sh 18501 http://127.0.0.1:18499
 ```
@@ -125,7 +128,7 @@ curl -s http://127.0.0.1:18501/v1/score -H 'Content-Type: application/json' -d '
 {"results": [{"prob_1": 0.00227, "error": null}]}
 ```
 
-三个字段都是必填：`original_image` 是原始块图的 base64，`render_image` 是该候选渲染回图片后的 base64，`ocr_text` 是候选文本本身。base64 **不带** `data:image/png;base64,` 前缀，与镜像接口不同。
+三个字段都是必填：`original_image` 是原始块图的 base64，`render_image` 是该候选渲染回图片后的 base64，`ocr_text` 是候选文本本身。base64 **不带** `data:image/png;base64,` 前缀，与镜像接口一致。
 
 ### 字段与限额
 
@@ -145,12 +148,14 @@ curl -s http://127.0.0.1:18501/v1/score -H 'Content-Type: application/json' -d '
 ### 安装
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 bash sdk/setup_render.sh /opt/venv-render
 ```
 
 它装 Node、CJK 字体、Chromium 与服务依赖。慢网下设两个镜像源：
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 PIP_INDEX_URL=https://<mirror>/simple \
 PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>/playwright \
     bash sdk/setup_render.sh /opt/venv-render
@@ -161,6 +166,7 @@ PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>/playwright \
 参数依次为服务端口、引擎地址：
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 JEV_BACKEND_CONFIG=sdk/backends/sglang.yaml \
 PATH=/opt/venv-render/bin:$PATH bash sdk/start_render_score.sh 18500 http://127.0.0.1:18499
 ```

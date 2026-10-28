@@ -69,10 +69,15 @@ ALLOW_UNVERIFIED = os.environ.get("JEV_ALLOW_UNVERIFIED") == "1"
 
 INPUT_FORMS = ("ternary",)
 
-#: Scores for candidates that never reached the model. 0.0 rather than null: a
-#: candidate whose LaTeX will not parse is not a plausible transcription, and a
-#: caller ranking candidates wants it to lose rather than to be absent.
-SENTINEL = 0.0
+#: prob_yes for items that never reached the model -- the same two values as the
+#: Docker image's serve/app.py, because callers switch between the two without
+#: touching their code:
+#:   0.0  -- the candidate was judged unusable (bad LaTeX, render failed).
+#:  -1.0  -- we never found out (bad input bytes, backend error).
+#: Both lose every argmax and fail every threshold, and the summary counts only
+#: `scored` items, so neither value moves a mean or a rate.
+SENTINEL = {"precheck_reject": 0.0, "render_error": 0.0,
+            "missing_original_image": 0.0, "encode_error": -1.0, "forward_error": -1.0}
 
 STATE: dict[str, Any] = {"scorer": None, "pool": None, "selfcheck": None}
 
@@ -299,7 +304,7 @@ async def _run(items: list[ScoreItem], thr: float,
             except ValueError as exc:
                 failed[item.case_id] = ScoreResultItem(
                     case_id=item.case_id, category=item.category,
-                    verdict="encode_error", prob_yes=SENTINEL,
+                    verdict="encode_error", prob_yes=SENTINEL["encode_error"],
                     detail=f"image is not valid base64: {exc}")
                 continue
             path = work / f"{uuid.uuid4().hex}.png"
@@ -319,15 +324,16 @@ async def _run(items: list[ScoreItem], thr: float,
                 except ValueError as exc:
                     failed[item.case_id] = ScoreResultItem(
                         case_id=item.case_id, category=item.category,
-                        verdict="encode_error", prob_yes=SENTINEL,
+                        verdict="encode_error", prob_yes=SENTINEL["encode_error"],
                         detail=f"render_image is not valid base64: {exc}")
                 continue
             result = renders.get(item.case_id)
             if result is None or not result.ok or not result.render_image_path:
+                reason = (result.reason if result else "render_error") or "render_error"
                 failed[item.case_id] = ScoreResultItem(
-                    case_id=item.case_id, category=item.category,
-                    verdict=(result.reason if result else "render_error") or "render_error",
-                    prob_yes=SENTINEL, detail=(result.detail if result else "") or "")
+                    case_id=item.case_id, category=item.category, verdict=reason,
+                    prob_yes=SENTINEL.get(reason, 0.0),
+                    detail=(result.detail if result else "") or "")
                 continue
             render_path = Path(result.render_image_path)
             if not render_path.is_file():
@@ -336,7 +342,7 @@ async def _run(items: list[ScoreItem], thr: float,
                 # inside the image loader, where the cause is unrecognisable.
                 failed[item.case_id] = ScoreResultItem(
                     case_id=item.case_id, category=item.category,
-                    verdict="render_error", prob_yes=SENTINEL,
+                    verdict="render_error", prob_yes=SENTINEL["render_error"],
                     detail=f"render reported ok but {render_path} is missing")
                 continue
             scorable.append((item, render_path.read_bytes()))
@@ -358,7 +364,8 @@ async def _run(items: list[ScoreItem], thr: float,
                     raise outcome
                 scored[item.case_id] = ScoreResultItem(
                     case_id=item.case_id, category=item.category,
-                    verdict="forward_error", prob_yes=SENTINEL, detail=str(outcome))
+                    verdict="forward_error", prob_yes=SENTINEL["forward_error"],
+                    detail=str(outcome))
             else:
                 scored[item.case_id] = ScoreResultItem(
                     case_id=item.case_id, category=item.category, verdict="scored",
@@ -432,9 +439,12 @@ async def healthz() -> JSONResponse:
                         "template_md5": PROMPT_TEMPLATE_MD5},
         "prompt_selfcheck": {
             "passed": check.passed if check else None,
+            # Who assembled the prompt, which decides which checks below could run.
+            "source": check.prompt_source if check else None,
             "last_token": check.last_token if check else None,
             "token_equality": check.token_equality if check else None,
             "scoring_request": check.scoring_request if check else None,
+            "forward_shape": check.forward_shape if check else None,
         },
         "threshold_default": THRESHOLD,
     }
@@ -443,10 +453,12 @@ async def healthz() -> JSONResponse:
 
 @app.post("/v1/rm/score", response_model=ScoreResponse)
 async def score(req: ScoreRequest) -> ScoreResponse:
+    # 400 for both, as the Docker image answers; the SDK's own /v1/score keeps
+    # its 413 -- that endpoint has no counterpart in the image.
     if not req.items:
-        raise HTTPException(422, "items must not be empty")
+        raise HTTPException(400, "items must not be empty")
     if len(req.items) > MAX_ITEMS:
-        raise HTTPException(413, f"at most {MAX_ITEMS} items per request, got {len(req.items)}")
+        raise HTTPException(400, f"at most {MAX_ITEMS} items per request, got {len(req.items)}")
     seen = {i.case_id for i in req.items}
     if len(seen) != len(req.items):
         raise HTTPException(422, "case_id must be unique within a request")
@@ -515,7 +527,11 @@ async def score_best_batch(req: ScoreBestBatchRequest) -> ScoreBestBatchResponse
     if len(items) > MAX_ITEMS:
         raise HTTPException(400, f"at most {MAX_ITEMS} candidates per request, got {len(items)}")
 
-    thr = THRESHOLD if req.threshold is None else req.threshold
+    # No per-request threshold here: ScoreBestBatchRequest carries none, and the
+    # Docker image's endpoint of the same name does not take one either. The
+    # fields of the two must stay identical -- callers switch between image and
+    # SDK without touching their payloads.
+    thr = THRESHOLD
     stage_sec: dict[str, float] = {}
     results = await _run(items, thr, stage_sec)
     return ScoreBestBatchResponse(
