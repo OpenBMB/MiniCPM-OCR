@@ -45,15 +45,29 @@ DEFAULT_PROMPT_MAP = {
 
     },
     "markdown_assembly": {
-        "ignore_labels": ["number", "footnote", "header", "footer", "aside_text"],
+        "ignore_labels": ["number", "footnote", "header", "header_image", "footer", "footer_image", "aside_text"],
         "title_format": {"doc_title": "# {content}", "paragraph_title": "## {content}", "figure_title": "*{content}*"},
         "formula_format": {"display_formula": "$$\n{content}\n$$", "inline_formula": "${content}$"},
         "table_format": "{content}",
         "image_format": "![image]()",
+        "image_render": "reference",
+        "image_show_ocr_content": None,
         "chart_format": "{content}",
         "seal_format": "{content}",
     },
 }
+
+
+_NESTED_PROMPT_MAP_SECTIONS = ("markdown_assembly", "element_prompts")
+
+
+def _merge_prompt_map_section(base: Dict, external: Dict) -> None:
+    'Merge an external prompt-map section into the default instead of replacing it.'
+    for key, value in external.items():
+        if isinstance(value, dict) and isinstance(base.get(key), dict):
+            base[key].update(value)
+        else:
+            base[key] = value
 
 
 def load_prompt_map(cfg: Dict) -> Dict:
@@ -63,10 +77,16 @@ def load_prompt_map(cfg: Dict) -> Dict:
     if prompt_map_path and Path(prompt_map_path).is_file():
         with Path(prompt_map_path).open("r", encoding="utf-8") as f:
             external = yaml.safe_load(f) or {}
+        for section in _NESTED_PROMPT_MAP_SECTIONS:
+            if isinstance(external.get(section), dict):
+                _merge_prompt_map_section(prompt_map[section], external.pop(section))
         prompt_map.update(external)
     prompt_map = apply_prompt_override_mode(prompt_map, cfg["prompt"].get("override_mode", "legacy"))
     from .layouts.base import resolve_skip_vlm_labels
-    return apply_skip_vlm_labels(prompt_map, resolve_skip_vlm_labels(cfg.get("layout")))
+    prompt_map = apply_skip_vlm_labels(prompt_map, resolve_skip_vlm_labels(cfg.get("layout")))
+    from .postprocess.markdown import image_render_mode
+    image_render_mode(prompt_map["markdown_assembly"])
+    return prompt_map
 
 
 def get_element_cfg(prompt_map: Dict, label: str) -> Dict | None:

@@ -404,7 +404,7 @@ def pipelined_run(cfg: Dict, resources: Dict | None = None, on_layout_idle=None)
                     ]
                     page_states.append({
                         "image_id": image_id, "layout": layout, "blocks": blocks,
-                        "crop_dir": crop_dir, "page_started": page_started,
+                        "crop_dir": crop_dir, "crops": crops, "page_started": page_started,
                         "layout_stage_sec": layout_stage_sec,
                         "outputs": [None] * len(blocks), "remaining": len(blocks),
                     })
@@ -428,6 +428,7 @@ def pipelined_run(cfg: Dict, resources: Dict | None = None, on_layout_idle=None)
                         run_dir=run_dir, image_id=state["image_id"], layout=state["layout"],
                         blocks=state["blocks"], block_outputs=state["outputs"], prompt_map=prompt_map,
                         page_started=state["page_started"], layout_stage_sec=state["layout_stage_sec"],
+                        crop_arrays=state.pop("crops", None),
                     )
                 except Exception as e:
                     result = _failed_page_result(state["image_id"], state["page_started"], state["layout_stage_sec"], str(e))
