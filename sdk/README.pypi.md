@@ -12,14 +12,14 @@
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_jev_en.md"><strong>MiniCPM-OCR Jev</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev" title="Hugging Face"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev" title="ModelScope"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
 </p>
 
-<p align="center"><sub>
+<p align="center">
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#quick-start">Get Started</a> &nbsp;·&nbsp;
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#model-weights">Model Weights</a> &nbsp;·&nbsp;
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#api">Free API</a> &nbsp;·&nbsp;
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#skill">Skill</a> &nbsp;·&nbsp;
   Online Demo (<a href="https://platform.modelbest.cn/console/playground/document-parse">CN</a> / <a href="https://platform.modelbest.ai/console/playground/document-parse">Global</a>)
   &nbsp;|&nbsp; English &nbsp;·&nbsp; <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md">中文</a>
-</sub></p>
+</p>
 
 </div>
 
@@ -89,7 +89,7 @@ Original documents and parsed results, side by side.
 
 ## MiniCPM-OCR Jev
 
-**MiniCPM-OCR Jev** is an **OCR quality decision model** for text, formulas, and tables. Given an image and its corresponding OCR result, it returns a **quality score from 0 to 1** to help select reliable results and locate content that needs review.
+**MiniCPM-OCR Jev** is an **OCR correctness decision model** for text, formulas, and tables. Given an image and its corresponding OCR result, it returns a **quality score from 0 to 1** to help select reliable results and locate content that needs review.
 
 - 🛡️ **Strong performance in a small model**: With only 2B parameters, MiniCPM-OCR Jev achieves an AUROC (×100) of 93.6 on [JevOCRBench](https://huggingface.co/datasets/openbmb/JevOCRBench), **outperforming JEV-35B-A3B (90.1)** and approaching Qwen3.5-397B-A17B (93.8).
 - 🧩 **Consistent generalization**: Across parsing results from MiniCPM-OCR 1.0, GLM-OCR, PaddleOCR-VL-1.6, and Xiaomi-OCR-0, its AUROC (×100) ranges from **91.9 to 93.4**.
@@ -188,7 +188,7 @@ Run the models on your own hardware: MiniCPM-OCR 1.0 parses PDFs and images into
 </tr>
 <tr>
 <td nowrap>MiniCPM&#8209;OCR&nbsp;<strong>Jev</strong></td>
-<td width="360">An OCR quality decision model for text, formulas, and tables. Given an image and its OCR result, it returns a quality score from 0 to 1.</td>
+<td width="360">An OCR correctness decision model for text, formulas, and tables. Given an image and its OCR result, it returns a quality score from 0 to 1.</td>
 <td align="center" valign="middle" colspan="2"><a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>BF16</strong>&emsp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev-gguf">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-gguf"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>GGUF</strong><br><a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev-AWQ">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-AWQ"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>AWQ</strong>&emsp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev-GPTQ">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-GPTQ"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>GPTQ</strong></td>
 </tr>
 </table>
