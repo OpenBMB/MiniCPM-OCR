@@ -100,11 +100,25 @@ SDK 的 `pipeline.max_workers` 控制识别块请求数，`pipeline.page_workers
 
 ## 吞吐
 
+### 单并发下的系统对比
+
 在 NVIDIA GeForce RTX 5090 上，使用 OmniDocBench v1.6 的 1,651 张图像、图片级并发度为 1，并启用各系统加速配置时，MiniCPM-OCR 1.0 的吞吐为 **1.2 pages/s**。相对吞吐以 MiniCPM-OCR 1.0 为 **1.00×**，数值越高表示处理速度越快。
 
 <p align="center"><a href="../assets/minicpm-ocr/throughput-comparison.png"><img src="../assets/minicpm-ocr/throughput-comparison.png" alt="各 OCR 系统在加速配置下的吞吐；MiniCPM-OCR 1.0 为 1.2 pages/s，相对吞吐为 1.00×。" width="100%"></a></p>
 
 这里报告各系统的解析吞吐，精确计时范围仍待补充。图片级并发度为 1 时，页内识别块仍可并发处理；实际部署速度还取决于页面内容、后端、并发和硬件配置。
+
+### 多并发吞吐
+
+在 NVIDIA GeForce RTX 5090 上，使用 OmniDocBench v1.6 的全部 1,651 张图像，下表展示 MiniCPM-OCR 1.0 在不同图片级并发数下的吞吐。加速比以本表图片级并发数为 1 时的 **1.217 pages/s** 为基准。本组测试中，**图片级并发数为 8 时吞吐最高，达到 2.133 pages/s，为单并发的 1.75 倍**。
+
+| 图片级并发数 | 吞吐（pages/s） | 加速比 |
+| ---: | ---: | ---: |
+| 1 | 1.217 | 1.00× |
+| 2 | 1.613 | 1.33× |
+| 4 | 1.888 | 1.55× |
+| 6 | 2.031 | 1.67× |
+| **8** | **2.133** | **1.75×** |
 
 ## 复现
 

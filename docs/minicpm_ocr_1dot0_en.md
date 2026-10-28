@@ -100,11 +100,25 @@ The figure includes selected models to show differences across benchmarks. See t
 
 ## Throughput
 
+### System Comparison at Concurrency 1
+
 On an NVIDIA GeForce RTX 5090, using all 1,651 images in OmniDocBench v1.6, image-level concurrency of 1, and each system's accelerated configuration, MiniCPM-OCR 1.0 achieves **1.2 pages/s**. Relative throughput is normalized to MiniCPM-OCR 1.0 at **1.00×**; a higher value indicates faster processing.
 
 <p align="center"><a href="../assets/minicpm-ocr/throughput-comparison.png"><img src="../assets/minicpm-ocr/throughput-comparison.png" alt="OCR system throughput with accelerated configurations; MiniCPM-OCR 1.0 achieves 1.2 pages/s with relative throughput of 1.00×." width="100%"></a></p>
 
 These are parsing throughput results; the exact timing boundaries remain to be documented. With image-level concurrency set to 1, recognition regions within a page can still be processed concurrently. Deployment speed also depends on page content, backend, concurrency, and hardware configuration.
+
+### Throughput at Different Concurrency Levels
+
+The table below shows MiniCPM-OCR 1.0 throughput at different image-level concurrency settings on an NVIDIA GeForce RTX 5090, using all 1,651 images in OmniDocBench v1.6. Speedup is relative to the **1.217 pages/s** baseline at image-level concurrency 1 in this table. In this test, **image-level concurrency 8 achieves the highest throughput at 2.133 pages/s, a 1.75× speedup over concurrency 1**.
+
+| Image-Level Concurrency | Throughput (pages/s) | Speedup |
+| ---: | ---: | ---: |
+| 1 | 1.217 | 1.00× |
+| 2 | 1.613 | 1.33× |
+| 4 | 1.888 | 1.55× |
+| 6 | 2.031 | 1.67× |
+| **8** | **2.133** | **1.75×** |
 
 ## Reproduction
 
