@@ -4,7 +4,7 @@
 
 [← 返回首页](../README_zh.md) · [MiniCPM-OCR 1.0](./minicpm_ocr_1dot0_zh.md)
 
-MiniCPM-OCR Jev 是面向文本、公式和表格区域的 **2B OCR 正确性决策模型**。它对已有 OCR 候选结果给出 0–1 评分，可用于安排人工复核或从多个候选结果中择优。本页介绍模型亮点、模型结构、输入输出和具体用法；完整模型对比见 [首页 MiniCPM-OCR Jev 评测表](../README_zh.md#jev-benchmark)。
+MiniCPM-OCR Jev 是面向文本、公式和表格区域的 **2B OCR 正确性判别决策模型**。输入图像及对应的 OCR 结果，即可获得 **0–1 的质量评分**，用于筛选可靠结果、定位待复核内容。它可搭配不同解析模型，对 OCR 结果进行区域级判断，也可从同一区域的多个候选结果中择优。
 
 ## 模型亮点
 
@@ -26,13 +26,15 @@ MiniCPM-OCR Jev **基于 Qwen3.5-2B 训练**，保留其视觉编码器和语言
 | 候选内容 | OCR 识别文本，以及由该文本生成的渲染图 |
 | 输出 | 0–1 质量评分，分数越高表示模型越倾向于判为正确 |
 
-模型内部使用一一对应的区域原图、候选文本和渲染图。调用 [云端 API](./minicpm_ocr_jev_api_zh.md)、Docker 镜像或内置渲染器的 SDK 服务时，只需提供区域原图、候选文本和正确的区域类别 `category`（`text`、`formula` 或 `table`），渲染由服务完成；不带渲染器的 SDK 服务则需要调用方提供渲染图。请求字段与图像编码格式见对应的 [部署教程](./minicpm_ocr_jev_tutorial_zh.md)。
+模型内部使用一一对应的区域原图、候选文本和渲染图。调用 Docker 镜像或内置渲染器的 SDK 服务时，只需提供区域原图、候选文本和正确的区域类别 `category`（`text`、`formula` 或 `table`），渲染由服务完成；不带渲染器的 SDK 服务则需要调用方提供渲染图。请求字段与图像编码格式见对应的 [部署教程](./minicpm_ocr_jev_tutorial_zh.md)。免费云端 API 的 [调用示例](./minicpm_ocr_jev_api_zh.md) 即将提供。
 
 ## 使用场景
 
 ### 自动筛选，减少人工复核
 
 对每个区域的解析结果评分，根据业务样本选择阈值：高于阈值的结果自动进入后续流程，其他结果交由人工复核。提高阈值通常会减少自动通过的数量，需同时关注自动通过结果的准确率和人工复核量。
+
+下图展示法律文书、财务票据和复杂文档在不同免检比例下的准确率，用于评估减少人工复核量时的准确率变化。
 
 <p align="center"><a href="../assets/minicpm-ocr/review-free-zh.png"><img src="../assets/minicpm-ocr/review-free-zh.png" alt="免检准确率与免检比例曲线：法律文书、财务票据和复杂文档在不同免检比例下的准确率。" width="100%"></a></p>
 
@@ -52,9 +54,11 @@ MiniCPM-OCR Jev **基于 Qwen3.5-2B 训练**，保留其视觉编码器和语言
 
 ## 评测
 
-[JevOCRBench](https://huggingface.co/datasets/openbmb/JevOCRBench) 面向 OCR 的块级质量判别，每条样本包括区域原图、OCR 候选文本及其渲染图，真值为人工标注的正确／错误。评测使用 **AUROC**（本文按 AUROC ×100 展示），衡量模型区分正确与错误候选的能力，分数越高越好。
+[JevOCRBench](https://huggingface.co/datasets/openbmb/JevOCRBench) 面向 OCR 的块级正确性判别，每条样本包括区域原图、OCR 候选文本及其渲染图，真值为人工标注的正确／错误。评测使用 **AUROC**（本文按 AUROC ×100 展示），衡量模型区分正确与错误候选的能力，分数越高越好。
 
-整体、文本、公式与表格的完整模型对比统一见 [首页 JevOCRBench 实验表格](../README_zh.md#jev-benchmark)。
+下表展示 JevOCRBench 的整体与分类型 AUROC（×100），包含文本、公式和表格的完整模型对比。
+
+<p align="center"><a href="../assets/minicpm-ocr/jev-benchmark-score-table.png"><img src="../assets/minicpm-ocr/jev-benchmark-score-table.png" alt="JevOCRBench 各模型在整体、文本、公式和表格上的 AUROC 对比，突出 MiniCPM-OCR Jev。" width="100%"></a></p>
 
 ### 已验证的解析器
 
@@ -80,33 +84,46 @@ AUROC 衡量分数对正确和错误结果的区分能力，不能直接给出�
 
 ## 模型权重
 
-正式权重入口统一见 [首页模型权重](../README_zh.md#model-weights)；FlagOS 适配的 BF16 多芯片版本见 [下载列表](./flagos_deploy_zh.md#model-downloads)。
+MiniCPM-OCR Jev 提供 BF16 与 GGUF、AWQ、GPTQ 量化版本，可从以下入口下载：
+
+| 版本 | Hugging Face | ModelScope |
+| :--- | :--- | :--- |
+| BF16 | [MiniCPM-OCR-1.0-Jev](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev) | [MiniCPM-OCR-Jev](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev) |
+| GGUF | [MiniCPM-OCR-1.0-Jev-gguf](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev-gguf) | [MiniCPM-OCR-Jev-gguf](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-gguf) |
+| AWQ | [MiniCPM-OCR-1.0-Jev-AWQ](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev-AWQ) | [MiniCPM-OCR-Jev-AWQ](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-AWQ) |
+| GPTQ | [MiniCPM-OCR-1.0-Jev-GPTQ](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev-GPTQ) | [MiniCPM-OCR-Jev-GPTQ](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-GPTQ) |
+
+FlagOS 适配的 BF16 多芯片版本见 [下载列表](./flagos_deploy_zh.md#model-downloads)。
 
 ## 推理
 
 | 接入方式 | 使用说明 |
 | :--- | :--- |
-| 云端 API | [单候选打分、单块选优与批量选优](./minicpm_ocr_jev_api_zh.md) |
+| 免费云端 API | [调用示例](./minicpm_ocr_jev_api_zh.md)（即将提供） |
 | Docker / SDK 本地部署 | [环境准备、渲染方式与服务启动](./minicpm_ocr_jev_tutorial_zh.md) |
 | vLLM 后端 | [不带渲染器与内置渲染器的服务配置](./vllm_deploy_jev_zh.md) |
 | FlagOS | [Torch-FL 多芯片部署指南](./flagos_deploy_zh.md) |
 
-使用云端 API、Docker 或内置渲染器服务的返回结果时，先检查 `verdict` 再使用评分；只有 `scored` 表示完成模型打分，预检失败、渲染失败或前向失败时的固定返回值不能直接当作模型低分。
+使用 Docker 或内置渲染器服务的返回结果时，先检查 `verdict` 再使用评分；只有 `scored` 表示完成模型打分，预检失败、渲染失败或前向失败时的固定返回值不能直接当作模型低分。
 
 ## 流水线接入
 
 接在 MiniCPM-OCR 1.0 或其他解析器后时，可按以下顺序组织数据与结果：
 
 1. 解析文档时保留页面和区域标识、区域原图、区域类别及 OCR 候选文本。
-2. 通过 API 或内置渲染器服务提交原图、类别和候选文本，由服务渲染并评分；已有渲染图时也可使用不带渲染器的服务。
+2. 通过 Docker 或内置渲染器服务的 API 提交原图、类别和候选文本，由服务渲染并评分；已有渲染图时也可使用不带渲染器的服务。
 3. 检查返回状态并将有效评分与原候选关联，按所选阈值分配自动通过或人工复核；多模型场景按区域比较候选分数。
 4. 按原阅读顺序输出选定结果，并保留待复核区域，便于回看原文。
 
-单候选打分使用 `score`，单块多候选选优使用 `score_best`，多块批量选优使用 `score_best_batch`。请求字段、响应读取和 Python 示例见 [API 文档](./minicpm_ocr_jev_api_zh.md)。
+单候选打分使用 `score`，单块多候选选优使用 `score_best`，多块批量选优使用 `score_best_batch`。请求字段、响应读取和调用示例见 [Docker 镜像 API 参考](./minicpm_ocr_jev_docker_api_zh.md)。
 
 ## 二次微调
 
 面向特定文档类型或解析器适配时，可准备区域原图、候选文本、对应渲染图和人工正误标签，并留出独立验证数据。[ms-swift 微调教程](./finetune_jev_zh.md) 提供训练与推理环境、数据格式、二分类头配置、训练命令和 JevOCRBench 评测流程；英文说明见 [Fine-tuning](./finetune_jev_en.md)。
+
+## 常见问题与排查
+
+安装、模型下载、显存、输入格式与输出异常等常见问题见 [FAQ](./faq_zh.md)。
 
 ## 许可
 
