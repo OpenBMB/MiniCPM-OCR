@@ -81,11 +81,11 @@ explicit = true
 # Fixed source revisions fetched by `bash scripts/install.sh vllm`.
 [tool.minicpm-ocr.sources.vllm]
 repository = "https://github.com/vllm-project/vllm.git"
-commit = "18343393b4da41a7e8027efbc4c7e77c28301bf0"
+commit = "fa3b9d1377219247060d3c8b49eae199c9e7e154"
 
 [tool.minicpm-ocr.sources.transformers]
 repository = "https://github.com/huggingface/transformers.git"
-commit = "549e5b410733fb50e8efbbe4aa585cb89f6478ea"
+commit = "144ecf007b8b4f2910da104c84a79801db6985a6"
 
 # The pip NVCC wheel omits bin/crt; use the matching NVIDIA redistribution.
 [tool.minicpm-ocr.cuda-nvcc]

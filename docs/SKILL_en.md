@@ -37,8 +37,8 @@ Before deploying an inference service yourself, read the root [`pyproject.toml`]
 |---|---|
 | SDK | PyPI package `minicpm-ocr[all]`; install or upgrade to the latest stable version compatible with the current Python, matching the [SDK tutorial](./minicpmvocr_tutorial_en.md) |
 | Python | Installer default `3.12`; root project requires `>=3.11,<3.14` (SDK alone requires `>=3.10`) |
-| vLLM | `18343393b4da41a7e8027efbc4c7e77c28301bf0`, prepared by the installer |
-| Transformers required by vLLM | `549e5b410733fb50e8efbbe4aa585cb89f6478ea`, pinned by the root project |
+| vLLM | `fa3b9d1377219247060d3c8b49eae199c9e7e154`, prepared by the installer |
+| Transformers required by vLLM | `144ecf007b8b4f2910da104c84a79801db6985a6`, pinned by the root project |
 | PyTorch required by vLLM | `torch==2.14.0`, `torchvision==0.29.0` |
 | SGLang | [Guide's pinned source](./sglang_deploy.md): `aaab6bfc3de5354b052f2e96d5e566d70b9f69a2`; the root project references a local path without downloading or checking this SHA |
 | SGLang dependencies | That source declares `torch==2.14.1`, `transformers==5.19.0` and Rust toolchain `1.92`; keep it separate from vLLM |

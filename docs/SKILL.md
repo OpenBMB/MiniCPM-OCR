@@ -37,8 +37,8 @@ cd MiniCPM-OCR
 |---|---|
 | SDK | PyPI 包 `minicpm-ocr[all]`，默认安装或升级到与当前 Python 兼容的最新稳定版，与 [SDK 教程](./minicpmvocr_tutorial.md)一致 |
 | Python | 安装脚本默认 `3.12`；根项目要求 `>=3.11,<3.14`（SDK 单独要求 `>=3.10`） |
-| vLLM | `18343393b4da41a7e8027efbc4c7e77c28301bf0`，由安装脚本准备 |
-| vLLM 依赖的 Transformers | `549e5b410733fb50e8efbbe4aa585cb89f6478ea`，由根项目固定 |
+| vLLM | `fa3b9d1377219247060d3c8b49eae199c9e7e154`，由安装脚本准备 |
+| vLLM 依赖的 Transformers | `144ecf007b8b4f2910da104c84a79801db6985a6`，由根项目固定 |
 | vLLM 依赖的 PyTorch | `torch==2.14.0`、`torchvision==0.29.0` |
 | SGLang | [部署指南固定源码](./sglang_deploy.md)：`aaab6bfc3de5354b052f2e96d5e566d70b9f69a2`；根项目仅引用本地路径，不自动下载或校验此 SHA |
 | SGLang 的依赖 | 该源码声明 `torch==2.14.1`、`transformers==5.19.0`，Rust 工具链 `1.92`；不要装入 vLLM 的环境 |
