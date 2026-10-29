@@ -39,8 +39,6 @@
 
 ## MiniCPM-OCR 1.0
 
-<p align="center"><a href="https://weixin.qq.com/sph/AwMO5crQmV"><img src="./assets/minicpm-ocr/main_video_zh_play.PNG" alt="MiniCPM-OCR 1.0 与 Jev 宣传视频封面。点击在视频号观看演示。" width="80%"></a></p>
-
 **MiniCPM-OCR 1.0** (1.3B) 是 [MiniCPM-V/o](https://github.com/openbmb/MiniCPM-V) 家族首个 OCR 专用模型，面向以文字为中心的文档理解，覆盖文本、表格、公式、图表与印章识别和结构化信息抽取。主要特点包括：
 
 - 🏆 **SOTA 的文档解析能力**：MiniCPM-OCR 1.0 在真实场景文档解析评测 **Real5-OmniDocBench 上取得 93.68 的 SOTA 成绩**，并在 OmniDocBench v1.6、Wild-OmniDocBench 和 olmOCR-Bench 等评测中展现领先的解析能力。模型支持中英双语文档与 PDF 解析，兼顾标准文档和复杂采集条件，在扫描、弯曲、拍照、倾斜及翻拍等场景下保持稳定表现。
@@ -136,6 +134,8 @@
 <p align="center"><a href="./assets/minicpm-ocr/jev-case-zh.png"><img src="./assets/minicpm-ocr/jev-case-zh.png" alt="文本、公式和表格的原图、两份 OCR 候选结果及其 Jev 评分。" width="100%"></a></p>
 
 使用方法、技术规格、评测结果和效率结果详见 [MiniCPM-OCR Jev 模型指南](./docs/minicpm_ocr_jev_zh.md)。
+
+<p align="center"><a href="https://youtu.be/lJOzZytWoK8"><img src="./assets/minicpm-ocr/main_video_zh_play.PNG" alt="MiniCPM-OCR 1.0 与 Jev 宣传视频封面。点击在 YouTube 观看演示。" width="80%"></a></p>
 
 <a id="quick-start"></a>
 

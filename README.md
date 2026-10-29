@@ -39,7 +39,7 @@
 
 ## MiniCPM-OCR 1.0
 
-<p align="center"><a href="https://x.com/OpenBMB/status/2115473600836964838"><img src="./assets/minicpm-ocr/main_video_en_play.PNG" alt="MiniCPM-OCR 1.0 and Jev promo video. Click to watch the demo on X." width="80%"></a></p>
+<p align="center"><a href="https://youtu.be/lJOzZytWoK8"><img src="./assets/minicpm-ocr/main_video_en_play.PNG" alt="MiniCPM-OCR 1.0 and Jev promo video. Click to watch the demo on YouTube." width="80%"></a></p>
 
 **MiniCPM-OCR 1.0** (1.3B) is the first OCR-specific model in the [MiniCPM-V/o](https://github.com/openbmb/MiniCPM-V) family. It focuses on text-centric document understanding, covering text, tables, formulas, charts, seals, and structured information extraction. Its key features include:
 
