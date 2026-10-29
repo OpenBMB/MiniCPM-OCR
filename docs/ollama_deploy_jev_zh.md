@@ -6,7 +6,7 @@
 
 本文介绍SDK部署模式下，以 Ollama 作为前向引擎时，**不带渲染器服务**与**内置渲染器服务**的安装、启动、接口与请求格式。
 
-Ollama 把 MiniCPM-OCR Jev 当作决策模型（decision model）来服务。与其他后端的两点不同：模型要先转成 GGUF 并注册给 Ollama；prompt 由引擎按烘在 GGUF 里的模板自己拼，不由 SDK 拼。
+Ollama 把 MiniCPM-OCR Jev 当作决策模型（decision model）来服务。与其他后端的两点不同：模型要先转成 GGUF 并注册给 Ollama；prompt 由引擎按 GGUF 内置的模板自己拼，不由 SDK 拼。
 
 两种服务共用同一个前向引擎，区别只在渲染图从哪里来：
 
@@ -25,16 +25,29 @@ Ollama 把 MiniCPM-OCR Jev 当作决策模型（decision model）来服务。与
    - **不带渲染器服务** → 装服务环境 → 起服务
    - **内置渲染器服务** → 装渲染环境 → 起服务
 
-引擎与服务必须装在两个虚拟环境里，不要合并。以下命令都在 `scripts/minicpm-ocr-jev/` 目录下执行。
+引擎与服务必须装在两个虚拟环境里，不要合并。
 
 ## 环境要求
 
-- **GPU**：NVIDIA，显存 ≥8GB
-- **驱动**：≥535
-- **Python**：≥3.10
-- **Ollama**：最新稳定版
-- **llama.cpp**：最新稳定版（只用于转 GGUF）
-- **固定版本**：`Pillow` 12.3.0、`playwright` 1.62.0（仅内置渲染器服务）
+|              | Linux ＋ NVIDIA                                | macOS（Apple Silicon）  |
+| ------------ | --------------------------------------------- | --------------------- |
+| 加速器          | NVIDIA，显存 ≥8GB                                | M 系列芯片，统一内存 ≥16GB     |
+| 驱动           | ≥535                                          | 不需要，Metal 由系统提供       |
+| CUDA Toolkit | 不需要                                           | 不需要                   |
+| Python       | ≥3.10                                         | ≥3.10，系统自带的是 3.9，须另装  |
+| Ollama       | 最新稳定版，其内置 runner 需含本模型支持                      | 同左                    |
+| llama.cpp    | ≥ v0.8.0，只用它的转换脚本，不需要编译                       | 同左                    |
+| 固定版本         | `Pillow` 12.3.0、`playwright` 1.62.0（仅内置渲染器服务） | `Pillow` 12.3.0       |
+
+**系统包**：
+
+```bash
+# Linux
+sudo apt-get install -y python3 python3-venv python3-pip curl
+
+# macOS
+# 不需要装任何系统包，只要有一个 ≥3.10 的 Python
+```
 
 ---
 
@@ -55,7 +68,9 @@ brew install ollama
 
 ### 注册模型
 
-先把权重转成 GGUF，转法见 [llama.cpp 部署文档 · 转 GGUF](./llamacpp_deploy_jev_zh.md#转-gguf)。转出来的 GGUF 自带 `systemone` 对话模板与决策模型标识，Ollama 靠它们认出这是决策模型。
+先把权重转成 GGUF，两步都在 llama.cpp 部署文档里：先按[准备源码与转换依赖](./llamacpp_deploy_jev_zh.md#准备源码与转换依赖)取源码、装转换依赖（**跳过它的「编译」节**，转换是纯 Python），再按[转 GGUF](./llamacpp_deploy_jev_zh.md#转-gguf)转出两份 GGUF。
+
+转出来的 GGUF 自带 `systemone` 对话模板与决策模型标识，Ollama 靠它们认出这是决策模型。
 
 写一个 `Modelfile`，第一个 `FROM` 是语言模型，第二个是视觉编码器：
 
@@ -67,19 +82,17 @@ FROM ./models/mmproj-MiniCPM-OCR-Jev-bf16.gguf
 注册并确认：
 
 ```bash
-ollama create ocr-jev -f Modelfile
-ollama show ocr-jev    # Capabilities: decision, vision
+ollama create minicpm-ocr-jev -f Modelfile
+ollama show minicpm-ocr-jev    # Capabilities: decision, vision
 ```
 
-`ollama show` 的 Capabilities 要同时有 `decision` 与 `vision`，缺任意一个都说明 GGUF 转得不对。模型名 `ocr-jev` 后面要写进 SDK 的后端配置，改名则两处同改。
+`ollama show` 的 Capabilities 要同时有 `decision` 与 `vision`，缺任意一个都说明 GGUF 转得不对。它读的是 GGUF 的元数据，所以两项都有也还不能说明引擎跑得起来 —— 那一关在[四、启动自检](#四启动自检)。模型名 `minicpm-ocr-jev` 后面要写进 SDK 的后端配置，改名则两处同改。
 
 ### 启动
 
 ```bash
 ollama serve    # 默认端口 11434
 ```
-
-每个请求是一次前向，不生成任何 token，固定两张图：先原图、后渲染图。bf16 权重约占 4.4GB 显存。模型没有 LM head，文本生成类端点不可用。
 
 ---
 
@@ -90,12 +103,13 @@ ollama serve    # 默认端口 11434
 ### 安装
 
 ```bash
+# macOS 同样这么装，只是 /opt 要 sudo，换成 ~/venv-score 即可
 python3 -m venv /opt/venv-score
 source /opt/venv-score/bin/activate
 pip install "fastapi>=0.110" "uvicorn>=0.27" "httpx>=0.27" "pydantic>=2.6" "PyYAML>=6.0" "Pillow==12.3.0"
 ```
 
-**依赖版本参考**
+**依赖版本参考**（这组版本在 Linux 与 macOS 上一致）
 
 ```text
 python        3.12.3
@@ -112,6 +126,7 @@ Pillow        12.3.0
 `JEV_BACKEND_CONFIG` 指向 Ollama 的后端配置，参数依次为服务端口、引擎地址：
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 JEV_BACKEND_CONFIG=sdk/backends/ollama.yaml \
 PATH=/opt/venv-score/bin:$PATH bash sdk/start_score.sh 18501 http://127.0.0.1:11434
 ```
@@ -139,7 +154,7 @@ curl -s http://127.0.0.1:18501/v1/score -H 'Content-Type: application/json' -d '
 {"results": [{"prob_1": 0.00227, "error": null}]}
 ```
 
-三个字段都是必填：`original_image` 是原始块图的 base64，`render_image` 是该候选渲染回图片后的 base64，`ocr_text` 是候选文本本身。base64 **不带** `data:image/png;base64,` 前缀，与镜像接口不同。
+三个字段都是必填：`original_image` 是原始块图的 base64，`render_image` 是该候选渲染回图片后的 base64，`ocr_text` 是候选文本本身。base64 **不带** `data:image/png;base64,` 前缀，与镜像接口一致。
 
 ### 字段与限额
 
@@ -154,19 +169,23 @@ curl -s http://127.0.0.1:18501/v1/score -H 'Content-Type: application/json' -d '
 
 你只有候选文本，让服务渲染完再打分。precheck、render、forward 三个阶段都在这个进程里完成。
 
-本服务在进程内直接调用打分层，**不需要另外起一个不带渲染器服务**，也不需要给它留端口。
-
 ### 安装
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 bash sdk/setup_render.sh /opt/venv-render
 ```
 
-它装 Node、CJK 字体、Chromium 与服务依赖。慢网下设两个镜像源：
+它装 Node、CJK 字体、Chromium 与服务依赖。
+
+> **这一节是 Linux 专属。** 脚本靠 `apt-get` 装 Node 与 CJK 字体，并把字体环境固定成参考部署那一套；macOS 上这几步都会跳过。而渲染出来的图是模型输入，字体栈换了分数就换，**macOS 上这个服务打出来的分数不能与发布值对照**。macOS 请用上一节的不带渲染器服务（渲染图由你提供），或者改用 Docker 镜像。
+
+慢网下设两个镜像源：
 
 ```bash
-PIP_INDEX_URL=https://<mirror>/simple \
-PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>/playwright \
+cd scripts/minicpm-ocr-jev/
+PIP_INDEX_URL=https://mirrors.ustc.edu.cn/pypi/simple \
+PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.npmmirror.com/binaries/playwright \
     bash sdk/setup_render.sh /opt/venv-render
 ```
 
@@ -175,6 +194,7 @@ PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>/playwright \
 参数依次为服务端口、引擎地址：
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 JEV_BACKEND_CONFIG=sdk/backends/ollama.yaml \
 PATH=/opt/venv-render/bin:$PATH bash sdk/start_render_score.sh 18500 http://127.0.0.1:11434
 ```
@@ -228,7 +248,7 @@ curl -s http://127.0.0.1:18500/v1/rm/score_best -H 'Content-Type: application/js
 
 ## 四、启动自检
 
-prompt 由引擎按烘在 GGUF 里的模板拼，从服务这一侧读不到，所以 prompt 这一项**自检不作校验、如实报告**，服务照常启动。能校的是另一项：用一张 1×1 的图真打一次前向，确认引擎按决策模型返回了 2 个数而不是一串隐藏层输出。
+prompt 由引擎按 GGUF 内置的模板拼，从服务这一侧读不到，所以 prompt 这一项**自检不作校验、如实报告**，服务照常启动。能校的是另一项：用一张 1×1 的图真打一次前向，确认引擎按决策模型返回了 2 个数而不是一串隐藏层输出。
 
 起服后查 `/healthz`，`status` 为 `ok` 即正常：
 
@@ -237,7 +257,7 @@ curl -s http://127.0.0.1:18501/healthz
 ```
 
 ```json
-{"status": "ok", "served_model": "ocr-jev",
+{"status": "ok", "served_model": "minicpm-ocr-jev",
  "prompt": {"template_md5": "9aab68e8ba8ab4da17ba9752bddb199c",
             "source": "server_template",
             "last_token": null, "expected_last_token": 271,
@@ -247,4 +267,30 @@ curl -s http://127.0.0.1:18501/healthz
 
 只看 `status`：`ok` 就是自检通过、服务可用，`prompt` 下的其余字段是自检留下的明细，照上面的样子即为正常。`status` 不是 `ok` 时，`prompt.notes` 写明是哪一项没过。
 
-`source` 为 `server_template`、`last_token` 为 `null`、`token_equality` 为 `skipped`，这三项在本后端下就是正常值，不是故障。由此带来的一个口径后果：这条腿分数的尺度，只能靠与已知后端对同一批输入比对来确立。
+`source` 为 `server_template`、`last_token` 为 `null`、`token_equality` 为 `skipped`，这三项在本后端下就是正常值，不是故障。由此带来一个后果：本后端分数的尺度，只能靠与已知后端对同一批输入比对来确立。
+
+本节也是判断 Ollama 内置 runner 认不认这个模型的那一关：runner 不支持时 `status` 不是 `ok`，`error` 里带上 `ollama serve` 的原话。`ollama show` 的 Capabilities 不负责这件事（见[注册模型](#注册模型)）。
+
+### 用自带用例验证
+
+自检只确认服务起得来。要确认分数也对，用 `examples/` 下三个用例打一遍，与 `case.json` 里的参考分数 `observed_prob_yes` 对照：
+
+```bash
+cd scripts/minicpm-ocr-jev
+python3 - <<'EOF'
+import base64, json, urllib.request
+for name in ("01_text_putnam", "02_formula_putnam", "03_table_gb_standard"):
+    c = json.load(open(f"examples/{name}/case.json"))
+    role = c["reference_render_of"]
+    text = next(x["text"] for x in c["candidates"] if x["role"] == role)
+    b64 = lambda f: base64.b64encode(open(f"examples/{name}/{f}", "rb").read()).decode()
+    body = {"items": [{"original_image": b64(c["block_image"]),
+                       "render_image": b64(c["reference_render"]), "ocr_text": text}]}
+    req = urllib.request.Request("http://127.0.0.1:18501/v1/score",
+            data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
+    got = json.load(urllib.request.urlopen(req))["results"][0]["prob_1"]
+    print(f"{name:24} got {got:.5f}  reference {c['observed_prob_yes'][role]:.5f}")
+EOF
+```
+
+三行分数与参考值相差都在 0.02 以内即为正常，Linux 与 macOS 同此判据。内置渲染器服务把端点换成 `/v1/rm/score_best`、请求体换成 `image` ＋ `candidates`（见[三、内置渲染器服务 · 请求](#请求-1)），服务会自己渲染 —— 这个变体只在 Linux 上拿来对参考分，原因见该节开头。

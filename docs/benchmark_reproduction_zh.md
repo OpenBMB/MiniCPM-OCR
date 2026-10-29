@@ -1,6 +1,6 @@
 # 复现 MiniCPM-OCR 性能和效率评测结果
 
-[← 返回 README](../README_zh.md) · [模型指南](./minicpm_ocr_1dot0_zh.md)
+[← 返回首页](../README_zh.md) · [模型指南](./minicpm_ocr_1dot0_zh.md)
 
 本文汇总 MiniCPM-OCR 1.0 的评测推理配置、评分方法与官方来源，以及解析效率对比的测试设置与部署入口。完整评测脚本、精确版本和计时范围待补充。
 
@@ -108,10 +108,10 @@ GT 的页面版本必须与评测集对应，不能直接用 v1.6 full GT 替换
 - [SDK 使用教程](./minicpmvocr_tutorial.md)：安装环境、连接推理后端、解析文档与检查输出。
 - [vLLM 部署指南](./vllm_deploy.md)：部署 API 服务与检查识别结果。
 
-DSpark 前后对照需使用相同主模型权重、数据集、硬件和 SDK 配置，仅改变 DSpark 开关。部署指南中的示例用于启动服务；用于复现 62% 提升的完整对照命令和日志待补充。
+DSpark 前后对照需使用相同主模型权重、数据集、硬件和 SDK 配置，仅改变 DSpark 开关。部署指南中的示例用于启动服务；用于复现 55% 提升的完整对照命令和日志待补充。
 
 ### 结果说明
 
-启用 DSpark 解码加速后，MiniCPM-OCR 1.0 的端到端处理效率提升 **62%**。该提升描述 DSpark 的加速收益，不能替代与其他系统的吞吐比较。
+启用 DSpark 解码加速后，MiniCPM-OCR 1.0 的端到端处理效率提升 **55%**。该提升描述 DSpark 的加速收益，不能替代与其他系统的吞吐比较。
 
-MiniCPM-OCR 1.0 的解析吞吐为 **1.213 pages/s**，GLM-OCR 为 **1.179 pages/s**。相对吞吐以 MiniCPM-OCR 1.0 为基准（**1.00×**），GLM-OCR、PaddleOCR-VL-1.6、MinerU2.5-Pro-Standard 和 MinerU2.5-Pro-Advanced 分别为 **0.97×、0.67×、0.44× 和 0.28×**。完整数值与对比图见 [模型指南的吞吐章节](./minicpm_ocr_1dot0_zh.md#吞吐)。
+MiniCPM-OCR 1.0 的解析吞吐为 **1.217 pages/s**，GLM-OCR 为 **1.179 pages/s**。相对吞吐以 MiniCPM-OCR 1.0 为基准（**1.00×**），GLM-OCR、PaddleOCR-VL-1.6 和 MinerU2.5-Pro 分别为 **0.97×、0.67× 和 0.28×**。完整数值与对比图见 [模型指南的吞吐章节](./minicpm_ocr_1dot0_zh.md#吞吐)。

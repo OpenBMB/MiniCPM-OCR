@@ -6,7 +6,7 @@
 
 本文介绍SDK部署模式下，以 llama.cpp 的 `llama-server` 作为前向引擎时，**不带渲染器服务**与**内置渲染器服务**的安装、启动、接口与请求格式。
 
-llama.cpp 是 C++ 实现的轻量推理后端。与其他后端的两点不同：模型要先转成 GGUF 格式；prompt 由引擎按烘在 GGUF 里的模板自己拼，不由 SDK 拼。
+本后端与其他后端有两点不同：模型要先转成 GGUF 格式；prompt 由引擎按 GGUF 内置的模板自己拼，不由 SDK 拼。
 
 两种服务共用同一个前向引擎，区别只在渲染图从哪里来：
 
@@ -25,62 +25,106 @@ llama.cpp 是 C++ 实现的轻量推理后端。与其他后端的两点不同�
    - **不带渲染器服务** → 装服务环境 → 起服务
    - **内置渲染器服务** → 装渲染环境 → 起服务
 
-引擎与服务必须装在两个虚拟环境里，不要合并。以下命令都在 `scripts/minicpm-ocr-jev/` 目录下执行。
+引擎与服务必须装在两个虚拟环境里，不要合并。
 
 ## 环境要求
 
-- **GPU**：NVIDIA，显存 ≥8GB
-- **驱动**：≥535
-- **CUDA Toolkit**：≥12.0
-- **CMake**：≥3.14
-- **C++ 编译器**：支持 C++17（GCC ≥9）
-- **Python**：≥3.10
-- **llama.cpp**：最新稳定版
-- **固定版本**：`Pillow` 12.3.0、`playwright` 1.62.0（仅内置渲染器服务）
+|              | Linux ＋ NVIDIA                                | macOS（Apple Silicon）           |
+| ------------ | --------------------------------------------- | ------------------------------ |
+| 加速器          | NVIDIA，显存 ≥8GB                                | M 系列芯片，统一内存 ≥16GB              |
+| 驱动           | ≥535                                          | 不需要，Metal 由系统提供                |
+| CUDA Toolkit | ≥12.0                                         | 不需要                            |
+| 编译工具         | CMake ≥3.14、GCC ≥9                            | Xcode Command Line Tools、CMake |
+| 后端开关         | `-DGGML_CUDA=ON`                              | 无，Metal 默认启用                   |
+| Python       | ≥3.10                                         | ≥3.10，系统自带的是 3.9，须另装           |
+| llama.cpp    | ≥ v0.8.0，该版本起含本模型支持                           | 同左                             |
+| 固定版本         | `Pillow` 12.3.0、`playwright` 1.62.0（仅内置渲染器服务） | `Pillow` 12.3.0                |
+
+**CUDA Toolkit**（仅 Linux）：确保链接器能找到它的库。装在 `/usr/local/cuda` 之外的路径时，把它注册进 `ldconfig`：
+
+```bash
+echo /path/to/cuda/lib64 | sudo tee /etc/ld.so.conf.d/cuda.conf
+sudo ldconfig
+```
+
+**系统包**：
+
+```bash
+# Linux
+sudo apt-get install -y python3 python3-venv python3-pip git curl cmake build-essential
+
+# macOS：编译器与 git 来自 Command Line Tools，CMake 另装
+xcode-select --install
+brew install cmake
+```
 
 ---
 
 ## 一、前向引擎
 
-### 编译
+### 准备源码与转换依赖
+
+两件事都要：取源码（编译与转 GGUF 都用它），装转 GGUF 的 Python 依赖。
 
 ```bash
 git clone https://github.com/ggml-org/llama.cpp.git && cd llama.cpp
-cmake -B build -DGGML_CUDA=ON -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j --target llama-server
+
+# 虚拟环境放哪都行，下面各处的 /opt/venv-* 同理
+# macOS：往 /opt 写要 sudo，放 home 目录即可，例如 ~/venv-convert
+python3 -m venv /opt/venv-convert
+source /opt/venv-convert/bin/activate
 pip install -r requirements/requirements-convert_hf_to_gguf.txt
 ```
 
-最后一行装的是转 GGUF 要用的 Python 依赖，清单随 llama.cpp 仓库一起下来，装进来的是：
+转换依赖装进单独的虚拟环境：Debian/Ubuntu 等系统会拒绝往系统 Python 里装。慢网下加 `-i https://mirrors.ustc.edu.cn/pypi/simple`。
 
-```text
-torch           2.11.0   （取自 download.pytorch.org/whl/cpu，转换不用 GPU）
-transformers    4.57.6
-numpy           ~=2.2.6
-sentencepiece   >=0.1.98,<0.3.0
-gguf            >=0.1.0
-protobuf        >=4.21.0,<5.0.0
+### 编译
+
+```bash
+cd llama.cpp
+
+# 配置，按平台二选一
+# Linux ＋ NVIDIA
+cmake -B build -DGGML_CUDA=ON -DCMAKE_BUILD_TYPE=Release
+# macOS：Metal 后端默认启用，不需要任何额外开关
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+cmake --build build -j --target llama-server
 ```
 
-这些只在转换时用到，与下面两个服务的虚拟环境互不相干，装在哪个环境里都可以。
+只转 GGUF 不起引擎的话（例如用 Ollama 做前向），这一步可以跳过 —— 转换是纯 Python，不需要编译产物。
 
 ### 转 GGUF
 
-语言模型与视觉编码器（`mmproj`）各转一份。权重目录里必须有 `minicpm_ocr_jev.json`，转换器靠它认出这是 MiniCPM-OCR Jev：
+语言模型与视觉编码器（`mmproj`）各转一份。转换器按 `config.json` 里的 `architectures` 认模型，需要它是 `MiniCPMOCRForSequenceClassification`。原权重目录不改：另建一个转换用目录，其余文件软链过去，只放一份改过的 `config.json`，两份都从这个目录转：
 
 ```bash
-echo '{}' > ./models/MiniCPM-OCR-Jev/minicpm_ocr_jev.json
+cd llama.cpp
+source /opt/venv-convert/bin/activate
+mkdir -p ./models/MiniCPM-OCR-Jev-gguf
+for f in ./models/MiniCPM-OCR-Jev/*; do
+  [ "$(basename "$f")" = config.json ] || ln -sf "$PWD/$f" ./models/MiniCPM-OCR-Jev-gguf/
+done
+python - <<'EOF'
+import json
+c = json.load(open("./models/MiniCPM-OCR-Jev/config.json"))
+c["architectures"] = ["MiniCPMOCRForSequenceClassification"]
+json.dump(c, open("./models/MiniCPM-OCR-Jev-gguf/config.json", "w"), indent=2, ensure_ascii=False)
+EOF
 
-python convert_hf_to_gguf.py ./models/MiniCPM-OCR-Jev \
+python convert_hf_to_gguf.py ./models/MiniCPM-OCR-Jev-gguf \
   --outtype bf16 --outfile ./models/MiniCPM-OCR-Jev-bf16.gguf
 
-python convert_hf_to_gguf.py ./models/MiniCPM-OCR-Jev --mmproj \
+python convert_hf_to_gguf.py ./models/MiniCPM-OCR-Jev-gguf --mmproj \
   --outtype bf16 --outfile ./models/mmproj-MiniCPM-OCR-Jev-bf16.gguf
 ```
+
+`mmproj` 也要从转换用目录转：这样它才带上与训练一致的图片缩放下限，小于下限的块图会先放大再编码；否则小图分数会偏。
 
 ### 启动
 
 ```bash
+cd llama.cpp
 ./build/bin/llama-server \
   -m ./models/MiniCPM-OCR-Jev-bf16.gguf \
   --mmproj ./models/mmproj-MiniCPM-OCR-Jev-bf16.gguf \
@@ -90,7 +134,7 @@ python convert_hf_to_gguf.py ./models/MiniCPM-OCR-Jev --mmproj \
 ```
 
 - `--mmproj`：视觉编码器那份 GGUF，不给就只有文本通路，两张图进不去。
-- `-ngl 99`：把全部层放到 GPU 上。
+- `-ngl 99`：把全部层放到 GPU 上，macOS 上对应 Metal，写法相同。
 - `-c 32768`：上下文长度，由并行槽位共享。
 - `-np N`：并行处理 N 个请求。
 
@@ -105,12 +149,13 @@ python convert_hf_to_gguf.py ./models/MiniCPM-OCR-Jev --mmproj \
 ### 安装
 
 ```bash
+# macOS 同样这么装，只是 /opt 要 sudo，换成 ~/venv-score 即可
 python3 -m venv /opt/venv-score
 source /opt/venv-score/bin/activate
 pip install "fastapi>=0.110" "uvicorn>=0.27" "httpx>=0.27" "pydantic>=2.6" "PyYAML>=6.0" "Pillow==12.3.0"
 ```
 
-**依赖版本参考**
+**依赖版本参考**（这组版本在 Linux 与 macOS 上一致）
 
 ```text
 python        3.12.3
@@ -127,6 +172,7 @@ Pillow        12.3.0
 `JEV_BACKEND_CONFIG` 指向 llama.cpp 的后端配置，参数依次为服务端口、引擎地址：
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 JEV_BACKEND_CONFIG=sdk/backends/llamacpp.yaml \
 PATH=/opt/venv-score/bin:$PATH bash sdk/start_score.sh 18501 http://127.0.0.1:18499
 ```
@@ -154,7 +200,7 @@ curl -s http://127.0.0.1:18501/v1/score -H 'Content-Type: application/json' -d '
 {"results": [{"prob_1": 0.00227, "error": null}]}
 ```
 
-三个字段都是必填：`original_image` 是原始块图的 base64，`render_image` 是该候选渲染回图片后的 base64，`ocr_text` 是候选文本本身。base64 **不带** `data:image/png;base64,` 前缀，与镜像接口不同。
+三个字段都是必填：`original_image` 是原始块图的 base64，`render_image` 是该候选渲染回图片后的 base64，`ocr_text` 是候选文本本身。base64 **不带** `data:image/png;base64,` 前缀，与镜像接口一致。
 
 ### 字段与限额
 
@@ -169,19 +215,23 @@ curl -s http://127.0.0.1:18501/v1/score -H 'Content-Type: application/json' -d '
 
 你只有候选文本，让服务渲染完再打分。precheck、render、forward 三个阶段都在这个进程里完成。
 
-本服务在进程内直接调用打分层，**不需要另外起一个不带渲染器服务**，也不需要给它留端口。
-
 ### 安装
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 bash sdk/setup_render.sh /opt/venv-render
 ```
 
-它装 Node、CJK 字体、Chromium 与服务依赖。慢网下设两个镜像源：
+它装 Node、CJK 字体、Chromium 与服务依赖。
+
+> **这一节是 Linux 专属。** 脚本靠 `apt-get` 装 Node 与 CJK 字体，并把字体环境固定成参考部署那一套；macOS 上这几步都会跳过。而渲染出来的图是模型输入，字体栈换了分数就换，**macOS 上这个服务打出来的分数不能与发布值对照**。macOS 请用上一节的不带渲染器服务（渲染图由你提供），或者改用 Docker 镜像。
+
+慢网下设两个镜像源：
 
 ```bash
-PIP_INDEX_URL=https://<mirror>/simple \
-PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>/playwright \
+cd scripts/minicpm-ocr-jev/
+PIP_INDEX_URL=https://mirrors.ustc.edu.cn/pypi/simple \
+PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.npmmirror.com/binaries/playwright \
     bash sdk/setup_render.sh /opt/venv-render
 ```
 
@@ -190,6 +240,7 @@ PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>/playwright \
 参数依次为服务端口、引擎地址：
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 JEV_BACKEND_CONFIG=sdk/backends/llamacpp.yaml \
 PATH=/opt/venv-render/bin:$PATH bash sdk/start_render_score.sh 18500 http://127.0.0.1:18499
 ```
@@ -243,7 +294,7 @@ curl -s http://127.0.0.1:18500/v1/rm/score_best -H 'Content-Type: application/js
 
 ## 四、启动自检
 
-prompt 由引擎按烘在 GGUF 里的模板拼，从服务这一侧读不到，所以 prompt 这一项**自检不作校验、如实报告**，服务照常启动。能校的是另一项：用一张 1×1 的图真打一次前向，确认引擎按分类模型返回了 2 个数而不是一串隐藏层输出。
+prompt 由引擎按 GGUF 内置的模板拼，从服务这一侧读不到，所以 prompt 这一项**自检不作校验、如实报告**，服务照常启动。能校的是另一项：用一张 1×1 的图真打一次前向，确认引擎按分类模型返回了 2 个数而不是一串隐藏层输出。
 
 起服后查 `/healthz`，`status` 为 `ok` 即正常：
 
@@ -252,7 +303,7 @@ curl -s http://127.0.0.1:18501/healthz
 ```
 
 ```json
-{"status": "ok", "served_model": "MiniCPM-OCR-Jev-bf16",
+{"status": "ok", "served_model": "./models/MiniCPM-OCR-Jev-bf16.gguf",
  "prompt": {"template_md5": "9aab68e8ba8ab4da17ba9752bddb199c",
             "source": "server_template",
             "last_token": null, "expected_last_token": 271,
@@ -262,4 +313,28 @@ curl -s http://127.0.0.1:18501/healthz
 
 只看 `status`：`ok` 就是自检通过、服务可用，`prompt` 下的其余字段是自检留下的明细，照上面的样子即为正常。`status` 不是 `ok` 时，`prompt.notes` 写明是哪一项没过。
 
-`source` 为 `server_template`、`last_token` 为 `null`、`token_equality` 为 `skipped`，这三项在本后端下就是正常值，不是故障。由此带来的一个口径后果：这条腿分数的尺度，只能靠与已知后端对同一批输入比对来确立。
+`source` 为 `server_template`、`last_token` 为 `null`、`token_equality` 为 `skipped`，这三项在本后端下就是正常值，不是故障。由此带来一个后果：本后端分数的尺度，只能靠与已知后端对同一批输入比对来确立。
+
+### 用自带用例验证
+
+本后端的自检不校 prompt（见上），所以这一步不能跳过：用 `examples/` 下三个用例打一遍，与 `case.json` 里的参考分数 `observed_prob_yes` 对照：
+
+```bash
+cd scripts/minicpm-ocr-jev
+python3 - <<'EOF'
+import base64, json, urllib.request
+for name in ("01_text_putnam", "02_formula_putnam", "03_table_gb_standard"):
+    c = json.load(open(f"examples/{name}/case.json"))
+    role = c["reference_render_of"]
+    text = next(x["text"] for x in c["candidates"] if x["role"] == role)
+    b64 = lambda f: base64.b64encode(open(f"examples/{name}/{f}", "rb").read()).decode()
+    body = {"items": [{"original_image": b64(c["block_image"]),
+                       "render_image": b64(c["reference_render"]), "ocr_text": text}]}
+    req = urllib.request.Request("http://127.0.0.1:18501/v1/score",
+            data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
+    got = json.load(urllib.request.urlopen(req))["results"][0]["prob_1"]
+    print(f"{name:24} got {got:.5f}  reference {c['observed_prob_yes'][role]:.5f}")
+EOF
+```
+
+三行分数与参考值相差都在 0.02 以内即为正常，Linux 与 macOS 同此判据。内置渲染器服务把端点换成 `/v1/rm/score_best`、请求体换成 `image` ＋ `candidates`（见[三、内置渲染器服务 · 请求](#请求-1)），服务会自己渲染 —— 这个变体只在 Linux 上拿来对参考分，原因见该节开头。

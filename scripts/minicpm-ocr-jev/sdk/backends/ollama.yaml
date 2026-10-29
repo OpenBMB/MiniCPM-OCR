@@ -1,0 +1,28 @@
+# Which engine runs the forward pass, and where to reach it.
+#
+# Start the engine with `ollama serve`; the deployment guide is
+# docs/ollama_deploy_jev_zh.md. Ollama runs llama.cpp underneath, so it shares
+# that path's two differences from vLLM: the prompt comes from a template baked
+# into the GGUF and cannot be read back, so the startup gate reports it as
+# unverifiable rather than green; and /v1/systemone answers with class
+# probabilities instead of raw logits, which the adapter declares so the score
+# layer does not softmax them a second time.
+
+engine: ollama
+
+# Where `ollama serve` is listening. 11434 is its default, not 18499.
+base_url: http://127.0.0.1:11434
+
+# ⭐ Required here, unlike every other engine: Ollama hosts many models and
+# routes by name. This must be the name `ollama create` registered -- change it
+# in both places or requests go to a model that does not exist. Startup fails
+# with a message saying so rather than defaulting to anything.
+model: minicpm-ocr-jev
+
+# Seconds to wait on one forward pass.
+timeout_sec: 120
+
+# Requests in flight toward the engine. Ollama starts llama-server with parallel
+# slots sharing one KV cache and queues past that; this bounds our sockets and
+# memory rather than the engine's throughput.
+max_in_flight: 32

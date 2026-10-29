@@ -2,10 +2,10 @@
 # app.py for precheck, rendering and the HTTP contract.
 #
 # It builds from a bare `ubuntu:24.04` and installs everything through the
-# material's own scripts -- the same commands the README gives a reader with a
-# fresh machine. That is deliberate: if this image builds, the documented install
-# works, and there is no second, image-only path to drift out of step with the
-# instructions.
+# material's own scripts -- the same commands the deployment tutorial gives a
+# reader with a fresh machine. That is deliberate: if this image builds, the
+# documented install works, and there is no second, image-only path to drift
+# out of step with the instructions.
 #
 # No weights. The checkpoint is a run-time argument, so one image serves any
 # compatible checkpoint and the image itself stays something you can rebuild
@@ -39,7 +39,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PIP_INDEX_URL=${PIP_INDEX_URL} \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# README, "Install / 0. System packages", verbatim.
+# System packages, matching the documented install.
 #
 # gcc and python3-dev are not build-time conveniences to be removed afterwards:
 # Triton compiles a CPython extension on the first forward pass of every fresh
@@ -77,7 +77,7 @@ RUN python3 -m venv /opt/venv-render \
     /opt/venv-render/bin/python -m playwright install --with-deps chromium \
  && rm -rf /var/lib/apt/lists/*
 
-# README, "Install / 1. The renderer / Pin the font environment", verbatim.
+# Pin the font environment, matching the documented install.
 #
 # This has to come after the playwright install above, not before: --with-deps
 # pulls in its own set of fonts, and would put the purged packages back.

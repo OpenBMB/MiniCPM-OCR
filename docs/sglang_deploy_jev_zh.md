@@ -23,21 +23,40 @@
    - **不带渲染器服务** → 装服务环境 → 起服务
    - **内置渲染器服务** → 装渲染环境 → 起服务
 
-引擎与服务必须装在两个虚拟环境里，不要合并。以下命令都在 `scripts/minicpm-ocr-jev/` 目录下执行。
+引擎与服务必须装在两个虚拟环境里，不要合并。
 
 ## 环境要求
 
-- **GPU**：NVIDIA，显存 ≥8GB
+- **GPU**：NVIDIA，显存 ≥16GB
 - **驱动**：≥535
 - **Python**：≥3.10
 - **SGLang**：最新稳定版
 - **固定版本**：`Pillow` 12.3.0、`playwright` 1.62.0（仅内置渲染器服务）
 
+**CUDA toolkit**：要在系统里装一套完整的，版本与 PyTorch 所用的 CUDA 版本一致（如 PyTorch 为 cu130，则装 CUDA 13.0）。装在 `/usr/local/cuda`，或另设 `CUDA_HOME` 指向它：
+
+```bash
+export CUDA_HOME=/path/to/cuda
+export PATH=$CUDA_HOME/bin:$PATH
+```
+
+虚拟环境里由 pip 装进来的 `nvidia-*` 包不能代替它。
+
+**系统包**：`gcc`、`g++`、`python3-dev` 是 runtime 依赖，装完不要删除。
+
+```bash
+sudo apt-get install -y python3 python3-venv python3-pip curl gcc g++ python3-dev
+```
+
+引擎环境要装 8–9 GB 依赖，慢网下先给 pip 指一个就近镜像：
+
+```bash
+export PIP_INDEX_URL=https://mirrors.ustc.edu.cn/pypi/simple
+```
+
 ---
 
 ## 一、前向引擎
-
-两种服务都要连一个 SGLang 引擎。
 
 ```bash
 python3 -m venv /opt/venv-sglang && source /opt/venv-sglang/bin/activate
@@ -47,6 +66,7 @@ pip install "sglang[all]"
 启动：
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 python -m sglang.launch_server \
   --model-path ./models/MiniCPM-OCR-Jev \
   --is-embedding \
@@ -55,8 +75,8 @@ python -m sglang.launch_server \
 ```
 
 - `--is-embedding`：走池化路径而不是文本生成。不加则没有 `/classify` 可调。
-- `--json-model-override-args`：权重的 `config.json` 写的是生成类 `Qwen3_5ForConditionalGeneration` 时需要它，覆盖成分类类才会返回 value head 的两个 logit；不加则加载生成类、返回 2048 维 hidden state。这是加载期覆盖，不改动磁盘上的权重文件。`config.json` 本身已写 `Qwen3_5VLForSequenceClassification` 时，这一项可以省略。
-- 类别数取自 `config.json`：有 `id2label` 则用 `len(id2label)`，否则用 `num_labels`，两者必须有其一。
+- `--json-model-override-args`：权重的 `config.json` 写的是生成类 `Qwen3_5ForConditionalGeneration` 时需要它，覆盖成分类类才会返回 value head 的两个 logit；不加则没有 score 头，`--is-embedding` 的池化路径直接返回 2048 维（`hidden_size`）hidden state。这是加载期覆盖，不改动磁盘上的权重文件。`config.json` 本身已写 `Qwen3_5VLForSequenceClassification` 时，这一项可以省略。
+- 类别数取自 `config.json`：有 `id2label` 则用 `len(id2label)`，否则用 `num_labels`，两者都没有时按 2 类处理。
 - 不要加 `--chat-template`：SGLang 不套模板，SDK 直接把拼好的整串 prompt 发过去。
 
 起服后确认引擎就绪：
@@ -98,6 +118,7 @@ Pillow        12.3.0
 `JEV_BACKEND_CONFIG` 指向 SGLang 的后端配置，参数依次为服务端口、引擎地址：
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 JEV_BACKEND_CONFIG=sdk/backends/sglang.yaml \
 PATH=/opt/venv-score/bin:$PATH bash sdk/start_score.sh 18501 http://127.0.0.1:18499
 ```
@@ -125,7 +146,7 @@ curl -s http://127.0.0.1:18501/v1/score -H 'Content-Type: application/json' -d '
 {"results": [{"prob_1": 0.00227, "error": null}]}
 ```
 
-三个字段都是必填：`original_image` 是原始块图的 base64，`render_image` 是该候选渲染回图片后的 base64，`ocr_text` 是候选文本本身。base64 **不带** `data:image/png;base64,` 前缀，与镜像接口不同。
+三个字段都是必填：`original_image` 是原始块图的 base64，`render_image` 是该候选渲染回图片后的 base64，`ocr_text` 是候选文本本身。base64 **不带** `data:image/png;base64,` 前缀，与镜像接口一致。
 
 ### 字段与限额
 
@@ -140,19 +161,19 @@ curl -s http://127.0.0.1:18501/v1/score -H 'Content-Type: application/json' -d '
 
 你只有候选文本，让服务渲染完再打分。precheck、render、forward 三个阶段都在这个进程里完成。
 
-本服务在进程内直接调用打分层，**不需要另外起一个不带渲染器服务**，也不需要给它留端口。
-
 ### 安装
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 bash sdk/setup_render.sh /opt/venv-render
 ```
 
 它装 Node、CJK 字体、Chromium 与服务依赖。慢网下设两个镜像源：
 
 ```bash
-PIP_INDEX_URL=https://<mirror>/simple \
-PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>/playwright \
+cd scripts/minicpm-ocr-jev/
+PIP_INDEX_URL=https://mirrors.ustc.edu.cn/pypi/simple \
+PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.npmmirror.com/binaries/playwright \
     bash sdk/setup_render.sh /opt/venv-render
 ```
 
@@ -161,6 +182,7 @@ PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>/playwright \
 参数依次为服务端口、引擎地址：
 
 ```bash
+cd scripts/minicpm-ocr-jev/
 JEV_BACKEND_CONFIG=sdk/backends/sglang.yaml \
 PATH=/opt/venv-render/bin:$PATH bash sdk/start_render_score.sh 18500 http://127.0.0.1:18499
 ```
@@ -234,3 +256,27 @@ curl -s http://127.0.0.1:18501/healthz
 只看 `status`：`ok` 就是自检通过、服务可用，`prompt` 下的其余字段是自检留下的明细，照上面的样子即为正常。`status` 不是 `ok` 时，`prompt.notes` 写明是哪一项没过。
 
 `served_model` 是引擎启动时的权重路径（SGLang 按路径标识模型，一个进程只服务一个模型）。本机没有权重目录或没装 `transformers` 时，`token_equality` 为 `skipped`，这是跳过不是失败，`notes` 会说明原因。
+
+### 用自带用例验证
+
+自检只确认服务起得来。要确认分数也对，用 `examples/` 下三个用例打一遍，与 `case.json` 里的参考分数 `observed_prob_yes` 对照：
+
+```bash
+cd scripts/minicpm-ocr-jev
+python3 - <<'EOF'
+import base64, json, urllib.request
+for name in ("01_text_putnam", "02_formula_putnam", "03_table_gb_standard"):
+    c = json.load(open(f"examples/{name}/case.json"))
+    role = c["reference_render_of"]
+    text = next(x["text"] for x in c["candidates"] if x["role"] == role)
+    b64 = lambda f: base64.b64encode(open(f"examples/{name}/{f}", "rb").read()).decode()
+    body = {"items": [{"original_image": b64(c["block_image"]),
+                       "render_image": b64(c["reference_render"]), "ocr_text": text}]}
+    req = urllib.request.Request("http://127.0.0.1:18501/v1/score",
+            data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
+    got = json.load(urllib.request.urlopen(req))["results"][0]["prob_1"]
+    print(f"{name:24} got {got:.5f}  reference {c['observed_prob_yes'][role]:.5f}")
+EOF
+```
+
+三行分数与参考值相差都在 0.02 以内即为正常。内置渲染器服务把端点换成 `/v1/rm/score_best`、请求体换成 `image` ＋ `candidates`（见[三、内置渲染器服务 · 请求](#请求-1)），服务会自己渲染。

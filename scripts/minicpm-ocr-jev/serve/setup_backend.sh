@@ -86,7 +86,7 @@ if arch not in archs:
     print(f"\n!!  {arch} is not registered in this vLLM build.", file=sys.stderr)
     print("    This release cannot serve the model. Install a newer vLLM, or build",
           file=sys.stderr)
-    print("    from upstream (see README, 'Install / 2. vLLM').", file=sys.stderr)
+    print("    from upstream.", file=sys.stderr)
     raise SystemExit(1)
 print(f"{arch}  registered")
 PY

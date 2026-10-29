@@ -1,22 +1,27 @@
 <div align="center">
 
-<img src="./assets/minicpm-ocr/release-hero.svg" alt="MiniCPM-OCR：快速、准确地将文档解析为文本、表格和公式，通过闪电箭头连接文档与结构化结果；decision model 辅助标出需要复核的区域（示意图）。" width="100%">
-
-<p align="center"><strong>MiniCPM-OCR · Fast, accurate parsing for real-world documents.</strong></p>
+<p align="center">
+  <img src="./assets/minicpm-ocr/release-hero.svg" alt="MiniCPM-OCR：快速、准确地将文档解析为文本、表格和公式，通过闪电箭头连接文档与结构化结果；decision model 辅助标出需要复核的区域（示意图）。" width="100%">
+</p>
 
 <p align="center">
-  <a href="./docs/minicpm_ocr_1dot0_zh.md"><strong>MiniCPM-OCR 1.0</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0" title="Hugging Face"><img src="./assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0" title="ModelScope"><img src="./assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
+  <a href="./docs/minicpm_ocr_1dot0_zh.md"><strong>MiniCPM-OCR 1.0 模型指南</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0" title="Hugging Face"><img src="./assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0" title="ModelScope"><img src="./assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
   &emsp;
-  <a href="./docs/minicpm_ocr_jev_zh.md"><strong>MiniCPM-OCR Jev</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev" title="Hugging Face"><img src="./assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev" title="ModelScope"><img src="./assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
+  <a href="./docs/minicpm_ocr_jev_zh.md"><strong>MiniCPM-OCR Jev 模型指南</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev" title="Hugging Face"><img src="./assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev" title="ModelScope"><img src="./assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
+</p>
+
+<p align="center">
+  <strong>官方体验</strong>（<a href="https://platform.modelbest.cn/console/playground/document-parse">CN</a> / <a href="https://platform.modelbest.ai/console/playground/document-parse">Global</a>）
+  &nbsp;·&nbsp;
+  基础试用（<a href="http://82.157.64.212:10111/playground/document-parse">CN</a> / <a href="https://huggingface.co/spaces/openbmb/MiniCPM-OCR">Global</a>）
 </p>
 
 <p align="center">
   <a href="#quick-start">开始使用</a> &nbsp;·&nbsp;
   <a href="#model-weights">模型权重</a> &nbsp;·&nbsp;
-  <a href="#api">免费API</a> &nbsp;·&nbsp;
-  <a href="#skill">Skill</a> &nbsp;·&nbsp;
-  在线体验（<a href="https://platform.modelbest.cn/console/playground/document-parse">国内</a> / <a href="https://platform.modelbest.ai/console/playground/document-parse">海外</a>）
-  &nbsp;|&nbsp; <a href="./README.md">English</a> &nbsp;·&nbsp; 中文
+  <a href="#api">免费 API</a> &nbsp;·&nbsp;
+  <a href="#skill">Skill</a>
+  &nbsp;|&nbsp; <a href="./README.md">English</a>
 </p>
 
 </div>
@@ -32,15 +37,15 @@
 - 🏆 **SOTA 的文档解析能力**：MiniCPM-OCR 1.0 在真实场景文档解析评测 **Real5-OmniDocBench 上取得 93.68 的 SOTA 成绩**，并在 OmniDocBench v1.6、Wild-OmniDocBench 和 olmOCR-Bench 等评测中展现领先的解析能力。模型支持中英双语文档与 PDF 解析，兼顾标准文档和复杂采集条件，在扫描、弯曲、拍照、倾斜及翻拍等场景下保持稳定表现。
 - ⚡ **高效推理。** 基于 DSpark 解码加速（[**DSpark-BF16**](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark)、[**DSpark-GGUF**](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark-gguf)），MiniCPM-OCR 1.0 的**端到端处理效率提升 55%**。其处理吞吐量约为 PaddleOCR-VL-1.6 的 **1.49 倍**、MinerU2.5 Pro 的 **3.62 倍**，降低大规模文档解析的时间开销。
 - 🔍 **通用识别与信息抽取**：MiniCPM-OCR 1.0 在 **OCRBench v2 上取得 54.7 的 SOTA** 成绩，具备扎实的通用 OCR 能力；**同时支持关键信息抽取（KIE）**，可根据业务需求提取文档中的关键内容，支持后续信息整理与自动化处理。
-- 🛠️ **部署与开发友好**：MiniCPM-OCR 1.0 首日**适配 vLLM、SGLang、llama.cpp 和 Ollama**，同步提供多芯片适配与多种量化版本。模型**支持二次微调**，提供 **[pip SDK](https://pypi.org/project/minicpm-ocr/)** 和 **[功能完备的 API](#api)**，方便应用集成与定制开发，也可 **[通过 SKILL.md 快速上手](#skill)**；同时提供在线体验（[国内](https://platform.modelbest.cn/console/playground/document-parse) / [海外](https://platform.modelbest.ai/console/playground/document-parse)），方便用户查看解析效果。
+- 🛠️ **部署与开发友好**：MiniCPM-OCR 1.0 首日**适配 vLLM、SGLang、llama.cpp 和 Ollama**，同步提供多芯片适配与多种量化版本。模型**支持二次微调**，提供 **[pip SDK](https://pypi.org/project/minicpm-ocr/)** 和 **[功能完备的 API](#api)**，方便应用集成与定制开发，也可 **[通过 SKILL.md 快速上手](#skill)**；同时提供官方体验（[CN](https://platform.modelbest.cn/console/playground/document-parse) / [Global](https://platform.modelbest.ai/console/playground/document-parse)）和基础试用（[CN](http://82.157.64.212:10111/playground/document-parse) / [Global](https://huggingface.co/spaces/openbmb/MiniCPM-OCR)），方便用户查看解析效果。
 
 ### SOTA 表现，更高吞吐
 
-在图示的开源 OCR 模型对比中，MiniCPM-OCR 1.0 的解析吞吐量达到 1.2 pages/s，在 OmniDocBench v1.6、Real5-OmniDocBench、Wild-OmniDocBench 和 olmOCR-Bench 四项文档解析基准上取得最高等权平均分。
+在图示的开源 OCR 模型对比中，MiniCPM-OCR 1.0 的解析吞吐量达到 1.2 pages/s，在 OmniDocBench v1.6、Real5-OmniDocBench、Wild-OmniDocBench 和 olmOCR-Bench 四项文档解析基准上取得最佳综合表现。
 
 <p align="center"><a href="./assets/minicpm-ocr/efficiency-performance-zh.png"><img src="./assets/minicpm-ocr/efficiency-performance-zh.png" alt="开源 OCR 模型的吞吐量与解析质量对比；横轴为吞吐量（页/秒，对数刻度），纵轴为四项文档解析基准的等权平均分。" width="90%"></a></p>
 
-<sub>平均分：OmniDocBench v1.6、Real5-OmniDocBench、Wild-OmniDocBench 和 olmOCR-Bench 四项基准的等权平均分；横轴为吞吐量（页/秒），采用对数刻度。测试设置与复现说明见 [复现文档](./docs/benchmark_reproduction_zh.md)；各模型的吞吐数值见 [模型指南的吞吐评测](./docs/minicpm_ocr_1dot0_zh.md#吞吐)。</sub>
+<sub>测试设置与复现说明见 [复现文档](./docs/benchmark_reproduction_zh.md)；各模型的吞吐数值见 [模型指南的吞吐评测](./docs/minicpm_ocr_1dot0_zh.md#吞吐)。</sub>
 
 <a id="ocr-benchmark"></a>
 
@@ -55,7 +60,7 @@
 
 </details>
 
-各基准柱状图与吞吐明细见 [OCR 模型指南](./docs/minicpm_ocr_1dot0_zh.md#评测)。
+各基准柱状图与吞吐明细见 [MiniCPM-OCR 1.0 模型指南](./docs/minicpm_ocr_1dot0_zh.md#评测)。
 
 ### 典型示例
 
@@ -89,7 +94,7 @@
 
 ## MiniCPM-OCR Jev
 
-**MiniCPM-OCR Jev** 是面向文本、公式和表格的 **OCR 正确性判别决策模型**。输入图像及对应的 OCR 结果，即可获得 **0–1 的质量评分**，用于筛选可靠结果、定位待复核内容。
+**MiniCPM-OCR Jev** 是面向文本、公式和表格的 **OCR 正确性决策模型**。输入图像及对应的 OCR 结果，即可获得 **0–1 的质量评分**，用于筛选可靠结果、定位待复核内容。
 
 - 🛡️ **以小胜大**：仅 2B 参数，在 [JevOCRBench](https://huggingface.co/datasets/openbmb/JevOCRBench) 上决策精度 AUROC（×100）达到 93.6，**反超 JEV-35B-A3B（90.1）**，接近 Qwen3.5-397B-A17B（93.8）。
 - 🧩 **稳定泛化**：在 MiniCPM-OCR 1.0、GLM-OCR、PaddleOCR-VL-1.6 和 Xiaomi-OCR-0 的解析结果上，AUROC（×100）为 **91.9–93.4**。
@@ -119,7 +124,7 @@
 
 <p align="center"><a href="./assets/minicpm-ocr/jev-case-zh.png"><img src="./assets/minicpm-ocr/jev-case-zh.png" alt="文本、公式和表格的原图、两份 OCR 候选结果及其 Jev 评分。" width="100%"></a></p>
 
-详见 [模型指南](./docs/minicpm_ocr_jev_zh.md)、[使用场景](./docs/minicpm_ocr_jev_zh.md#使用场景)、[跨模型评测](./docs/minicpm_ocr_jev_zh.md#已验证的解析器) 和 [判别示例](./docs/minicpm_ocr_jev_zh.md#示例)。
+使用方法、技术规格、评测结果和效率结果详见 [MiniCPM-OCR Jev 模型指南](./docs/minicpm_ocr_jev_zh.md)。
 
 <a id="quick-start"></a>
 
@@ -137,7 +142,13 @@
 Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL.md
 ```
 
-已克隆本仓库时，也可直接使用 `./docs/SKILL.md`。
+让编码 Agent 按 MiniCPM-OCR Jev [skill](./docs/SKILL_jev.md) 完成打分服务的本地部署、启动和验证，支持 vLLM、SGLang、llama.cpp 和 Ollama 四个推理后端。将以下指令发送给 Agent：
+
+```text
+Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL_jev.md
+```
+
+已克隆本仓库时，也可直接使用 `./docs/SKILL.md` 和 `./docs/SKILL_jev.md`。
 
 <a id="api"></a>
 
@@ -187,13 +198,25 @@ Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL.md
 <tr>
 <td nowrap>MiniCPM&#8209;OCR&nbsp;<strong>Jev</strong></td>
 <td width="360">面向文本、公式和表格的 OCR 正确性判别模型，输入图像及 OCR 结果即可获得 0–1 的质量评分。</td>
-<td align="center" valign="middle" colspan="2"><a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev"><img src="./assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>BF16</strong>&emsp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev-gguf">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-gguf"><img src="./assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>GGUF</strong><br><a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev-AWQ">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-AWQ"><img src="./assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>AWQ</strong>&emsp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev-GPTQ">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-GPTQ"><img src="./assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>GPTQ</strong></td>
+<td align="center" valign="middle" colspan="2"><a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev"><img src="./assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>BF16</strong>&emsp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev-gguf">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-gguf"><img src="./assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>GGUF</strong><br><a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev-AWQ">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-AWQ"><img src="./assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>AWQ</strong>&emsp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev-GPTQ">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-GPTQ"><img src="./assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>GPTQ</strong></td>
 </tr>
 </table>
 
 ## 💡 常见问题与排查
 
 安装、模型下载、显存、输入格式与输出异常等常见问题汇总在 [FAQ](./docs/faq_zh.md)。
+
+## Star 历史
+
+<p align="center">
+  <a href="https://www.star-history.com/?repos=openbmb%2Fminicpm-ocr&amp;type=date&amp;legend=top-left">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=openbmb/minicpm-ocr&amp;type=date&amp;legend=top-left&amp;theme=dark">
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=openbmb/minicpm-ocr&amp;type=date&amp;legend=top-left">
+      <img src="https://api.star-history.com/chart?repos=openbmb/minicpm-ocr&amp;type=date&amp;legend=top-left" alt="MiniCPM-OCR 的 GitHub Star 数量随时间的变化。" width="100%">
+    </picture>
+  </a>
+</p>
 
 ## 📄 许可
 

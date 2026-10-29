@@ -1,9 +1,8 @@
 """Backend selection.
 
 Which engine runs the forward pass is a deployment choice, not a code change, so
-it is read from a file: `sdk/backends/<engine>.yaml`. The shipped one is
-`vllm.yaml`; SGLang and llama.cpp get their own once the upstream work they
-depend on lands.
+it is read from a file: `sdk/backends/<engine>.yaml`. One ships per engine;
+`vllm.yaml` is the default, and `JEV_BACKEND_CONFIG` picks another.
 """
 from __future__ import annotations
 
@@ -20,15 +19,17 @@ __all__ = ["Backend", "BackendError", "load_backend", "load_config", "DEFAULT_CO
 CONFIG_DIR = Path(__file__).resolve().parents[2] / "backends"
 DEFAULT_CONFIG = CONFIG_DIR / "vllm.yaml"
 
-#: Engines that are implemented *and* have been run against the model. The two
-#: absent ones are listed here rather than silently missing, because "not
-#: supported yet" and "you spelled it wrong" are different problems for whoever
-#: is reading the error.
-KNOWN_ENGINES = {"vllm"}
-PLANNED_ENGINES = {
-    "sglang": "the classify path needs an upstream PR that is not merged yet",
-    "llamacpp": "the classify path needs an upstream PR that is not merged yet",
-}
+#: Engines this SDK has an adapter for. Each has a shipped config of the same
+#: name in `sdk/backends/`, and the error for anything else names them all,
+#: because "not supported" and "you spelled it wrong" are different problems for
+#: whoever is reading it.
+#:
+#: What they do *not* all share is how the scores come back. vLLM and SGLang hand
+#: over the two raw logits; llama.cpp and Ollama answer with the probabilities
+#: already activated. Each adapter declares which via `output_kind`, and
+#: `scorer.py` branches on that -- see `base.py` for why that distinction is
+#: worth a field rather than a convention.
+KNOWN_ENGINES = {"vllm", "sglang", "llamacpp", "ollama"}
 
 
 def load_config(path: str | Path | None = None) -> dict[str, Any]:
@@ -36,6 +37,19 @@ def load_config(path: str | Path | None = None) -> dict[str, Any]:
     import yaml
 
     chosen = Path(path or os.environ.get("JEV_BACKEND_CONFIG") or DEFAULT_CONFIG)
+    if not chosen.is_file() and not chosen.is_absolute():
+        # A relative path is resolved against the cwd of *this process*, which is
+        # not where the operator typed the command: start_score.sh and
+        # start_render_score.sh both `cd` into sdk/ before exec'ing uvicorn. So
+        # `JEV_BACKEND_CONFIG=sdk/backends/sglang.yaml` -- the spelling the deploy
+        # docs use, correct relative to the directory they tell you to stand in --
+        # would otherwise never resolve. Try it against the SDK root, then against
+        # the shipped config directory, so `sglang.yaml` works too.
+        for base in (CONFIG_DIR.parent.parent, CONFIG_DIR):
+            candidate = base / chosen
+            if candidate.is_file():
+                chosen = candidate
+                break
     if not chosen.is_file():
         raise FileNotFoundError(
             f"backend config not found: {chosen}\n"
@@ -59,12 +73,6 @@ def load_backend(path: str | Path | None = None, **overrides: Any) -> Backend:
     engine = str(config.get("engine", "")).strip().lower()
 
     if engine not in KNOWN_ENGINES:
-        if engine in PLANNED_ENGINES:
-            raise NotImplementedError(
-                f"backend '{engine}' is not implemented yet: {PLANNED_ENGINES[engine]}.\n"
-                f"The adapter interface it will implement is in "
-                f"{Path(__file__).parent / 'base.py'}."
-            )
         raise ValueError(
             f"{config.get('_source')}: unknown engine {engine!r}. "
             f"Known: {', '.join(sorted(KNOWN_ENGINES))}."
@@ -74,11 +82,29 @@ def load_backend(path: str | Path | None = None, **overrides: Any) -> Backend:
     if not base_url:
         raise ValueError(f"{config.get('_source')}: 'base_url' is required")
 
+    # Same four arguments for every engine: the adapters differ in what they put
+    # on the wire, not in how they are configured.
+    kwargs: dict[str, Any] = {
+        "model": config.get("model") or None,
+        "timeout": float(config.get("timeout_sec", 120.0)),
+        "max_in_flight": int(config.get("max_in_flight", 32)),
+    }
+
+    if engine == "sglang":
+        from .sglang_backend import SGLangBackend
+
+        return SGLangBackend(str(base_url), **kwargs)
+
+    if engine == "llamacpp":
+        from .llamacpp_backend import LlamaCppBackend
+
+        return LlamaCppBackend(str(base_url), **kwargs)
+
+    if engine == "ollama":
+        from .ollama_backend import OllamaBackend
+
+        return OllamaBackend(str(base_url), **kwargs)
+
     from .vllm_backend import VLLMBackend
 
-    return VLLMBackend(
-        str(base_url),
-        model=config.get("model") or None,
-        timeout=float(config.get("timeout_sec", 120.0)),
-        max_in_flight=int(config.get("max_in_flight", 32)),
-    )
+    return VLLMBackend(str(base_url), **kwargs)

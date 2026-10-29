@@ -6,7 +6,7 @@ MiniCPM-OCR Jev 用于判断一段 OCR 解析结果与原图是否一致：输�
 
 如需在更多不同 AI 芯片上部署 MiniCPM-OCR Jev，支持平台、模型下载和镜像用法见 [FlagOS 多芯片部署指南](./flagos_deploy_zh.md)。
 
-[硬件要求](#硬件要求) · [Docker 镜像部署](#方式一docker-镜像) · [SDK 本地部署](#方式二sdk-本地部署)
+[硬件要求](#硬件要求) · [Docker 镜像部署](#方式一docker-镜像) · [SDK 本地部署](#方式二sdk-本地部署) · [验证部署](#验证部署)
 
 ---
 
@@ -18,6 +18,8 @@ MiniCPM-OCR Jev 用于判断一段 OCR 解析结果与原图是否一致：输�
 | 驱动 | ≥535 |
 | Python | ≥3.10（仅 SDK 方式需要） |
 | 磁盘 | 前向环境约 5–9 GB、渲染环境约 1.5 GB、权重约 2.5 GB |
+
+本文档的命令在 Ubuntu 24.04 ＋ 驱动 590.48 ＋ CUDA 13.0 上验证过。其他发行版与版本同样可用，apt 命令按各自的包管理器调整。
 
 ---
 
@@ -39,7 +41,7 @@ cd scripts/minicpm-ocr-jev
 docker build -f serve/Dockerfile -t minicpm-ocr-jev-1-0:latest .
 ```
 
-慢网下需要加两个镜像源参数，详见 [`scripts/minicpm-ocr-jev/README.md`](../scripts/minicpm-ocr-jev/README.md)。
+慢网下加上 `--build-arg PIP_INDEX_URL=https://mirrors.ustc.edu.cn/pypi/simple` 和 `--build-arg PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.npmmirror.com/binaries/playwright`。
 
 运行（挂载权重、映射端口）：
 
@@ -62,7 +64,7 @@ curl -f http://127.0.0.1:8030/healthz
 curl -s http://127.0.0.1:8030/v1/rm/score -H 'Content-Type: application/json' -d '{
   "input_form": "ternary",
   "items": [
-    {"case_id": "blk-001", "image": "data:image/png;base64,<base64>",
+    {"case_id": "blk-001", "image": "<base64>",
      "ocr_text": "待评分的 OCR 文本", "category": "text"}
   ]
 }'
@@ -78,9 +80,9 @@ curl -s http://127.0.0.1:8030/v1/rm/score -H 'Content-Type: application/json' -d
 }
 ```
 
-`image` 传 `data:image/png;base64,` 或 `data:image/jpeg;base64,` 前缀加 base64 正文。`category` 必须与块真实类型一致（`text` / `formula` / `table`），填错不报错但分数会偏。**用分数前必须先看** `verdict`——`0.0` 与 `-1.0` 是打分失败时的固定返回值，不是低分。
+`image` 传图片文件（PNG 或 JPEG）的 base64 正文，**不带** `data:image/png;base64,` 这类前缀。`category` 必须与块真实类型一致（`text` / `formula` / `table`），填错不报错但分数会偏。**用分数前必须先看** `verdict`——`0.0` 与 `-1.0` 是打分失败时的固定返回值，不是低分。
 
-更多端点（`/v1/rm/score_best`、`/v1/rm/score_best_batch`）与完整字段定义见 [Docker 镜像 API 参考](./minicpm_ocr_jev_docker_api_zh.md)。目录结构与构建细节见 [`scripts/minicpm-ocr-jev/README.md`](../scripts/minicpm-ocr-jev/README.md)。
+更多端点（`/v1/rm/score_best`、`/v1/rm/score_best_batch`）与完整字段定义见 [Docker 镜像 API 参考](./minicpm_ocr_jev_docker_api_zh.md)。
 
 
 ### 方式二：SDK 本地部署
@@ -104,6 +106,22 @@ SDK 要两个独立安装的虚拟环境：
 | ---- | --------------- | -------------------------------------------------- |
 | 引擎环境 | 前向推理            | 随后端而定，见上述对应文档                                      |
 | 服务环境 | 打分服务；用内置渲染器时含渲染 | Python ≥3.10；`Pillow==12.3.0`、`playwright==1.62.0` |
+
+CUDA toolkit 不是四个后端都要装：vLLM 与 Ollama 用各自自带的 GPU 运行时，SGLang 与 llama.cpp 要系统装一套。具体要求写在各后端文档的「环境要求」里。
+
+引擎环境要装几 GB 依赖，慢网下给 pip 指一个就近镜像：
+
+```bash
+export PIP_INDEX_URL=https://mirrors.ustc.edu.cn/pypi/simple
+```
+
+---
+
+## 验证部署
+
+`scripts/minicpm-ocr-jev/examples/` 下有三个用例（文本、公式、表格），各带原图、参考渲染图、候选文本，以及 `case.json` 里记录的参考分数 `observed_prob_yes`。部署完成后用它们打一遍分、与参考值对照，就能确认装对了；命令见各后端文档的「启动自检」节。
+
+分数与参考值相差 0.02 以内为正常。
 
 ---
 

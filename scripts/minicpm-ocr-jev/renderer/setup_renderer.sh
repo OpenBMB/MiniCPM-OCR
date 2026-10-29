@@ -6,7 +6,7 @@
 # images produced by one specific combination of browser, KaTeX and fonts, so this
 # script pins the browser and KaTeX, and then reports on the fonts, which are the
 # one part it cannot install for you: fonts come from your operating system. The
-# README's font step pins those; this script tells you whether they are pinned.
+# The Docker image pins those; this script tells you whether they are pinned.
 #
 # Run from anywhere:  bash renderer/setup_renderer.sh
 #
@@ -111,7 +111,7 @@ if command -v fc-list >/dev/null 2>&1; then
     With none at all, Chinese blocks render as empty boxes and score meaninglessly.
     Which CJK font you install matters much less for pixels -- swapping font sets
     moved the bundled references by under half a percent -- but it does decide which
-    candidate wins a close block; see the font step in README \"1. The renderer\"."
+    candidate wins a close block."
         problems=$((problems + 1))
     fi
 
@@ -133,7 +133,7 @@ if command -v fc-list >/dev/null 2>&1; then
         printf 'Font environment differs from the reference deployment:\n'
         printf "$pin_notes"
         printf '    Fine for measuring the model; pin it if you need the reference bytes\n'
-        printf '    or the same best-of-N picks. Four commands, in README "1. The renderer".\n'
+        printf '    or the same best-of-N picks. Pin it with sdk/setup_render.sh or serve/Dockerfile.\n'
     fi
 elif [ "$(uname -s)" = "Darwin" ]; then
     printf 'macOS: system CJK fonts are present by default (fc-list not installed).\n'
