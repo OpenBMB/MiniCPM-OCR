@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@map/ui';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@map/store';
 import type { MapModel } from '@/api/map';
+import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { getPortalRouteTitle } from '@/router/routeCopy';
 import { ModelSelector } from './ModelSelector';
 import { experienceDocsPath } from '../utils/experienceRoute';
@@ -137,6 +138,7 @@ export function PlaygroundTopBar({
           <TooltipContent>{t('clearContext')}</TooltipContent>
         </Tooltip>
 
+        <LocaleSwitcher variant="text" className="px-2.5 text-xs text-muted-foreground" />
         <Tooltip>
           <TooltipTrigger asChild>
             <Link

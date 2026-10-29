@@ -18,6 +18,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@map/store';
 import { Button, Tooltip, TooltipContent, TooltipTrigger, cn } from '@map/ui';
+import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { getPortalRouteTitle } from '@/router/routeCopy';
 import type { useImageParse } from '../../hooks/useImageParse';
 import { DOCUMENT_ACCEPT } from '../../utils/documentUpload';
@@ -202,6 +203,7 @@ export function ImageParseToolbar({
           hasImage && 'border-l border-border pl-2',
         )}
       >
+        <LocaleSwitcher variant="text" className="px-2.5 text-xs text-muted-foreground" />
         <DocsLink experience={parse.mode === 'kie' ? 'field-extract' : 'image-parse'} />
       </div>
     </header>

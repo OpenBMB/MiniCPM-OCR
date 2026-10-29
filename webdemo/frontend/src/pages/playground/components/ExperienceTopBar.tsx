@@ -8,6 +8,7 @@ import { AudioWaveform, BookOpen, Phone } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@map/store';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@map/ui';
+import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { getPortalRouteTitle } from '@/router/routeCopy';
 import { experienceDocsPath, type ExperienceKey } from '../utils/experienceRoute';
 
@@ -78,6 +79,7 @@ export function ExperienceTopBar({
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-2">
+        <LocaleSwitcher variant="text" className="px-2.5 text-xs text-muted-foreground" />
         <Tooltip>
           <TooltipTrigger asChild>
             <Link

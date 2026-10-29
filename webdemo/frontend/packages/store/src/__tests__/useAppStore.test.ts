@@ -10,11 +10,11 @@ beforeEach(() => {
 });
 
 describe('useAppStore', () => {
-  it('初始状态应为 sidebar 展开、light 主题、中文', () => {
-    const state = useAppStore.getState();
+  it('初始状态应为 sidebar 展开、light 主题、英文', () => {
+    const state = useAppStore.getInitialState();
     expect(state.sidebarCollapsed).toBe(false);
     expect(state.theme).toBe('light');
-    expect(state.locale).toBe('zh-CN');
+    expect(state.locale).toBe('en-US');
   });
 
   it('toggleSidebar 应切换折叠状态', () => {
@@ -43,6 +43,18 @@ describe('useAppStore', () => {
     useAppStore.getState().clearModelParams('model-a');
 
     expect(useAppStore.getState().playground.paramsByModel['model-a']).toBeUndefined();
+  });
+
+  it('旧存档里的中文默认语言迁移为英文', async () => {
+    localStorage.setItem(
+      'map-app',
+      JSON.stringify({
+        version: 1,
+        state: { locale: 'zh-CN', theme: 'light' },
+      }),
+    );
+    await useAppStore.persist.rehydrate();
+    expect(useAppStore.getState().locale).toBe('en-US');
   });
 
   it('恢复旧偏好时丢弃置信度开关，保留阅读顺序和主题', async () => {

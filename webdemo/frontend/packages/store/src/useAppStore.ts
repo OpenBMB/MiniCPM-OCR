@@ -90,14 +90,14 @@ const DEFAULT_PLAYGROUND_PREFS: PlaygroundPrefs = {
   imageParseShowOrder: false,
 };
 
-const APP_STORE_VERSION = 1;
+const APP_STORE_VERSION = 2;
 
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
       sidebarCollapsed: false,
       theme: 'light',
-      locale: 'zh-CN',
+      locale: 'en-US',
       layoutMode: 'sidebar',
       playground: DEFAULT_PLAYGROUND_PREFS,
 
@@ -132,10 +132,15 @@ export const useAppStore = create<AppState>()(
     {
       name: 'map-app',
       version: APP_STORE_VERSION,
-      migrate: (persistedState, version) =>
-        version < APP_STORE_VERSION
-          ? migrateLegacyPlaygroundParams(persistedState)
-          : persistedState,
+      migrate: (persistedState, version) => {
+        const migrated =
+          version < 1 ? migrateLegacyPlaygroundParams(persistedState) : persistedState;
+        // Saved Chinese from before the language switch was the old default, so the first load after this version opens in English.
+        if (version < 2 && isRecord(migrated)) {
+          return { ...migrated, locale: 'en-US' };
+        }
+        return migrated;
+      },
       // Compatible with the old persisted shape: fill defaults when the playground field is missing.
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<AppState>;

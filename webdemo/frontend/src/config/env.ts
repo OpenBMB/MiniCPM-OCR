@@ -8,7 +8,7 @@ const clientEnvSchema = z.object({
   VITE_API_DEBUG: z.enum(['true', 'false']).optional(),
   // MAP backend base path (raw JSON, separate from the generic /api). Defaults to /map-api, proxied by Vite or Nginx.
   VITE_MAP_API_BASE_URL: z.string().default('/map-api'),
-  VITE_DEFAULT_LOCALE: z.enum(['zh-CN', 'en-US']).default('zh-CN'),
+  VITE_DEFAULT_LOCALE: z.enum(['zh-CN', 'en-US']).default('en-US'),
   VITE_AUTH_PROFILE: z.enum(['legacy', 'gcp']).default('legacy'),
   VITE_COOKIE_CONSENT_ENABLED: z.enum(['true', 'false']).default('false'),
 });

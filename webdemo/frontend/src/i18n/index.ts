@@ -4,7 +4,7 @@ import { useAppStore, type AppLocale } from '@map/store';
 import { i18nResources } from './resources';
 
 const configuredDefaultLocale: AppLocale =
-  import.meta.env.VITE_DEFAULT_LOCALE === 'en-US' ? 'en-US' : 'zh-CN';
+  import.meta.env.VITE_DEFAULT_LOCALE === 'zh-CN' ? 'zh-CN' : 'en-US';
 
 // Apply the deploy default language only when this site has no persisted preference; an existing user choice is not overwritten by an environment switch.
 if (typeof window !== 'undefined' && !window.localStorage.getItem('map-app')) {
@@ -14,7 +14,7 @@ if (typeof window !== 'undefined' && !window.localStorage.getItem('map-app')) {
 i18n.use(initReactI18next).init({
   resources: i18nResources,
   lng: useAppStore.getState().locale,
-  fallbackLng: 'zh-CN',
+  fallbackLng: 'en-US',
   defaultNS: 'shell',
   interpolation: { escapeValue: false },
   // Resources ship in the frontend bundle and can be initialized synchronously so the first frame does not show translation keys.
@@ -26,6 +26,21 @@ i18n.on('languageChanged', (language) => {
 });
 
 syncDocumentLanguage(i18n.language);
+
+function applyStoredLocale(): void {
+  const locale = useAppStore.getState().locale;
+  if (i18n.language !== locale) {
+    void i18n.changeLanguage(locale);
+  }
+}
+
+if (useAppStore.persist.hasHydrated()) {
+  applyStoredLocale();
+} else {
+  useAppStore.persist.onFinishHydration(() => {
+    applyStoredLocale();
+  });
+}
 
 /**
  * Switch the portal UI language and persist the preference.

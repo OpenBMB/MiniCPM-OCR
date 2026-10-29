@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
+import { useAppStore } from '@map/store';
 import { TooltipProvider } from '@map/ui';
 
 import { ImageParseToolbar } from './ImageParseToolbar';
@@ -71,7 +72,9 @@ describe('文档解析顶栏', () => {
     expect(toolbar.querySelector('.lucide-scan-text')).toHaveClass('size-4');
     expect(toolbar.querySelector('.lucide-scan-text')).toHaveAttribute('aria-hidden', 'true');
     expect(toolbar.querySelector('.lucide-file-scan')).toBeNull();
-    expect(toolbar.querySelector('.lucide-languages')).toBeNull();
+    expect(screen.getByRole('button', { name: /language\.switchTo(English|Chinese)/ })).toHaveTextContent(
+      /^(EN|中文)$/,
+    );
     expect(screen.getByText('scan.png')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'imageParseNewDocument' })).toHaveAttribute(
       'data-tour',
@@ -314,6 +317,7 @@ describe('文档解析顶栏', () => {
   });
 
   it('文档解析和信息抽取分别跳转对应 API 文档', () => {
+    useAppStore.setState({ locale: 'zh-CN' });
     const { rerender } = render(
       <MemoryRouter>
         <TooltipProvider>
