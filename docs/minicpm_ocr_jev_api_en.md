@@ -1,6 +1,6 @@
 # MiniCPM-OCR Jev API Calls
 
-[← Back to README](../README.md#api) · [中文](./minicpm_ocr_jev_api_zh.md) · [MiniCPM-OCR 1.0 API calls](./minicpm_ocr_api_en.md)
+[← Back to README](../README.md#api) · [中文](./minicpm_ocr_jev_api_zh.md) · [MiniCPM-OCR 1.0 API docs](https://platform.modelbest.ai/console/docs/api/document-parse)
 
 Use the OpenAI-compatible Chat Completions API to assign a quality score from 0 to 1 to an existing OCR candidate, or to pick the highest-scoring candidate for one image region. The API does not recognize the image again and does not rewrite the text. You provide the service URL, API key, model name, original region image, and candidate text; the service renders the text.
 
@@ -422,4 +422,4 @@ When the settings are not a JSON object:
 
 If only some items in a batch fail, retry just those items. Every retry is a new call and may add usage. Do not write the API key or the full image encoding into logs. See the platform docs for [error codes](https://platform.modelbest.cn/console/docs/errors) and [rate limits and retries](https://platform.modelbest.cn/console/docs/rate-limits).
 
-This page describes the hosted Chat Completions API. The Docker image uses a different, flat request body; the two are not interchangeable. See the [Docker image API](./minicpm_ocr_jev_docker_api_en.md). To recognize a region before scoring it, see [MiniCPM-OCR 1.0 API calls](./minicpm_ocr_api_en.md).
+This page describes the hosted Chat Completions API. The Docker image uses a different, flat request body; the two are not interchangeable. See the [Docker image API](./minicpm_ocr_jev_docker_api_en.md). To recognize a region before scoring it, see the [MiniCPM-OCR 1.0 API docs](https://platform.modelbest.ai/console/docs/api/document-parse).

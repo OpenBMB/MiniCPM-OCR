@@ -1,6 +1,6 @@
 # MiniCPM-OCR Jev API 调用
 
-[← 返回首页](../README_zh.md#api) · [English](./minicpm_ocr_jev_api_en.md) · [MiniCPM-OCR 1.0 API 调用](./minicpm_ocr_api_zh.md)
+[← 返回首页](../README_zh.md#api) · [English](./minicpm_ocr_jev_api_en.md) · [MiniCPM-OCR 1.0 API 文档](https://platform.modelbest.cn/console/docs/api/document-parse)
 
 通过 OpenAI 兼容的 Chat Completions 接口，对已有 OCR 候选结果给出 0–1 质量分，或从同一图像块的多个候选中选出分数最高的一条。接口不重新识别，也不改写文本。调用方准备服务地址、API Key、模型名、区域原图和候选文本即可；文本渲染图由服务端生成。
 
@@ -422,4 +422,4 @@ HTTP 200 表示请求已处理。条目状态在 `verdict` 或 `verdicts` 里，
 
 批量请求只有部分条目失败时，只重试失败条目。每次重试都是新的调用，可能产生额外用量。不要在日志里记录 API Key 或完整图片编码。更多说明见 [错误码](https://platform.modelbest.cn/console/docs/errors) 和 [限速与重试](https://platform.modelbest.cn/console/docs/rate-limits)。
 
-本页描述云端 Chat Completions 接口。Docker 镜像使用另一套扁平请求体，两者不能互换，见 [Docker 镜像 API](./minicpm_ocr_jev_docker_api_zh.md)。先识别再评分时，见 [MiniCPM-OCR 1.0 API 调用](./minicpm_ocr_api_zh.md)。
+本页描述云端 Chat Completions 接口。Docker 镜像使用另一套扁平请求体，两者不能互换，见 [Docker 镜像 API](./minicpm_ocr_jev_docker_api_zh.md)。先识别再评分时，见 [MiniCPM-OCR 1.0 API 文档](https://platform.modelbest.cn/console/docs/api/document-parse)。
