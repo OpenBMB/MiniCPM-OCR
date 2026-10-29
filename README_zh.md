@@ -151,7 +151,7 @@ Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL_jev
 
 通过免费API接入 MiniCPM-OCR 1.0 的识别能力和 MiniCPM-OCR Jev 的质量判别能力。
 
-[MiniCPM-OCR 1.0 调用示例](./docs/minicpm_ocr_api_zh.md) &emsp;·&emsp; [MiniCPM-OCR Jev 调用示例](./docs/minicpm_ocr_jev_api_zh.md)（即将提供）
+[MiniCPM-OCR 1.0 调用示例](./docs/minicpm_ocr_api_zh.md) &emsp;·&emsp; [MiniCPM-OCR Jev 调用示例](./docs/minicpm_ocr_jev_api_zh.md)
 
 <a id="手动部署"></a>
 
