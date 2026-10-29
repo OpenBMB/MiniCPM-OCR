@@ -19,8 +19,9 @@
 <p align="center">
   <a href="#quick-start">开始使用</a> &nbsp;·&nbsp;
   <a href="#model-weights">模型权重</a> &nbsp;·&nbsp;
-  <a href="#api">免费 API</a> &nbsp;·&nbsp;
-  <a href="#skill">Skill</a>
+  <a href="https://platform.modelbest.cn/console/docs/api/document-parse">免费 API</a> &nbsp;·&nbsp;
+  <a href="#skill">Skill</a> &nbsp;·&nbsp;
+  <a href="./docs/minicpm_ocr_tutorial.md">本地部署</a>
   &nbsp;|&nbsp; <a href="./README.md">English</a>
 </p>
 

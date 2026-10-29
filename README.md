@@ -19,8 +19,9 @@
 <p align="center">
   <a href="#quick-start">Get Started</a> &nbsp;·&nbsp;
   <a href="#model-weights">Weights</a> &nbsp;·&nbsp;
-  <a href="#api">Free API</a> &nbsp;·&nbsp;
-  <a href="#skill">Skill</a>
+  <a href="https://platform.modelbest.ai/console/docs/api/document-parse">Free API</a> &nbsp;·&nbsp;
+  <a href="#skill">Skill</a> &nbsp;·&nbsp;
+  <a href="./docs/minicpm_ocr_tutorial_en.md">Local Deployment</a>
   &nbsp;|&nbsp; <a href="./README_zh.md">中文</a>
 </p>
 
