@@ -22,8 +22,8 @@
   <a href="./docs/minicpm_ocr_tutorial_en.md">Local Deployment</a>
   &nbsp;|&nbsp; <a href="./README_zh.md">中文</a>
   <br>
-  <a href="https://github.com/OpenBMB/MiniCPM"><img src="./assets/minicpm-ocr/minicpm-logo.jpg" width="96" align="middle" alt="MiniCPM logo"></a>
-  &ensp;
+  <a href="https://github.com/OpenBMB/MiniCPM"><img src="./assets/minicpm-ocr/minicpm-logo.jpg" width="240" align="middle" alt="MiniCPM logo"></a>
+  <br>
   <a href="#community"><strong>Join the Community</strong></a> &nbsp;·&nbsp;
   <a href="https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=c35j072a-9abe-4ba6-ba1d-3ab340f9ba8c">Feishu / Lark</a> &nbsp;·&nbsp;
   <a href="https://discord.gg/JE8KQqtdn">Discord</a>
