@@ -39,8 +39,6 @@
 
 ## MiniCPM-OCR 1.0
 
-<p align="center"><a href="https://youtu.be/lJOzZytWoK8"><img src="./assets/minicpm-ocr/main_video_en_play.PNG" alt="MiniCPM-OCR 1.0 and Jev promo video. Click to watch the demo on YouTube." width="80%"></a></p>
-
 **MiniCPM-OCR 1.0** (1.3B) is the first OCR-specific model in the [MiniCPM-V/o](https://github.com/openbmb/MiniCPM-V) family. It focuses on text-centric document understanding, covering text, tables, formulas, charts, seals, and structured information extraction. Its key features include:
 
 - 🏆 **SOTA document parsing**: MiniCPM-OCR 1.0 achieves a **SOTA score of 93.68 on Real5-OmniDocBench**, a benchmark for real-world document parsing, and demonstrates leading parsing capabilities on OmniDocBench v1.6, Wild-OmniDocBench, and olmOCR-Bench. It supports Chinese and English documents and PDFs, handling both standard documents and challenging capture conditions, including scans, curved pages, photographs, skewed pages, and recaptured documents.
@@ -138,6 +136,8 @@ Jev scores for text, formula, and table recognition.
 <p align="center"><a href="./assets/minicpm-ocr/jev-case-en.png"><img src="./assets/minicpm-ocr/jev-case-en.png" alt="Original images, two OCR candidates, and their Jev scores for text, formulas, and tables." width="100%"></a></p>
 
 See the [MiniCPM-OCR Jev model guide](./docs/minicpm_ocr_jev_en.md) for more on usage, technical specifications, evaluation results, and efficiency results.
+
+<p align="center"><a href="https://youtu.be/lJOzZytWoK8"><img src="./assets/minicpm-ocr/main_video_en_play.PNG" alt="MiniCPM-OCR 1.0 and Jev promo video. Click to watch the demo on YouTube." width="80%"></a></p>
 
 <a id="quick-start"></a>
 
