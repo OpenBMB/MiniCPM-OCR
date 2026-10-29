@@ -29,16 +29,35 @@ The engine and the service must go into two separate virtual environments; do no
 
 - **GPU**: NVIDIA, ≥16GB VRAM
 - **Driver**: ≥535
-- **CUDA toolkit**: must match the CUDA version PyTorch was built against (e.g. CUDA 13.0 for a cu130 build)
 - **Python**: ≥3.10
 - **SGLang**: latest stable release
 - **Pinned versions**: `Pillow` 12.3.0, `playwright` 1.62.0 (render+score service only)
 
+**CUDA toolkit**: install a complete one system-wide, matching the CUDA version PyTorch was built against (e.g. CUDA 13.0 for a cu130 build). Put it in `/usr/local/cuda`, or point `CUDA_HOME` at it:
+
+```bash
+export CUDA_HOME=/path/to/cuda
+export PATH=$CUDA_HOME/bin:$PATH
+```
+
+The `nvidia-*` packages pip installs into the virtual environment are not a substitute for it.
+
+**System packages**: `gcc`, `g++` and `python3-dev` are runtime dependencies — do not remove them after installing.
+
+```bash
+sudo apt-get install -y python3 python3-venv python3-pip curl gcc g++ python3-dev
+```
+
+The engine environment pulls 8–9 GB of dependencies; on a slow network point pip at a nearby mirror first:
+
+```bash
+export PIP_INDEX_URL=https://<your-mirror>/simple
+# in mainland China, for example: https://mirrors.ustc.edu.cn/pypi/simple
+```
+
 ---
 
 ## 1. Forward engine
-
-Both services need an SGLang engine to connect to.
 
 ```bash
 python3 -m venv /opt/venv-sglang && source /opt/venv-sglang/bin/activate
@@ -143,8 +162,6 @@ All three fields are required: `original_image` is the base64 of the original bl
 
 You only have candidate text and want the service to render before scoring. Precheck, render and forward all happen in this one process.
 
-This service calls the scoring layer in-process: it does **not** need a separate score service running, and does not need a port reserved for one.
-
 ### Install
 
 ```bash
@@ -156,9 +173,12 @@ It installs Node, CJK fonts, Chromium and the service dependencies. On a slow ne
 
 ```bash
 cd scripts/minicpm-ocr-jev/
-PIP_INDEX_URL=https://<mirror>/simple \
-PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>/playwright \
+PIP_INDEX_URL=https://<your-mirror>/simple \
+PLAYWRIGHT_DOWNLOAD_HOST=https://<your-playwright-mirror> \
     bash sdk/setup_render.sh /opt/venv-render
+# in mainland China, for example:
+#   PIP_INDEX_URL=https://mirrors.ustc.edu.cn/pypi/simple
+#   PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.npmmirror.com/binaries/playwright
 ```
 
 ### Start
@@ -240,3 +260,27 @@ curl -s http://127.0.0.1:18501/healthz
 Look at `status` only: `ok` means the self-check passed and the service is ready. The other fields under `prompt` are self-check details, and the shape above is what a healthy one looks like. When `status` is not `ok`, `prompt.notes` says which part failed.
 
 `served_model` is the weights path the engine was started with (SGLang identifies a model by path and serves one model per process). When the weights directory is not on this host, or `transformers` is not installed, `token_equality` reads `skipped` — a skip, not a failure, and `notes` says why.
+
+### Verify with the bundled cases
+
+The self-check only confirms the service starts. To confirm the scores are right as well, score the three cases under `examples/` and compare against the reference score `observed_prob_yes` in each `case.json`:
+
+```bash
+cd scripts/minicpm-ocr-jev
+python3 - <<'EOF'
+import base64, json, urllib.request
+for name in ("01_text_putnam", "02_formula_putnam", "03_table_gb_standard"):
+    c = json.load(open(f"examples/{name}/case.json"))
+    role = c["reference_render_of"]
+    text = next(x["text"] for x in c["candidates"] if x["role"] == role)
+    b64 = lambda f: base64.b64encode(open(f"examples/{name}/{f}", "rb").read()).decode()
+    body = {"items": [{"original_image": b64(c["block_image"]),
+                       "render_image": b64(c["reference_render"]), "ocr_text": text}]}
+    req = urllib.request.Request("http://127.0.0.1:18501/v1/score",
+            data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
+    got = json.load(urllib.request.urlopen(req))["results"][0]["prob_1"]
+    print(f"{name:24} got {got:.5f}  reference {c['observed_prob_yes'][role]:.5f}")
+EOF
+```
+
+All three scores within 0.02 of the reference is normal. For the render+score service, change the endpoint to `/v1/rm/score_best` and the body to `image` plus `candidates` (see [3. Render+score service · Request](#request-1)); the service renders on its own.

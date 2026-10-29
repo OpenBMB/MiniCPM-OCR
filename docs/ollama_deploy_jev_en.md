@@ -29,12 +29,25 @@ The engine and the service must go into two separate virtual environments; do no
 
 ## Requirements
 
-- **GPU**: NVIDIA, ≥8GB VRAM
-- **Driver**: ≥535
-- **Python**: ≥3.10
-- **Ollama**: latest stable release
-- **llama.cpp**: latest stable release (for the GGUF conversion only)
-- **Pinned versions**: `Pillow` 12.3.0, `playwright` 1.62.0 (render+score service only)
+|                 | Linux + NVIDIA                                                   | macOS (Apple Silicon)               |
+| --------------- | ---------------------------------------------------------------- | ----------------------------------- |
+| Accelerator     | NVIDIA, ≥8GB VRAM                                                | M-series chip, ≥16GB unified memory |
+| Driver          | ≥535                                                             | Not needed; Metal ships with the OS |
+| CUDA Toolkit    | Not needed                                                       | Not needed                          |
+| Python          | ≥3.10                                                            | ≥3.10; the system one is 3.9, install your own |
+| Ollama          | Latest stable release, whose bundled runner must include support for this model | Same                 |
+| llama.cpp       | ≥ v0.8.0 — only its conversion script is used, no build required | Same                                |
+| Pinned versions | `Pillow` 12.3.0, `playwright` 1.62.0 (render+score service only)  | `Pillow` 12.3.0                     |
+
+**System packages**:
+
+```bash
+# Linux
+sudo apt-get install -y python3 python3-venv python3-pip curl
+
+# macOS
+# No system packages needed; all it takes is a Python ≥3.10
+```
 
 ---
 
@@ -47,7 +60,7 @@ The engine and the service must go into two separate virtual environments; do no
 curl -fsSL https://ollama.com/install.sh | sh
 
 # macOS
-# brew install ollama
+brew install ollama
 
 # Windows
 # Download from https://ollama.com/download/windows
@@ -55,7 +68,9 @@ curl -fsSL https://ollama.com/install.sh | sh
 
 ### Register the model
 
-First convert the weights to GGUF; see [llama.cpp deployment · Convert to GGUF](./llamacpp_deploy_jev_en.md#convert-to-gguf). The resulting GGUF carries the `systemone` chat template and the decision-model marker, which is how Ollama recognises it as a decision model.
+First convert the weights to GGUF. Both steps live in the llama.cpp deployment document: follow [Source and conversion dependencies](./llamacpp_deploy_jev_en.md#source-and-conversion-dependencies) to fetch the source and install the conversion dependencies (**skip its "Build" section** — conversion is pure Python), then [Convert to GGUF](./llamacpp_deploy_jev_en.md#convert-to-gguf) for the two GGUF files.
+
+The resulting GGUF carries the `systemone` chat template and the decision-model marker, which is how Ollama recognises it as a decision model.
 
 Write a `Modelfile`. The first `FROM` is the language model, the second is the vision encoder:
 
@@ -67,11 +82,11 @@ FROM ./models/mmproj-MiniCPM-OCR-Jev-bf16.gguf
 Register it and confirm:
 
 ```bash
-ollama create ocr-jev -f Modelfile
-ollama show ocr-jev    # Capabilities: decision, vision
+ollama create minicpm-ocr-jev -f Modelfile
+ollama show minicpm-ocr-jev    # Capabilities: decision, vision
 ```
 
-The Capabilities line from `ollama show` must list both `decision` and `vision`; either one missing means the GGUF conversion was not right. The model name `ocr-jev` also goes into the SDK's backend config — rename it in both places or not at all.
+The Capabilities line from `ollama show` must list both `decision` and `vision`; either one missing means the GGUF conversion was not right. It reads the GGUF metadata, so having both does not yet mean the engine will run — that check is in [4. Startup self-check](#4-startup-self-check). The model name `minicpm-ocr-jev` also goes into the SDK's backend config — rename it in both places or not at all.
 
 ### Start
 
@@ -88,12 +103,13 @@ You already have the render image and only want the score.
 ### Install
 
 ```bash
+# Same on macOS, except that /opt needs sudo — use ~/venv-score instead
 python3 -m venv /opt/venv-score
 source /opt/venv-score/bin/activate
 pip install "fastapi>=0.110" "uvicorn>=0.27" "httpx>=0.27" "pydantic>=2.6" "PyYAML>=6.0" "Pillow==12.3.0"
 ```
 
-**Reference dependency versions**
+**Reference dependency versions** (the same set on Linux and macOS)
 
 ```text
 python        3.12.3
@@ -153,8 +169,6 @@ All three fields are required: `original_image` is the base64 of the original bl
 
 You only have candidate text and want the service to render before scoring. Precheck, render and forward all happen in this one process.
 
-This service calls the scoring layer in-process: it does **not** need a separate score service running, and does not need a port reserved for one.
-
 ### Install
 
 ```bash
@@ -162,13 +176,20 @@ cd scripts/minicpm-ocr-jev/
 bash sdk/setup_render.sh /opt/venv-render
 ```
 
-It installs Node, CJK fonts, Chromium and the service dependencies. On a slow network, point it at two mirrors:
+It installs Node, CJK fonts, Chromium and the service dependencies.
+
+> **This section is Linux only.** The script relies on `apt-get` to install Node and the CJK fonts and to pin the font environment to the one the reference deployment uses; on macOS those steps are skipped. Rendered text is model input, and a different font stack means different scores, so **scores produced by this service on macOS cannot be compared against the published numbers**. On macOS use the score service from the previous section (you provide the render image), or switch to the Docker image.
+
+On a slow network, point it at two mirrors:
 
 ```bash
 cd scripts/minicpm-ocr-jev/
-PIP_INDEX_URL=https://<mirror>/simple \
-PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>/playwright \
+PIP_INDEX_URL=https://<your-mirror>/simple \
+PLAYWRIGHT_DOWNLOAD_HOST=https://<your-playwright-mirror> \
     bash sdk/setup_render.sh /opt/venv-render
+# in mainland China, for example:
+#   PIP_INDEX_URL=https://mirrors.ustc.edu.cn/pypi/simple
+#   PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.npmmirror.com/binaries/playwright
 ```
 
 ### Start
@@ -239,7 +260,7 @@ curl -s http://127.0.0.1:18501/healthz
 ```
 
 ```json
-{"status": "ok", "served_model": "ocr-jev",
+{"status": "ok", "served_model": "minicpm-ocr-jev",
  "prompt": {"template_md5": "9aab68e8ba8ab4da17ba9752bddb199c",
             "source": "server_template",
             "last_token": null, "expected_last_token": 271,
@@ -249,4 +270,30 @@ curl -s http://127.0.0.1:18501/healthz
 
 Look at `status` only: `ok` means the self-check passed and the service is ready. The other fields under `prompt` are self-check details, and the shape above is what a healthy one looks like. When `status` is not `ok`, `prompt.notes` says which part failed.
 
-`source` reading `server_template`, `last_token` reading `null` and `token_equality` reading `skipped` are the normal values for this backend, not a fault. One consequence for how the numbers may be read: the scale of this leg's scores can only be established by comparing it against a known backend on the same inputs.
+`source` reading `server_template`, `last_token` reading `null` and `token_equality` reading `skipped` are the normal values for this backend, not a fault. One consequence for how the numbers may be read: the scale of this backend's scores can only be established by comparing it against a known backend on the same inputs.
+
+This section is also the check that tells you whether Ollama's bundled runner accepts this model: when it does not, `status` is not `ok` and `error` carries what `ollama serve` reported. The Capabilities line from `ollama show` does not cover this (see [Register the model](#register-the-model)).
+
+### Verify with the bundled cases
+
+The self-check only confirms the service starts. To confirm the scores are right as well, score the three cases under `examples/` and compare against the reference score `observed_prob_yes` in each `case.json`:
+
+```bash
+cd scripts/minicpm-ocr-jev
+python3 - <<'EOF'
+import base64, json, urllib.request
+for name in ("01_text_putnam", "02_formula_putnam", "03_table_gb_standard"):
+    c = json.load(open(f"examples/{name}/case.json"))
+    role = c["reference_render_of"]
+    text = next(x["text"] for x in c["candidates"] if x["role"] == role)
+    b64 = lambda f: base64.b64encode(open(f"examples/{name}/{f}", "rb").read()).decode()
+    body = {"items": [{"original_image": b64(c["block_image"]),
+                       "render_image": b64(c["reference_render"]), "ocr_text": text}]}
+    req = urllib.request.Request("http://127.0.0.1:18501/v1/score",
+            data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
+    got = json.load(urllib.request.urlopen(req))["results"][0]["prob_1"]
+    print(f"{name:24} got {got:.5f}  reference {c['observed_prob_yes'][role]:.5f}")
+EOF
+```
+
+All three scores within 0.02 of the reference is normal, on Linux and macOS alike. For the render+score service, change the endpoint to `/v1/rm/score_best` and the body to `image` plus `candidates` (see [3. Render+score service · Request](#request-1)); the service renders on its own — that variant is only compared against the reference scores on Linux, for the reason given at the top of that section.

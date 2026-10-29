@@ -17,7 +17,7 @@ base_url: http://127.0.0.1:11434
 # routes by name. This must be the name `ollama create` registered -- change it
 # in both places or requests go to a model that does not exist. Startup fails
 # with a message saying so rather than defaulting to anything.
-model: ocr-jev
+model: minicpm-ocr-jev
 
 # Seconds to wait on one forward pass.
 timeout_sec: 120
