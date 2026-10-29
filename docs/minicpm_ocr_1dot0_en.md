@@ -11,7 +11,7 @@
 - 🏆 **SOTA document parsing**: MiniCPM-OCR 1.0 achieves a **SOTA score of 93.68 on Real5-OmniDocBench**, a benchmark for real-world document parsing, and demonstrates leading parsing capabilities on OmniDocBench v1.6, Wild-OmniDocBench, and olmOCR-Bench. It supports Chinese and English documents and PDFs, handling both standard documents and challenging capture conditions, including scans, curved pages, photographs, skewed pages, and recaptured documents.
 - ⚡ **Efficient inference.** With DSpark decoding acceleration ([**DSpark-BF16**](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark), [**DSpark-GGUF**](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark-gguf)), MiniCPM-OCR 1.0 improves **end-to-end processing efficiency by 55%**. Its throughput is approximately **1.49×** that of PaddleOCR-VL-1.6 and **3.62×** that of MinerU2.5 Pro, reducing the time needed for large-scale document parsing.
 - 🔍 **General recognition and information extraction**: MiniCPM-OCR 1.0 achieves a **SOTA score of 54.7 on OCRBench v2**, demonstrating strong general OCR capabilities. It **also supports key information extraction (KIE)**, extracting relevant document content for downstream information management and automated processing.
-- 🛠️ **Easy deployment and development**: MiniCPM-OCR 1.0 supports **vLLM, SGLang, llama.cpp, and Ollama from day one**, with multiple chip platforms and quantized versions available at release. It **supports further fine-tuning** and provides a **[pip SDK](https://pypi.org/project/minicpm-ocr/)** and a **[full-featured API](./minicpm_ocr_api_en.md)** for application integration and customization. You can also **[get started quickly with SKILL.md](./SKILL_en.md)**. Try the Online Demo ([CN](https://platform.modelbest.cn/console/playground/document-parse) / [Global](https://platform.modelbest.ai/console/playground/document-parse)) to explore parsing results.
+- 🛠️ **Easy deployment and development**: MiniCPM-OCR 1.0 supports **vLLM, SGLang, llama.cpp, and Ollama from day one**, with multiple chip platforms and quantized versions available at release. It **supports further fine-tuning** and provides a **[pip SDK](https://pypi.org/project/minicpm-ocr/)** and a **[full-featured API](https://platform.modelbest.ai/console/docs/api/document-parse)** for application integration and customization. You can also **[get started quickly with SKILL.md](./SKILL_en.md)**. Try the Online Demo ([CN](https://platform.modelbest.cn/console/playground/document-parse) / [Global](https://platform.modelbest.ai/console/playground/document-parse)) to explore parsing results.
 
 ## Usage
 
@@ -27,7 +27,7 @@ If you have already cloned this repository, you can use `./docs/SKILL_en.md` dir
 
 ### Free API
 
-Use the Free API to access MiniCPM-OCR 1.0 recognition. See the [API example](./minicpm_ocr_api_en.md).
+Use the Free API to access MiniCPM-OCR 1.0 recognition. See the [API docs](https://platform.modelbest.ai/console/docs/api/document-parse).
 
 ### Local Deployment
 
@@ -108,7 +108,7 @@ For your first PDF or image, start with the [SDK tutorial](./minicpm_ocr_tutoria
 | Transformers | [Transformers service deployment](./SKILL_en.md#43-transformers-serve) |
 | SGLang | [Deployment guide](./sglang_deploy.md) |
 | llama.cpp | [GGUF deployment guide](./llamacpp_deploy.md) |
-| Ollama | [SDK service connection and backend configuration](./minicpm_ocr_sdk_api_en.md#command-line-options) |
+| Ollama | [Deployment guide](./ollama_deploy.md) |
 | FlagOS | [Multi-chip deployment guide](./flagos_deploy_en.md) |
 
 The SDK's `pipeline.max_workers` controls recognition-region requests, while `pipeline.page_workers` controls page concurrency. Configure both to match the backend's capacity: the current DSpark example uses `--max-num-seqs 32` as its per-instance concurrency limit. See the [SDK tutorial](./minicpm_ocr_tutorial_en.md#4-parse-documents) for multiple instances and concurrency configuration.

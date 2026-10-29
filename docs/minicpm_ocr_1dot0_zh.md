@@ -11,7 +11,7 @@
 - 🏆 **SOTA 的文档解析能力**：MiniCPM-OCR 1.0 在真实场景文档解析评测 **Real5-OmniDocBench 上取得 93.68 的 SOTA 成绩**，并在 OmniDocBench v1.6、Wild-OmniDocBench 和 olmOCR-Bench 等评测中展现领先的解析能力。模型支持中英双语文档与 PDF 解析，兼顾标准文档和复杂采集条件，在扫描、弯曲、拍照、倾斜及翻拍等场景下保持稳定表现。
 - ⚡ **高效推理。** 基于 DSpark 解码加速（[**DSpark-BF16**](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark)、[**DSpark-GGUF**](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark-gguf)），MiniCPM-OCR 1.0 的**端到端处理效率提升 55%**。其处理吞吐量约为 PaddleOCR-VL-1.6 的 **1.49 倍**、MinerU2.5 Pro 的 **3.62 倍**，降低大规模文档解析的时间开销。
 - 🔍 **通用识别与信息抽取**：MiniCPM-OCR 1.0 在 **OCRBench v2 上取得 54.7 的 SOTA** 成绩，具备扎实的通用 OCR 能力；**同时支持关键信息抽取（KIE）**，可根据业务需求提取文档中的关键内容，支持后续信息整理与自动化处理。
-- 🛠️ **部署与开发友好**：MiniCPM-OCR 1.0 首日**适配 vLLM、SGLang、llama.cpp 和 Ollama**，同步提供多芯片适配与多种量化版本。模型**支持二次微调**，提供 **[pip SDK](https://pypi.org/project/minicpm-ocr/)** 和 **[功能完备的 API](./minicpm_ocr_api_zh.md)**，方便应用集成与定制开发，也可 **[通过 SKILL.md 快速上手](./SKILL.md)**；同时提供在线体验（[国内](https://platform.modelbest.cn/console/playground/document-parse) / [海外](https://platform.modelbest.ai/console/playground/document-parse)），方便用户查看解析效果。
+- 🛠️ **部署与开发友好**：MiniCPM-OCR 1.0 首日**适配 vLLM、SGLang、llama.cpp 和 Ollama**，同步提供多芯片适配与多种量化版本。模型**支持二次微调**，提供 **[pip SDK](https://pypi.org/project/minicpm-ocr/)** 和 **[功能完备的 API](https://platform.modelbest.cn/console/docs/api/document-parse)**，方便应用集成与定制开发，也可 **[通过 SKILL.md 快速上手](./SKILL.md)**；同时提供在线体验（[国内](https://platform.modelbest.cn/console/playground/document-parse) / [海外](https://platform.modelbest.ai/console/playground/document-parse)），方便用户查看解析效果。
 
 ## 使用方式
 
@@ -27,7 +27,7 @@ Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL.md
 
 ### 免费 API
 
-通过免费 API 接入 MiniCPM-OCR 1.0 的识别能力，见 [API 调用示例](./minicpm_ocr_api_zh.md)。
+通过免费 API 接入 MiniCPM-OCR 1.0 的识别能力，见 [API 文档](https://platform.modelbest.cn/console/docs/api/document-parse)。
 
 ### 本地部署
 
@@ -108,7 +108,7 @@ Extract the "店名", "金额". Format the output as a JSON object with keys: "�
 | Transformers | [Transformers 服务部署](./SKILL.md#43-transformers-serve) |
 | SGLang | [部署指南](./sglang_deploy_zh.md) |
 | llama.cpp | [GGUF 部署指南（英文）](./llamacpp_deploy.md) |
-| Ollama | [SDK 服务连接与后端配置](./minicpm_ocr_sdk_api.md#命令行参数) |
+| Ollama | [部署指南](./ollama_deploy_zh.md) |
 | FlagOS | [多芯片部署指南](./flagos_deploy_zh.md) |
 
 SDK 的 `pipeline.max_workers` 控制识别块请求数，`pipeline.page_workers` 控制页面并发。两者需结合后端能力设置：当前 DSpark 示例使用 `--max-num-seqs 32` 设置单实例并发上限；多实例部署与并发配置见 [SDK 教程](./minicpm_ocr_tutorial.md#4-解析文档)。
