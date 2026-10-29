@@ -1,12 +1,10 @@
 <div align="center">
 
 <p align="center">
-  <img src="./assets/minicpm-ocr/release-hero.svg" alt="MiniCPM-OCR: fast, accurate document parsing into text, tables, and formulas, with a lightning arrow connecting documents to structured results; a decision model helps identify regions that need review (illustration)." width="100%">
+  <img src="./assets/minicpm-ocr/homepage-banner.svg" alt="MiniCPM brand logo above MiniCPM-OCR: fast, accurate document parsing into text, tables, and formulas, with a lightning arrow connecting documents to structured results; a decision model helps identify regions that need review (illustration)." width="100%">
 </p>
 
 <p align="center">
-  <a href="https://github.com/OpenBMB/MiniCPM"><img src="./assets/minicpm-ocr/minicpm-logo.jpg" alt="MiniCPM logo" width="120" align="middle"></a>
-  &emsp;
   <a href="./docs/minicpm_ocr_1dot0_en.md"><strong>MiniCPM-OCR 1.0 Guide</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0" title="Hugging Face"><img src="./assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0" title="ModelScope"><img src="./assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
   &emsp;
   <a href="./docs/minicpm_ocr_jev_en.md"><strong>MiniCPM-OCR Jev Guide</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev" title="Hugging Face"><img src="./assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev" title="ModelScope"><img src="./assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
