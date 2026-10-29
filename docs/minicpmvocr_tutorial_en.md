@@ -31,7 +31,7 @@ pip install uv
 uv venv .minicpm-ocr --python 3.12 --seed
 source .minicpm-ocr/bin/activate
 
-python -m pip install "minicpm-ocr[all]==1.0.2"
+python -m pip install --upgrade "minicpm-ocr[all]"
 python -m pip install "paddlepaddle-gpu==3.3.0" \
   -i https://www.paddlepaddle.org.cn/packages/stable/cu129/
 ```
