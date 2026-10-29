@@ -135,6 +135,8 @@
 
 使用方法、技术规格、评测结果和效率结果详见 [MiniCPM-OCR Jev 模型指南](./docs/minicpm_ocr_jev_zh.md)。
 
+<p align="center"><a href="https://youtu.be/lJOzZytWoK8"><img src="./assets/minicpm-ocr/main_video_zh_play.PNG" alt="MiniCPM-OCR 1.0 与 Jev 宣传视频封面。点击在 YouTube 观看演示。" width="80%"></a></p>
+
 <a id="quick-start"></a>
 
 ## MiniCPM-OCR 使用

@@ -137,6 +137,8 @@ Jev scores for text, formula, and table recognition.
 
 See the [MiniCPM-OCR Jev model guide](./docs/minicpm_ocr_jev_en.md) for more on usage, technical specifications, evaluation results, and efficiency results.
 
+<p align="center"><a href="https://youtu.be/lJOzZytWoK8"><img src="./assets/minicpm-ocr/main_video_en_play.PNG" alt="MiniCPM-OCR 1.0 and Jev promo video. Click to watch the demo on YouTube." width="80%"></a></p>
+
 <a id="quick-start"></a>
 
 ## Using MiniCPM-OCR
