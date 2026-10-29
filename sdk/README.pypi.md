@@ -157,7 +157,7 @@ If you have already cloned this repository, you can use `./docs/SKILL_en.md` and
 
 Use the Free API to access MiniCPM-OCR 1.0 recognition and MiniCPM-OCR Jev quality scoring.
 
-[MiniCPM-OCR 1.0 API example](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_api_en.md) &emsp;·&emsp; [MiniCPM-OCR Jev API example](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_jev_api_en.md)
+[MiniCPM-OCR 1.0 API docs](https://platform.modelbest.ai/console/docs/api/document-parse) &emsp;·&emsp; [MiniCPM-OCR Jev API example](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_jev_api_en.md)
 
 <a id="手动部署"></a>
 
