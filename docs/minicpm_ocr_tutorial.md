@@ -1,10 +1,10 @@
 # MiniCPM-OCR 安装与推理
 
-[English](./minicpmvocr_tutorial_en.md)
+[English](./minicpm_ocr_tutorial_en.md)
 
 MiniCPM-OCR 是一个文档解析模型：输入 PDF 或图片，输出 Markdown，包括正文、表格（HTML）、公式（LaTeX）和阅读顺序。
 
-运行时分为两部分：SDK 负责版面检测、切块和结果拼接；推理服务（本文使用 vLLM）运行识别模型，并通过 DSpark 投机解码加速，需同时准备主模型和同版本的草稿模型。两者使用独立的 Python 环境，分别在两个终端中运行。
+运行时分为两部分：SDK 负责版面检测、切块和结果拼接；推理服务运行识别模型，并通过 DSpark 投机解码加速，需同时准备主模型和同版本的草稿模型。两者使用独立的 Python 环境，分别在两个终端中运行。
 
 > **数据隐私**：按本教程在本地部署 SDK 和推理服务后，文档处理与模型推理均在本地完成，无需调用云端 OCR 服务，也无需将原始文档、图片或解析结果上传至云端，有助于保障数据隐私。安装依赖和首次下载模型时需要联网。
 
@@ -39,7 +39,7 @@ python -m pip install "paddlepaddle-gpu==3.3.0" \
 
 ### 2. 推理服务环境配置
 
-推理服务任选其一，本文使用 vLLM；其他后端见 [Ollama 部署指南](./ollama_deploy_zh.md)、[SGLang 部署指南](./sglang_deploy.md)（英文）和 [llama.cpp 部署指南](./llamacpp_deploy_zh.md)。
+推理服务任选其一，本文使用 vLLM。SGLang、llama.cpp、Ollama 和 FlagOS 见 [其他推理框架](#其他推理框架)。
 
 
 > **旧驱动**：驱动低于 580 时，先按 [FAQ](./faq_zh.md#cuda-driver-version-is-insufficient) 配置适用于所用 GPU 的 CUDA 兼容库。安装和启动 vLLM、运行 GPU 版 SDK 的终端都需要设置相应的环境变量。
@@ -112,7 +112,19 @@ minicpmvocr parse \
 
 ---
 
-更多配置请参见 [SDK API 与配置说明](./minicpmvocr_api.md)。
+更多配置请参见 [SDK API 与配置说明](./minicpm_ocr_sdk_api.md)。
+
+---
+## 其他推理框架
+
+上面的安装和启动步骤使用 vLLM。换用其他推理框架时，SDK 的版面检测和结果拼接不变，按对应文档启动识别服务后再连接。除 FlagOS 外，这些框架默认都带 DSpark 加速。
+
+| 框架 | 文档 |
+|---|---|
+| SGLang | [部署指南](./sglang_deploy_zh.md) |
+| llama.cpp | [GGUF 部署指南](./llamacpp_deploy_zh.md) |
+| Ollama | [部署指南](./ollama_deploy_zh.md) |
+| FlagOS | [多芯片部署指南](./flagos_deploy_zh.md)。不支持 DSpark。 |
 
 ---
 ## 常见问题

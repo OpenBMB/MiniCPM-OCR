@@ -1,6 +1,6 @@
 # SDK API and Configuration
 
-[← Back to README](../README.md) · [Installation and inference tutorial](./minicpmvocr_tutorial_en.md) · [中文](./minicpmvocr_api.md)
+[← Back to README](../README.md) · [Installation and inference tutorial](./minicpm_ocr_tutorial_en.md) · [中文](./minicpm_ocr_sdk_api.md)
 
 This guide covers `minicpmvocr` command-line options, configuration overrides, and the Python API. Install the SDK and start a compatible recognition service before running the examples.
 

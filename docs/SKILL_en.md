@@ -13,9 +13,9 @@ The SDK (command `minicpmvocr`, distribution `minicpm-ocr`) detects layout, crop
 
 | Situation | Inference environment | SDK backend | Detailed reference |
 |---|---|---|---|
-| Linux x86_64 + NVIDIA, default route | `.venv-vllm`, DSpark available | `vllm` | [SDK tutorial](./minicpmvocr_tutorial_en.md) |
+| Linux x86_64 + NVIDIA, default route | `.venv-vllm`, DSpark available | `vllm` | [SDK tutorial](./minicpm_ocr_tutorial_en.md) |
 | Linux x86_64 + NVIDIA, SGLang selected | `.venv-sglang`, DSpark available | `sglang` | [SGLang guide](./sglang_deploy.md) |
-| CPU, local GPU or Apple Silicon, llama.cpp selected | `sources/llama.cpp/build`, GGUF weights | `llamacpp` | [llama.cpp guide](./llamacpp_deploy.md) |
+| CPU, local GPU or Apple Silicon, llama.cpp selected | `sources/llama.cpp/build`, GGUF weights, DSpark available | `llamacpp` | [llama.cpp guide](./llamacpp_deploy.md) |
 | Existing compatible inference service | Reuse it; install only the SDK | Select by protocol | Section 7 below |
 
 - Use `--backend sglang` for SGLang. The SDK internally maps `sglang` to the `openai`-compatible client; `list-backends` does not list SGLang separately. Select `llamacpp` for llama.cpp and avoid vLLM-specific request fields.
@@ -35,14 +35,14 @@ Before deploying an inference service yourself, read the root [`pyproject.toml`]
 
 | Component | Current source / version |
 |---|---|
-| SDK | PyPI package `minicpm-ocr[all]`; install or upgrade to the latest stable version compatible with the current Python, matching the [SDK tutorial](./minicpmvocr_tutorial_en.md) |
+| SDK | PyPI package `minicpm-ocr[all]`; install or upgrade to the latest stable version compatible with the current Python, matching the [SDK tutorial](./minicpm_ocr_tutorial_en.md) |
 | Python | Installer default `3.12`; root project requires `>=3.11,<3.14` (SDK alone requires `>=3.10`) |
-| vLLM | `18343393b4da41a7e8027efbc4c7e77c28301bf0`, prepared by the installer |
-| Transformers required by vLLM | `549e5b410733fb50e8efbbe4aa585cb89f6478ea`, pinned by the root project |
+| vLLM | `fa3b9d1377219247060d3c8b49eae199c9e7e154`, prepared by the installer |
+| Transformers required by vLLM | `144ecf007b8b4f2910da104c84a79801db6985a6`, pinned by the root project |
 | PyTorch required by vLLM | `torch==2.14.0`, `torchvision==0.29.0` |
 | SGLang | [Guide's pinned source](./sglang_deploy.md): `aaab6bfc3de5354b052f2e96d5e566d70b9f69a2`; the root project references a local path without downloading or checking this SHA |
 | SGLang dependencies | That source declares `torch==2.14.1`, `transformers==5.19.0` and Rust toolchain `1.92`; keep it separate from vLLM |
-| llama.cpp | `a08ab75ae74c36c15accc6c682a989a9e98dbfd2`, the merged MiniCPM-OCR 1.0 adaptation ([PR #30979](https://github.com/ggml-org/llama.cpp/pull/30979)) |
+| llama.cpp | `a08ab75ae74c36c15accc6c682a989a9e98dbfd2`, the merged MiniCPM-OCR 1.0 adaptation ([PR #30979](https://github.com/ggml-org/llama.cpp/pull/30979)). This commit includes `draft-dspark` |
 | SDK layout detection | `paddlepaddle==3.2.1` or `paddlepaddle-gpu==3.3.0`, `paddlex==3.4.2` |
 
 For Linux CUDA routes, check:
@@ -60,7 +60,7 @@ Reserve at least 40 GB of disk space for the full vLLM setup described by the tu
 
 ## 3. Install the SDK with pip
 
-Follow the [SDK tutorial](./minicpmvocr_tutorial_en.md) to create a separate `.minicpm-ocr` environment, then install the published SDK package with pip. Reuse uv if installed; otherwise `python3 -m pip install uv` is an option. If system Python is managed under PEP 668, install uv in a separate tools venv. Installing the SDK itself does not require Git; provide Git, curl and build tools when deploying an inference service yourself.
+Follow the [SDK tutorial](./minicpm_ocr_tutorial_en.md) to create a separate `.minicpm-ocr` environment, then install the published SDK package with pip. Reuse uv if installed; otherwise `python3 -m pip install uv` is an option. If system Python is managed under PEP 668, install uv in a separate tools venv. Installing the SDK itself does not require Git; provide Git, curl and build tools when deploying an inference service yourself.
 
 Start with CPU layout detection to avoid consuming inference VRAM. On a machine with a supported PaddlePaddle wheel, run:
 
@@ -195,7 +195,7 @@ Run the section 4 `/v1/models` check from another terminal, confirm `minicpm-ocr
 
 ## 6. llama.cpp: GGUF files, compilation and launch
 
-llama.cpp needs both a language-model GGUF and a vision-projector GGUF rather than serving HF safetensors directly. This route uses the official F16 files from the [llama.cpp guide](./llamacpp_deploy.md). Reuse `hf` if available. If the server host has no SDK, create only a download environment; PaddlePaddle, torch and weight conversion are unnecessary:
+llama.cpp does not serve HF safetensors directly. This route enables DSpark by default and needs the main-model GGUF, the vision-projector GGUF, and the matching draft GGUF. It uses the official F16 main model from the [llama.cpp guide](./llamacpp_deploy.md) with the F16 draft from the same release. Reuse `hf` if available. If the server host has no SDK, create only a download environment; PaddlePaddle, torch and weight conversion are unnecessary:
 
 ```bash
 if ! command -v hf >/dev/null; then
@@ -207,6 +207,9 @@ if ! command -v hf >/dev/null; then
 fi
 hf download openbmb/MiniCPM-OCR-1.0-gguf \
   MiniCPM-OCR-1_0-F16.gguf mmproj-model-f16-4x.gguf \
+  --local-dir ./models/MiniCPM-OCR-1.0-gguf
+hf download openbmb/MiniCPM-OCR-1.0-DSpark-gguf \
+  dspark-MiniCPM-OCR-1_0-F16.gguf \
   --local-dir ./models/MiniCPM-OCR-1.0-gguf
 mkdir -p sources
 LLAMA_COMMIT=a08ab75ae74c36c15accc6c682a989a9e98dbfd2
@@ -273,11 +276,15 @@ Launch from the repository root (this guide uses port 18499 with an explicit cli
 ./sources/llama.cpp/build/bin/llama-server \
   --model ./models/MiniCPM-OCR-1.0-gguf/MiniCPM-OCR-1_0-F16.gguf \
   --mmproj ./models/MiniCPM-OCR-1.0-gguf/mmproj-model-f16-4x.gguf \
+  --model-draft ./models/MiniCPM-OCR-1.0-gguf/dspark-MiniCPM-OCR-1_0-F16.gguf \
+  --spec-type draft-dspark \
+  --spec-draft-n-max 15 \
   --alias minicpm-ocr --host 127.0.0.1 --port 18499 \
-  --ctx-size 40960 --n-gpu-layers 999 --parallel 1 --reasoning off
+  --ctx-size 40960 --n-gpu-layers 999 --gpu-layers-draft 999 \
+  --parallel 1 --reasoning off
 ```
 
-For CPU inference, replace `--n-gpu-layers 999` with `--n-gpu-layers 0`. Context length 40960 is not a low-memory guarantee: reduce `--ctx-size` if RAM or VRAM is insufficient, and match `engine.max_model_len` in section 7. Keep `--reasoning off`: the adaptation PR notes that default `auto` can put transcription in `reasoning_content`, while the current SDK reads `content`, resulting in empty output. For self-converted weights, also inspect the template and add `--chat-template-kwargs '{"enable_thinking":false}'` as described by the guide. This llama.cpp route does not enable DSpark.
+`--model-draft` loads the matching draft, `--spec-type draft-dspark` enables DSpark, and `--spec-draft-n-max 15` caps each draft step at 15 tokens. For ordinary decoding, remove these three arguments and `--gpu-layers-draft`, and skip the draft download. For CPU inference, set both `--n-gpu-layers` and `--gpu-layers-draft` to `0` and add `--no-mmproj-offload`. Context length 40960 is not a low-memory guarantee: reduce `--ctx-size` if RAM or VRAM is insufficient, and match `engine.max_model_len` in section 7. Keep `--reasoning off`: the adaptation PR notes that default `auto` can put transcription in `reasoning_content`, while the current SDK reads `content`, resulting in empty output. For self-converted weights, also inspect the template and add `--chat-template-kwargs '{"enable_thinking":false}'` as described by the guide. The startup log should include `adding speculative implementation 'draft-dspark'`.
 
 Check from another terminal:
 
@@ -386,7 +393,7 @@ After enabling DSpark in vLLM and sending real requests, check:
 curl --noproxy 127.0.0.1 -fsS http://127.0.0.1:18499/metrics | grep spec_decode_num
 ```
 
-Report vLLM DSpark as active only when draft / accepted-token metrics increase with requests. For SGLang, inspect DSPARK behavior in its actual logs/metrics rather than reusing vLLM metric names.
+Report vLLM DSpark as active only when draft / accepted-token metrics increase with requests. For SGLang, inspect DSPARK behavior in its actual logs/metrics rather than reusing vLLM metric names. For llama.cpp, confirm `adding speculative implementation 'draft-dspark'` in the startup log, then look for `draft acceptance` after the first request.
 
 ## 8. Diagnose the failing stage and report evidence
 
@@ -397,7 +404,7 @@ Report vLLM DSpark as active only when draft / accepted-token metrics increase w
 | Unknown `minicpm_ocr` | For vLLM, check both root-project source pins; for SGLang, check the PR SHA and import path. Do not overwrite one route's Transformers with the other's |
 | Missing NVCC or unknown `--compress-mode=size` | Restore the selected server environment's `CUDA_HOME` / PATH and check the actual NVCC; avoid mixing toolchains from other environments |
 | CUDA driver error | Check the GPU, driver and compatibility library in the FAQ and restore variables in the current terminal |
-| llama.cpp cannot load the model or image | Check both GGUF files, source SHA, binary version and actual backend. A successful `/health` does not establish image support |
+| llama.cpp cannot load the model or image | Check the main model, projector, and draft GGUF files, plus the source SHA, binary version, and actual backend. A successful `/health` does not establish image support |
 | llama.cpp linker / shared-library error | Inspect CMake logs, the CUDA toolkit and library search paths; resolve the actual missing library instead of copying historical absolute paths |
 | vLLM returns 400 / SDK keeps retrying | Check `--trust-request-mm-kwargs`, image limits and the original server error |
 | Empty output, thinking tags or garbled text | Check the actual model ID and thinking template settings; for llama.cpp, confirm the server was launched with `--reasoning off` and inspect the GGUF template |
@@ -407,4 +414,4 @@ Report vLLM DSpark as active only when draft / accepted-token metrics increase w
 
 Report the actual backend, source SHAs/package versions, model files, device, endpoint and the separate outcomes of installation checks, health checks, image requests and one-page parsing. Installation success, service readiness, correct recognition and active DSpark are distinct conclusions. Do not delete user environments, reset source or conceal version mismatches with unverified temporary patches.
 
-See [SDK configuration](./minicpmvocr_api_en.md) for parameter and API details. For Jev scoring, use the [Jev Skill](./SKILL_jev_en.md); its weights, classification architecture and validation criteria are separate.
+See [SDK configuration](./minicpm_ocr_sdk_api_en.md) for parameter and API details. For Jev scoring, use the [Jev Skill](./SKILL_jev_en.md); its weights, classification architecture and validation criteria are separate.

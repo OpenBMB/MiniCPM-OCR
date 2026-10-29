@@ -46,4 +46,4 @@ python -m twine upload sdk/dist/*
 python -m pip install "minicpm-ocr[all]==1.0.2"
 ```
 
-PaddlePaddle GPU 运行时需单独安装，具体命令见[安装与推理教程](./minicpmvocr_tutorial.md#1-sdk-环境配置)。
+PaddlePaddle GPU 运行时需单独安装，具体命令见[安装与推理教程](./minicpm_ocr_tutorial.md#1-sdk-环境配置)。

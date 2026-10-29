@@ -86,4 +86,4 @@ Replace the example's prompt according to the region type:
 | Table | `Table Recognition:` |
 | Formula | `Formula Recognition:` |
 
-This example recognizes a single image region; the raw table output format depends on the model service you use. For layout analysis, cropping, reading-order reconstruction, and Markdown export from a complete PDF or page, see the [SDK document parsing tutorial](./minicpmvocr_tutorial_en.md#4-parse-documents). To score recognition quality, see the [MiniCPM-OCR Jev API guide](./minicpm_ocr_jev_api_en.md).
+This example recognizes a single image region; the raw table output format depends on the model service you use. For layout analysis, cropping, reading-order reconstruction, and Markdown export from a complete PDF or page, see the [SDK document parsing tutorial](./minicpm_ocr_tutorial_en.md#4-parse-documents). To score recognition quality, see the [MiniCPM-OCR Jev API guide](./minicpm_ocr_jev_api_en.md).

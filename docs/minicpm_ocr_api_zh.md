@@ -86,4 +86,4 @@ print("finish_reason:", response.choices[0].finish_reason)
 | 表格 | `Table Recognition:` |
 | 公式 | `Formula Recognition:` |
 
-此示例用于单个图像块的识别；表格原始返回格式以所接入的模型服务为准。完整 PDF 或整页文档的版面分析、切块、阅读顺序恢复与 Markdown 导出，见 [SDK 文档解析教程](./minicpmvocr_tutorial.md#4-解析文档)。识别结果的质量评分见 [MiniCPM-OCR Jev API 调用说明](./minicpm_ocr_jev_api_zh.md)。
+此示例用于单个图像块的识别；表格原始返回格式以所接入的模型服务为准。完整 PDF 或整页文档的版面分析、切块、阅读顺序恢复与 Markdown 导出，见 [SDK 文档解析教程](./minicpm_ocr_tutorial.md#4-解析文档)。识别结果的质量评分见 [MiniCPM-OCR Jev API 调用说明](./minicpm_ocr_jev_api_zh.md)。

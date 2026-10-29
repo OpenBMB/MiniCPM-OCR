@@ -4,7 +4,7 @@
 
 [← 返回首页](../README_zh.md)
 
-本文参照 [SDK 使用教程](./minicpmvocr_tutorial.md#3-启动服务)中的服务部署方式，使用 vLLM 部署 MiniCPM-OCR 1.0，**默认启用 DSpark 推测解码**，包括 OpenAI 兼容 API 服务、图片识别、离线推理，以及 SDK 文档解析。以下 Shell 命令均在**本仓库根目录**通过 Bash 执行。
+本文参照 [SDK 使用教程](./minicpm_ocr_tutorial.md#3-启动服务)中的服务部署方式，使用 vLLM 部署 MiniCPM-OCR 1.0，**默认启用 DSpark 推测解码**，包括 OpenAI 兼容 API 服务、图片识别、离线推理，以及 SDK 文档解析。以下 Shell 命令均在**本仓库根目录**通过 Bash 执行。
 
 - 主模型：[MiniCPM-OCR-1.0](https://huggingface.co/openbmb/MiniCPM-OCR-1.0)
 - DSpark 草稿模型：[MiniCPM-OCR-1.0-DSpark](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark)，需要与配套主模型一起使用。
@@ -223,7 +223,7 @@ print("finish_reason:", outputs[0].outputs[0].finish_reason)
 
 API 图片识别适合单个图像块；PDF 或整页文档可使用 MiniCPM-OCR SDK 完成版面检测、裁切与 Markdown 导出。
 
-先按[SDK 使用教程](./minicpmvocr_tutorial.md#安装)安装 SDK、准备版面模型，然后切换到 SDK 环境，在项目仓库根目录执行：
+先按[SDK 使用教程](./minicpm_ocr_tutorial.md#安装)安装 SDK、准备版面模型，然后切换到 SDK 环境，在项目仓库根目录执行：
 
 ```bash
 minicpmvocr parse --config sdk/minicpmvocr/configs/minicpmvocr.yaml \
@@ -234,7 +234,7 @@ minicpmvocr parse --config sdk/minicpmvocr/configs/minicpmvocr.yaml \
   --input document.pdf --output document.md
 ```
 
-预期生成 `document.md`，日志中无失败页面或识别块。检查文字、表格、公式和阅读顺序，确认没有空输出或截断。详细步骤见教程的[解析文档](./minicpmvocr_tutorial.md#4-解析文档)章节。
+预期生成 `document.md`，日志中无失败页面或识别块。检查文字、表格、公式和阅读顺序，确认没有空输出或截断。详细步骤见教程的[解析文档](./minicpm_ocr_tutorial.md#4-解析文档)章节。
 
 ## 注意事项
 

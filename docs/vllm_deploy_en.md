@@ -4,7 +4,7 @@
 
 [← Back to README](../README.md)
 
-This guide deploys MiniCPM-OCR 1.0 with **DSpark speculative decoding enabled by default**, following the service setup in the [SDK tutorial](./minicpmvocr_tutorial_en.md#3-start-the-service). It includes an OpenAI-compatible API service, image recognition, offline inference, and document parsing with the SDK. Run shell commands from the **root of this repository** in Bash.
+This guide deploys MiniCPM-OCR 1.0 with **DSpark speculative decoding enabled by default**, following the service setup in the [SDK tutorial](./minicpm_ocr_tutorial_en.md#3-start-the-service). It includes an OpenAI-compatible API service, image recognition, offline inference, and document parsing with the SDK. Run shell commands from the **root of this repository** in Bash.
 
 - Main model: [MiniCPM-OCR-1.0](https://huggingface.co/openbmb/MiniCPM-OCR-1.0)
 - DSpark draft model: [MiniCPM-OCR-1.0-DSpark](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark), required alongside the matching main model.
@@ -223,7 +223,7 @@ This example uses the model's own processor and chat template with thinking disa
 
 The image recognition API handles individual image regions. For PDFs or full-page documents, use the MiniCPM-OCR SDK for layout detection, cropping, and Markdown export.
 
-Follow the [SDK tutorial](./minicpmvocr_tutorial_en.md#installation) to install the SDK and prepare the layout model, then activate the SDK environment and run the following from the repository root:
+Follow the [SDK tutorial](./minicpm_ocr_tutorial_en.md#installation) to install the SDK and prepare the layout model, then activate the SDK environment and run the following from the repository root:
 
 ```bash
 minicpmvocr parse --config sdk/minicpmvocr/configs/minicpmvocr.yaml \
@@ -234,7 +234,7 @@ minicpmvocr parse --config sdk/minicpmvocr/configs/minicpmvocr.yaml \
   --input document.pdf --output document.md
 ```
 
-The command should produce `document.md` with no failed pages or recognition regions in the logs. Inspect text, tables, formulas, and reading order, and check for empty or truncated output. See [Parse documents](./minicpmvocr_tutorial_en.md#4-parse-documents) for detailed steps.
+The command should produce `document.md` with no failed pages or recognition regions in the logs. Inspect text, tables, formulas, and reading order, and check for empty or truncated output. See [Parse documents](./minicpm_ocr_tutorial_en.md#4-parse-documents) for detailed steps.
 
 ## Notes
 

@@ -19,8 +19,9 @@
 <p align="center">
   <a href="#quick-start">开始使用</a> &nbsp;·&nbsp;
   <a href="#model-weights">模型权重</a> &nbsp;·&nbsp;
-  <a href="#api">免费 API</a> &nbsp;·&nbsp;
-  <a href="#skill">Skill</a>
+  <a href="https://platform.modelbest.cn/console/docs/api/document-parse">免费 API</a> &nbsp;·&nbsp;
+  <a href="#skill">Skill</a> &nbsp;·&nbsp;
+  <a href="./docs/minicpm_ocr_tutorial.md">本地部署</a>
   &nbsp;|&nbsp; <a href="./README.md">English</a>
 </p>
 
@@ -168,7 +169,7 @@ Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL_jev
 
 在自己的设备上运行模型：MiniCPM-OCR 1.0 将 PDF 和图片解析为 Markdown 或 JSON，MiniCPM-OCR Jev 对解析结果评分。
 
-[MiniCPM-OCR 1.0 部署教程](./docs/minicpmvocr_tutorial.md) · [MiniCPM-OCR Jev 部署教程](./docs/minicpm_ocr_jev_tutorial_zh.md)
+[MiniCPM-OCR 1.0 部署教程](./docs/minicpm_ocr_tutorial.md) · [MiniCPM-OCR Jev 部署教程](./docs/minicpm_ocr_jev_tutorial_zh.md)
 
 <a id="fine-tuning"></a>
 

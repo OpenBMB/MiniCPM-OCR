@@ -1,10 +1,12 @@
 # SGLang Deployment Guide
 
+[中文](./sglang_deploy_zh.md)
+
 [← Back to README](../README.md)
 
 SGLang serves MiniCPM-OCR through an OpenAI-compatible API. This guide enables DSpark decoding with a matched target model and draft model. The SDK runs in a separate environment and connects over HTTP.
 
-This guide follows the environment layout and SDK settings in the [vLLM tutorial](./minicpmvocr_tutorial_en.md). The commands target Linux x86_64, an NVIDIA GPU and Python 3.12.
+This guide follows the environment layout and SDK settings in the [vLLM tutorial](./minicpm_ocr_tutorial_en.md). The commands target Linux x86_64, an NVIDIA GPU and Python 3.12.
 
 ## 1. Prepare the source
 
@@ -22,7 +24,7 @@ If `sources/sglang` already exists, skip the clone and run the fetch and checkou
 
 ## 2. Set up the SDK environment
 
-Install the SDK and GPU PaddlePaddle in `.minicpm-ocr` as described in the [SDK tutorial](./minicpmvocr_tutorial_en.md#1-set-up-the-sdk-environment). Reuse this environment if it is already installed for vLLM.
+Install the SDK and GPU PaddlePaddle in `.minicpm-ocr` as described in the [SDK tutorial](./minicpm_ocr_tutorial_en.md#1-set-up-the-sdk-environment). Reuse this environment if it is already installed for vLLM.
 
 For CPU layout detection, follow the same steps but replace the `paddlepaddle-gpu` installation command with:
 

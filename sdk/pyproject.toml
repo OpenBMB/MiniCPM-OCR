@@ -61,7 +61,7 @@ all = ["minicpm-ocr[layout,pdf,crosspage,upright]"]
 [project.urls]
 Homepage = "https://github.com/OpenBMB/MiniCPM-OCR"
 Source = "https://github.com/OpenBMB/MiniCPM-OCR/tree/main/sdk"
-Documentation = "https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpmvocr_tutorial_en.md"
+Documentation = "https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_tutorial_en.md"
 Issues = "https://github.com/OpenBMB/MiniCPM-OCR/issues"
 
 [project.scripts]
