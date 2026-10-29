@@ -4,7 +4,7 @@
 
 MiniCPM-OCR parses PDFs and images into Markdown, including body text, tables (HTML), formulas (LaTeX), and reading order.
 
-The runtime has two parts: the SDK handles layout detection, cropping, and result assembly; the inference service (vLLM in this tutorial) runs the recognition model and accelerates inference through DSpark speculative decoding, which requires both the main model and a draft model from the same release. The two parts use separate Python environments and run in separate terminals.
+The runtime has two parts: the SDK handles layout detection, cropping, and result assembly; the inference service runs the recognition model and accelerates inference through DSpark speculative decoding, which requires both the main model and a draft model from the same release. The two parts use separate Python environments and run in separate terminals.
 
 > **Data privacy**: When you deploy the SDK and inference service locally as described in this tutorial, document processing and model inference take place locally. No cloud OCR service is required, and original documents, images, and parsing results do not need to be uploaded to the cloud, helping protect data privacy. Installing dependencies and downloading models for the first time require an internet connection.
 
@@ -113,14 +113,14 @@ For more options, see [SDK API and Configuration](./minicpm_ocr_sdk_api_en.md).
 ---
 ## Other inference frameworks
 
-The installation and startup steps above use vLLM. With another inference framework, the SDK still handles layout detection and result assembly. Start the recognition service from its guide, then connect the SDK to it.
+The installation and startup steps above use vLLM. With another inference framework, the SDK still handles layout detection and result assembly. Start the recognition service from its guide, then connect the SDK to it. Except for FlagOS, these frameworks enable DSpark acceleration by default.
 
 | Framework | Guide |
 |---|---|
-| SGLang | [Deployment guide](./sglang_deploy.md). The startup command enables DSpark. |
-| llama.cpp | [GGUF deployment guide](./llamacpp_deploy.md). DSpark is enabled by default. |
-| Ollama | [Deployment guide](./ollama_deploy.md). DSpark is enabled. |
-| FlagOS | [Multi-chip deployment guide](./flagos_deploy_en.md). |
+| SGLang | [Deployment guide](./sglang_deploy.md) |
+| llama.cpp | [GGUF deployment guide](./llamacpp_deploy.md) |
+| Ollama | [Deployment guide](./ollama_deploy.md) |
+| FlagOS | [Multi-chip deployment guide](./flagos_deploy_en.md). DSpark is not supported. |
 
 ---
 ## FAQ
