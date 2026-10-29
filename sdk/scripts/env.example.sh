@@ -71,11 +71,6 @@
 # export EVAL_REPO=/path/to/evaluation-repository
 # export OCR_REMOTE_SDK_DIR=/path/to/remote/sdk
 
-# export OBSUTIL=/path/to/obsutil
-# export OBS_ENDPOINT=https://obs.your-region.myhuaweicloud.com
-# export OBS_BUCKET=your-bucket
-# export OBS_AK=your-access-key
-# export OBS_SK=your-secret-key
 # export RM_BRIDGE_ENV=/path/to/rm_score.env
 # export RM_SCORE_URL=https://rm.example.com/score
 # export RM_SCORE_USER=your-user

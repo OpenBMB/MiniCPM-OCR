@@ -177,7 +177,7 @@ Use the Free API to access MiniCPM-OCR 1.0 recognition and MiniCPM-OCR Jev quali
 
 Run the models on your own hardware: MiniCPM-OCR 1.0 parses PDFs and images into Markdown or JSON, while MiniCPM-OCR Jev scores the parsing results.
 
-[MiniCPM-OCR 1.0 deployment tutorial](./docs/minicpm_ocr_tutorial_en.md) · [MiniCPM-OCR Jev deployment tutorial](./docs/minicpm_ocr_jev_tutorial_en.md)
+[MiniCPM-OCR 1.0 deployment tutorial](./docs/minicpm_ocr_tutorial_en.md) · [MiniCPM-OCR Jev deployment tutorial](./docs/minicpm_ocr_jev_tutorial_en.md) · [Web demo deployment tutorial](./docs/webdemo_deploy.md)
 
 <a id="模型微调"></a>
 

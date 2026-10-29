@@ -1,6 +1,6 @@
 ---
 name: minicpmvocr-sdk
-description: 安装、部署和验证 MiniCPM-OCR 1.0 文档解析 SDK 与 vLLM、SGLang、llama.cpp 或 Ollama 推理服务，包括 DSpark、PDF/图片转 Markdown 和安装排错。Jev 打分服务使用 SKILL_jev.md。
+description: 安装、部署和验证 MiniCPM-OCR 1.0 文档解析 SDK 与 vLLM、SGLang、llama.cpp 或 Ollama 推理服务，包括 DSpark、PDF/图片转 Markdown、本地 Web Demo 和安装排错。Jev 打分服务使用 SKILL_jev.md。
 ---
 
 # MiniCPM-OCR 1.0 安装、部署与验证
@@ -18,6 +18,7 @@ SDK（命令 `minicpmvocr`，发行包 `minicpm-ocr`）负责版面检测、切�
 | CPU、本地 GPU 或 Apple Silicon，选择 llama.cpp | `sources/llama.cpp/build`，使用 GGUF，可用 DSpark | `llamacpp` | [llama.cpp 指南](./llamacpp_deploy_zh.md) |
 | CPU、本地 GPU 或 Apple Silicon，选择 Ollama | Ollama ≥0.40.12，使用 GGUF，可用 DSpark | `ollama` | [Ollama 部署指南](./ollama_deploy_zh.md) |
 | 已有兼容推理服务 | 复用服务，只装 SDK | 按服务协议选择 | 本文第 8 节 |
+| 第 8 节已跑通全页解析，要开本地页面 | 复用 `.minicpm-ocr` 和已有识别服务 | 按识别服务 | [Web Demo 部署教程](./webdemo_deploy_zh.md) 与本文第 10 节 |
 
 - SGLang 使用 `--backend sglang`；SDK 内部将 `sglang` 映射到 `openai` 兼容客户端，`list-backends` 不单独列出 SGLang。llama.cpp 用 `llamacpp`，Ollama 用 `ollama`（走 Ollama 原生 `/api/chat`，必须用 `--model` 指定已注册的模型名）；都不要复用 vLLM 特有请求字段。
 - llama.cpp 的 Metal 服务不要求 CUDA；完整解析还需要能运行 PP-DocLayoutV3 的 SDK 环境。若本机没有对应 PaddlePaddle wheel，单独安排兼容的 SDK 主机，不把 Metal 服务可用当成整个 SDK 已可用。
@@ -538,3 +539,30 @@ Ollama 在 `ollama serve` 的终端输出中检查：首次请求加载模型时
 汇报实际使用的后端、源码 SHA/包版本、模型文件、设备、地址，以及安装检查、健康检查、带图请求、单页解析分别通过与否。安装成功、服务就绪、识别正确、DSpark 生效是不同结论。不要在排错时删除用户环境、重置源码或用未核实的临时补丁掩盖版本不匹配。
 
 参数与 API 细节见 [SDK 配置说明](./minicpm_ocr_sdk_api.md)；Jev 打分服务使用 [Jev Skill](./SKILL_jev.md)，不混用其权重、分类架构和验证标准。
+
+## 10. 可选：本地 Web Demo
+
+第 8 节全页解析已经通过后，才启动本地页面。命令和注释以 [Web Demo 部署教程](./webdemo_deploy_zh.md) 为准，不要另写一套启动方式。
+
+在已经跑通的 `.minicpm-ocr` 环境里补页面服务，并准备旋转自适应模型：
+
+```bash
+source .minicpm-ocr/bin/activate
+python -m pip install fastapi uvicorn python-multipart
+bash webdemo/backend/prepare_upright_models.sh
+```
+
+识别服务沿用第 4–7 节已经在跑的 `minicpm-ocr`，地址是 `http://127.0.0.1:18499`。后端的 `OCR_ENGINE_TYPE` 按实际服务填写：vLLM 为 `vllm`，SGLang 为 `openai`，llama.cpp 为 `llamacpp`。Ollama 见部署教程。后端默认端口 `8966`，旋转自适应默认打开，模型目录是 `models/paddle_upright`。`curl -f http://127.0.0.1:8966/health` 返回 `{"status":"ok"}` 只说明进程已起来。
+
+前端需要 Node.js 22 或更高版本。在 `webdemo/frontend` 用 Corepack 安装依赖并启动后，打开 `http://localhost:5173/playground/document-parse`。关键信息抽取页是 `http://localhost:5173/playground/field-extract`。
+
+后端同样也提供了 API 服务，以下是相关的 API 接口。
+
+| 接口 | 用途 |
+|---|---|
+| `POST /api/document-parse/jobs` | 异步图片或 PDF，HTTP 200 返回任务 |
+| `GET /api/document-parse/jobs/{id}` | HTTP 200 返回进度与结果 |
+| `DELETE /api/document-parse/jobs/{id}` | 取消任务，HTTP 200 返回任务状态 |
+| `POST /api/kie` | 同步单图，HTTP 200 返回单页响应 |
+
+文档解析的图片和 PDF 都创建任务，响应里 `status` 为 `Running`。关键信息抽取走 `POST /api/kie`，只接受单张图片：JSON 请求体带 `image` 和 `fields`。这一路不创建任务，也不接收 PDF。关键信息抽取的异步形式可以参照文档解析进行改造。

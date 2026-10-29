@@ -1,0 +1,285 @@
+/**
+ * Document-parse upload area.
+ *
+ * Purpose: the empty state is aligned with the mineru-web upload page — title, dashed drop surface, and limit items in a horizontal row. Images use the original-image workspace; PDFs load a paginated previewer on demand, so the image entry does not pay extra load cost.
+ *
+ * File selection, drag-and-drop, and page-level paste are handled in one place.
+ */
+
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useToast } from '@map/ui';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { lazyWithRetry } from '@/utils/lazyWithRetry';
+import type { Attachment } from '../../types';
+import { isPdfAttachment } from '../../utils/documentUpload';
+import { applyPreparedDocument } from '../../utils/imageGroupPdf';
+import type { ImageParseLayoutBlock, ImageParseRotationInfo } from '../../utils/imageParseSample';
+import type { ImageParseProgressSnapshot } from '../../utils/imageParseSimulation';
+import { ImageParseStage } from './ImageParseStage';
+import { ImageParseUploadSurface } from './ImageParseUploadSurface';
+import { PdfPreviewLoading } from './PdfPreviewLoading';
+import { ImageParsePageRail } from './ImageParsePageRail';
+
+interface ImageParseDropzoneProps {
+  attachment?: Attachment;
+  disabled?: boolean;
+  previewOnly?: boolean;
+  onPick: (file: File) => void;
+  onClear: () => void;
+  onPreview: (src: string) => void;
+  /** Layout blocks for this image; an empty array means draw no boxes and only run the scan */
+  blocks?: readonly ImageParseLayoutBlock[];
+  /** Server rotation-adaptation info; consumed directly only by the image workspace. */
+  rotation?: ImageParseRotationInfo;
+  pageBlocks?: Readonly<Record<number, readonly ImageParseLayoutBlock[]>>;
+  /** This page's own server rotation-adaptation angle; the key is the page number. */
+  pageServerAngles?: Readonly<Record<number, number>>;
+  progress?: ImageParseProgressSnapshot | null;
+  parsing?: boolean;
+  showBlocks?: boolean;
+  onToggleBlocks?: () => void;
+  selectedBlockId?: string;
+  hoveredBlockId?: string;
+  linkedHighlight?: boolean;
+  onHoverBlock?: (id: string | undefined) => void;
+  originScrollRef?: (node: HTMLElement | null) => void;
+  focusRequest?: number;
+  onSelectBlock?: (id: string, page?: number) => void;
+  page?: number;
+  onPageChange?: (page: number) => void;
+  imagePages?: number;
+  imagePage?: number;
+  onImagePageChange?: (page: number) => void;
+  imageAttachments?: readonly Attachment[];
+  onAppendPages?: (files: FileList) => void;
+  appending?: boolean;
+  scrollProgress?: number;
+  onScrollProgress?: (progress: number, programmatic?: boolean) => void;
+}
+
+const PdfDocumentStage = lazy(() => lazyWithRetry(() => import('./PdfDocumentStage')));
+
+/**
+ * Single-document upload and image and PDF preview.
+ */
+export function ImageParseDropzone({
+  attachment,
+  disabled,
+  previewOnly = false,
+  onPick,
+  onClear,
+  onPreview,
+  blocks = [],
+  rotation,
+  pageBlocks,
+  pageServerAngles,
+  progress = null,
+  parsing = false,
+  showBlocks = false,
+  onToggleBlocks,
+  selectedBlockId,
+  hoveredBlockId,
+  linkedHighlight,
+  onHoverBlock,
+  originScrollRef,
+  focusRequest,
+  onSelectBlock,
+  page,
+  onPageChange,
+  imagePages,
+  imagePage,
+  onImagePageChange,
+  imageAttachments,
+  onAppendPages,
+  appending,
+  scrollProgress,
+  onScrollProgress,
+}: ImageParseDropzoneProps) {
+  const { t } = useTranslation('playground');
+  const { toast } = useToast();
+  const [dragging, setDragging] = useState(false);
+  const previewSrc = attachment?.dataUrl || attachment?.proxyUrl || attachment?.url || '';
+
+  const takeFile = useCallback(
+    (files: FileList | File[] | null) => {
+      if (disabled || !files?.length) return;
+      applyPreparedDocument(files, onPick, (error) => toast({ title: t(error), variant: 'error' }));
+    },
+    [disabled, onPick, t, toast],
+  );
+
+  // Page-level paste: no need to click the upload area first. Putting it in straight from the clipboard matches a reading tool better.
+  useEffect(() => {
+    function onPaste(event: ClipboardEvent) {
+      if (disabled) return;
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        target.closest('input, textarea, [contenteditable="true"]')
+      ) {
+        return;
+      }
+      const files = event.clipboardData?.files;
+      if (!files?.length) return;
+      event.preventDefault();
+      takeFile(files);
+    }
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
+  }, [disabled, takeFile]);
+
+  return (
+    <>
+      {attachment && isPdfAttachment(attachment) ? (
+        <ErrorBoundary key={attachment.id}>
+          <Suspense fallback={<PdfPreviewLoading className="flex-1 bg-muted/30" />}>
+            <PdfDocumentStage
+              key={attachment.id}
+              attachment={attachment}
+              disabled={disabled}
+              onClear={onClear}
+              page={page}
+              onPageChange={onPageChange}
+              onAppendPages={onAppendPages}
+              appending={appending}
+              parsing={parsing}
+              blocks={blocks}
+              pageBlocks={pageBlocks}
+              pageServerAngles={pageServerAngles}
+              showBlocks={showBlocks}
+              onToggleBlocks={onToggleBlocks}
+              selectedBlockId={selectedBlockId}
+              hoveredBlockId={hoveredBlockId}
+              linkedHighlight={linkedHighlight}
+              onHoverBlock={onHoverBlock}
+              originScrollRef={originScrollRef}
+              focusRequest={focusRequest}
+              onSelectBlock={onSelectBlock}
+              scrollProgress={scrollProgress}
+              onScrollProgress={onScrollProgress}
+            />
+          </Suspense>
+        </ErrorBoundary>
+      ) : null}
+      {attachment && !isPdfAttachment(attachment) ? (
+        <ImageParseStage
+          attachment={attachment}
+          previewSrc={previewSrc}
+          disabled={disabled}
+          onPreview={onPreview}
+          onClear={onClear}
+          pages={imagePages}
+          page={imagePage}
+          onPageChange={onImagePageChange}
+          pageNavigation={
+            onAppendPages || imageAttachments?.length ? (
+              <ImageParsePageRail
+                pages={(imageAttachments ?? [attachment]).map((item, index) => ({
+                  pageNumber: index + 1,
+                  preview: (
+                    <img src={item.dataUrl || item.proxyUrl || item.url} alt="" draggable={false} />
+                  ),
+                }))}
+                page={imagePage ?? 1}
+                onPageChange={onImagePageChange}
+                onAppendPages={onAppendPages}
+                disabled={disabled || parsing}
+                appending={appending}
+              />
+            ) : undefined
+          }
+          blocks={blocks}
+          rotation={rotation}
+          progress={progress}
+          parsing={parsing}
+          showBlocks={showBlocks}
+          onToggleBlocks={onToggleBlocks}
+          selectedBlockId={selectedBlockId}
+          hoveredBlockId={hoveredBlockId}
+          linkedHighlight={linkedHighlight}
+          onHoverBlock={onHoverBlock}
+          originScrollRef={originScrollRef}
+          focusRequest={focusRequest}
+          onSelectBlock={onSelectBlock}
+          scrollProgress={scrollProgress}
+          onScrollProgress={onScrollProgress}
+        />
+      ) : null}
+      {!attachment ? (
+        <EmptyDropzone
+          disabled={disabled}
+          previewOnly={previewOnly}
+          dragging={dragging}
+          onOpen={() => undefined}
+          onFiles={(files) => takeFile(files)}
+          onDragOver={(event) => {
+            if (!Array.from(event.dataTransfer.types).includes('Files')) return;
+            event.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(event) => {
+            if (!Array.from(event.dataTransfer.types).includes('Files')) return;
+            event.preventDefault();
+            event.stopPropagation();
+            setDragging(false);
+            takeFile(event.dataTransfer.files);
+          }}
+        />
+      ) : null}
+    </>
+  );
+}
+
+interface EmptyDropzoneProps {
+  disabled?: boolean;
+  previewOnly: boolean;
+  dragging: boolean;
+  onOpen: () => void;
+  onFiles: (files: FileList) => void;
+  onDragOver: (event: React.DragEvent<HTMLButtonElement>) => void;
+  onDragLeave: () => void;
+  onDrop: (event: React.DragEvent<HTMLButtonElement>) => void;
+}
+
+/** Empty state: a mineru-style upload page. The limit notes are split into three lines so one hint is not piled on the drop surface. */
+function EmptyDropzone({
+  disabled,
+  previewOnly,
+  dragging,
+  onOpen,
+  onFiles,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+}: EmptyDropzoneProps) {
+  const { t } = useTranslation('playground');
+  return (
+    <div className="flex h-full min-h-0 justify-center overflow-auto bg-muted/20 px-5 py-10 animate-[map-fade-in_0.3s_ease] motion-reduce:animate-none sm:px-8 sm:py-14">
+      <div className="flex w-full max-w-4xl flex-col gap-10">
+        <div className="flex w-full flex-col gap-6">
+          <div className="flex flex-col gap-2">
+            <p className="text-xs font-medium tracking-[0.18em] text-primary">{t('imageParse')}</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-[30px]">
+              {t('imageParseUploadTitle')}
+            </h1>
+            <p className="max-w-xl text-sm leading-6 text-muted-foreground">
+              {t('imageParseUploadSubtitle')}
+            </p>
+          </div>
+          <ImageParseUploadSurface
+            disabled={disabled}
+            previewOnly={previewOnly}
+            dragging={dragging}
+            onOpen={onOpen}
+            onFiles={onFiles}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}

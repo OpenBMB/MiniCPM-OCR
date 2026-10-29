@@ -1,0 +1,96 @@
+/**
+ * MAP design system — single source of theme tokens
+ *
+ * Every app imports it with `@import '@map/ui/theme.css';`.
+ * Color, radius, and type change in this one place and apply across the platform.
+ * Colors are HSL channels (without hsl()), consumed by tailwind.config.js as `hsl(var(--token) / <alpha-value>)`.
+ */
+/* Inter is for English and digits; Noto Sans SC plus system Chinese fonts are for the Chinese UI. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    /* ---- Color (light) ---- */
+    --background: 230 100% 99%;
+    --foreground: 226 32% 17%;
+    --card: 0 0% 100%;
+    --card-foreground: 226 32% 17%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+    --table-row-hover: 220 14% 98%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 239 84% 67%;
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 226 32% 17%;
+    --accent: 220 14% 96%;
+    --accent-foreground: 226 32% 17%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* ---- Status colors (semantic tokens; light and dark switch automatically) ---- */
+    --success: 160 84% 39%; /* emerald-500 — pass / online / healthy */
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%; /* amber-500 — degraded / pending */
+    --warning-foreground: 38 92% 12%;
+    --info: 217 91% 60%; /* blue-500 — neutral notice */
+    --info-foreground: 0 0% 100%;
+
+    /* ---- OCR confidence: independent of site-wide status colors, so the source image stays readable and the scale stays consistent ---- */
+    --ocr-confidence-high: 142 71% 45%;
+    --ocr-confidence-low: 24 95% 53%;
+    --ocr-confidence-error: 0 84% 60%;
+    --ocr-confidence-neutral: 220 9% 46%;
+    --ocr-link: var(--primary); /* Two-column positioning follows the theme color and does not change the confidence scale. */
+
+    /* ---- Chart palette (leaderboards and metric visuals; colorblind-friendly and easy to tell apart) ---- */
+    --chart-1: 239 84% 67%; /* indigo (primary series) */
+    --chart-2: 173 80% 40%; /* teal */
+    --chart-3: 38 92% 50%; /* amber */
+    --chart-4: 330 81% 60%; /* pink */
+    --annotation-foreground: 226 32% 17%; /* Pink labels on charts always use dark text. */
+    --chart-5: 217 91% 60%; /* blue */
+    --chart-6: 142 71% 45%; /* green */
+
+    /* ---- Radius (shadcn standard: one base value, sm/md/lg derived) ---- */
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 224 71% 4%;
+    --foreground: 213 31% 91%;
+    --card: 224 47% 7%;
+    --card-foreground: 213 31% 91%;
+    --muted: 223 47% 11%;
+    --muted-foreground: 218 11% 65%;
+    --table-row-hover: 223 47% 9%;
+    --border: 216 34% 17%;
+    --input: 216 34% 17%;
+    --ring: 239 84% 67%;
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 223 47% 11%;
+    --secondary-foreground: 213 31% 91%;
+    --accent: 216 34% 17%;
+    --accent-foreground: 213 31% 91%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* ---- Status colors: brightened in dark mode so contrast holds ---- */
+    --success: 158 64% 52%; /* emerald-400 */
+    --warning: 43 96% 56%; /* amber-400 */
+    --info: 213 94% 68%; /* blue-400 */
+    --ocr-confidence-high: 142 69% 58%;
+    --ocr-confidence-low: 24 95% 53%;
+    --ocr-confidence-error: 0 84% 60%;
+    --ocr-confidence-neutral: 218 11% 65%;
+    --ocr-link: var(--primary);
+    /* The chart palette keeps the :root definition; override here if dark mode needs a tweak. */
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}

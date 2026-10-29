@@ -388,10 +388,10 @@ class _FleetSlot:
 class UprightFleet:
     '本机工人和远程摆正服务合成一条队列。'
 
-    def __init__(self, local: UprightPool, registry: str):
+    def __init__(self, local: "UprightPool | None", registry: str):
         self._local_pool = local
         self._registry = Path(registry) if registry else None
-        self._local = _FleetSlot("local", local.workers)
+        self._local = _FleetSlot("local", local.workers) if local is not None else None
         self._remotes: Dict[str, _FleetSlot] = {}
         self._cv = threading.Condition()
         self._refreshed_at = 0.0
@@ -401,7 +401,7 @@ class UprightFleet:
         self._refresh()
         with self._cv:
             now = time.time()
-            total = self._local.capacity
+            total = self._local.capacity if self._local is not None else 0
             for slot in self._remotes.values():
                 if slot.down_until <= now:
                     total += slot.capacity
@@ -427,7 +427,7 @@ class UprightFleet:
             if slot is None:
                 break
             try:
-                if slot.name == "local":
+                if slot.name == "local" and self._local_pool is not None:
                     result = self._local_pool.submit(image_rgb).result()
                 else:
                     result = _remote_correct(slot.name, image_rgb)
@@ -450,8 +450,9 @@ class UprightFleet:
             while time.time() < deadline:
                 self._refresh_locked()
                 now = time.time()
+                local = [self._local] if self._local is not None else []
                 choices = [
-                    slot for slot in [self._local] + list(self._remotes.values())
+                    slot for slot in local + list(self._remotes.values())
                     if slot.name not in exclude and slot.down_until <= now
                 ]
                 if not choices:
@@ -517,7 +518,7 @@ def _remote_correct(url: str, image_rgb: np.ndarray):
     return image_rgb, record, float(record.get("upright_sec") or 0)
 
 
-def build_upright_fleet(local: UprightPool, registry: str) -> UprightFleet:
+def build_upright_fleet(local: "UprightPool | None", registry: str) -> UprightFleet:
     return UprightFleet(local, registry)
 
 
