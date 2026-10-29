@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="./assets/minicpm-ocr/release-hero.svg" alt="MiniCPM-OCR: fast, accurate document parsing into text, tables, and formulas, with a lightning arrow connecting documents to structured results; a decision model helps identify regions that need review (illustration)." width="100%">
-
-<p align="center"><strong>MiniCPM-OCR · Fast, accurate parsing for real-world documents.</strong></p>
+<p align="center">
+  <img src="./assets/minicpm-ocr/release-hero.svg" alt="MiniCPM-OCR: fast, accurate document parsing into text, tables, and formulas, with a lightning arrow connecting documents to structured results; a decision model helps identify regions that need review (illustration)." width="100%">
+</p>
 
 <p align="center">
   <a href="./docs/minicpm_ocr_1dot0_en.md"><strong>MiniCPM-OCR 1.0 Guide</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0" title="Hugging Face"><img src="./assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0" title="ModelScope"><img src="./assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
@@ -11,12 +11,17 @@
 </p>
 
 <p align="center">
+  <strong>Official Demo</strong> (<a href="https://platform.modelbest.cn/console/playground/document-parse">CN</a> / <a href="https://platform.modelbest.ai/console/playground/document-parse">Global</a>)
+  &nbsp;·&nbsp;
+  Basic Demo (<a href="http://82.157.64.212:10111/playground/document-parse">CN</a> / <a href="https://huggingface.co/spaces/openbmb/MiniCPM-OCR">Global</a>)
+</p>
+
+<p align="center">
   <a href="#quick-start">Get Started</a> &nbsp;·&nbsp;
-  <a href="#model-weights">Model Weights</a> &nbsp;·&nbsp;
+  <a href="#model-weights">Weights</a> &nbsp;·&nbsp;
   <a href="#api">Free API</a> &nbsp;·&nbsp;
-  <a href="#skill">Skill</a> &nbsp;·&nbsp;
-  Online Demo (<a href="https://huggingface.co/spaces/openbmb/MiniCPM-OCR">HF Space</a> / <a href="https://platform.modelbest.ai/console/playground/document-parse">Official Demo</a> / <a href="https://platform.modelbest.cn/console/playground/document-parse">Official Demo(CN)</a>)
-  &nbsp;|&nbsp; English &nbsp;·&nbsp; <a href="./README_zh.md">中文</a>
+  <a href="#skill">Skill</a>
+  &nbsp;|&nbsp; <a href="./README_zh.md">中文</a>
 </p>
 
 </div>
@@ -32,7 +37,7 @@
 - 🏆 **SOTA document parsing**: MiniCPM-OCR 1.0 achieves a **SOTA score of 93.68 on Real5-OmniDocBench**, a benchmark for real-world document parsing, and demonstrates leading parsing capabilities on OmniDocBench v1.6, Wild-OmniDocBench, and olmOCR-Bench. It supports Chinese and English documents and PDFs, handling both standard documents and challenging capture conditions, including scans, curved pages, photographs, skewed pages, and recaptured documents.
 - ⚡ **Efficient inference.** With DSpark decoding acceleration ([**DSpark-BF16**](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark), [**DSpark-GGUF**](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark-gguf)), MiniCPM-OCR 1.0 improves **end-to-end processing efficiency by 55%**. Its throughput is approximately **1.49×** that of PaddleOCR-VL-1.6 and **3.62×** that of MinerU2.5 Pro, reducing the time needed for large-scale document parsing.
 - 🔍 **General recognition and information extraction**: MiniCPM-OCR 1.0 achieves a **SOTA score of 54.7 on OCRBench v2**, demonstrating strong general OCR capabilities. It **also supports key information extraction (KIE)**, extracting relevant document content for downstream information management and automated processing.
-- 🛠️ **Easy deployment and development**: MiniCPM-OCR 1.0 supports **vLLM, SGLang, llama.cpp, and Ollama from day one**, with multiple chip platforms and quantized versions available at release. It **supports further fine-tuning** and provides a **[pip SDK](https://pypi.org/project/minicpm-ocr/)** and a **[full-featured API](#api)** for application integration and customization. You can also **[get started quickly with SKILL.md](#skill)**. Try the Online Demo ([HF Space](https://huggingface.co/spaces/openbmb/MiniCPM-OCR) / [Official Demo](https://platform.modelbest.ai/console/playground/document-parse) / [Official Demo(CN)](https://platform.modelbest.cn/console/playground/document-parse)) to explore parsing results.
+- 🛠️ **Easy deployment and development**: MiniCPM-OCR 1.0 supports **vLLM, SGLang, llama.cpp, and Ollama from day one**, with multiple chip platforms and quantized versions available at release. It **supports further fine-tuning** and provides a **[pip SDK](https://pypi.org/project/minicpm-ocr/)** and a **[full-featured API](#api)** for application integration and customization. You can also **[get started quickly with SKILL.md](#skill)**. Explore parsing results with the Official Demo ([CN](https://platform.modelbest.cn/console/playground/document-parse) / [Global](https://platform.modelbest.ai/console/playground/document-parse)) or Basic Demo ([CN](http://82.157.64.212:10111/playground/document-parse) / [Global](https://huggingface.co/spaces/openbmb/MiniCPM-OCR)).
 
 ### SOTA Performance, Higher Throughput
 
