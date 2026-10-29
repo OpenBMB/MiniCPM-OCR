@@ -105,7 +105,6 @@ For your first PDF or image, start with the [SDK tutorial](./minicpm_ocr_tutoria
 | Inference option | Guide |
 | :--- | :--- |
 | vLLM | [API service and single-region recognition](./vllm_deploy_en.md) |
-| Transformers | [Transformers service deployment](./SKILL_en.md#43-transformers-serve) |
 | SGLang | [Deployment guide](./sglang_deploy.md) |
 | llama.cpp | [GGUF deployment guide](./llamacpp_deploy.md) |
 | Ollama | [SDK service connection and backend configuration](./minicpm_ocr_sdk_api_en.md#command-line-options) |
@@ -215,7 +214,7 @@ Original documents and parsed results, side by side.
 
 ## Reproduction
 
-See the [reproduction guide](./benchmark_reproduction_en.md) for test settings, DSpark comparison requirements, and evaluation details still to be added. Recorded SDK test environments are listed under [Verified versions](./SKILL_en.md#9-verified-versions).
+See the [reproduction guide](./benchmark_reproduction_en.md) for test settings, DSpark comparison requirements, and evaluation details still to be added. For current dependency versions and prerequisites, see [Version and environment checks](./SKILL_en.md#2-check-versions-and-prerequisites-against-the-checkout).
 
 ## Frequently Asked Questions
 
