@@ -1,7 +1,7 @@
 <div align="center">
 
 <p align="center">
-  <img src="./assets/minicpm-ocr/homepage-banner.svg" alt="MiniCPM brand logo above MiniCPM-OCR: fast, accurate document parsing into text, tables, and formulas, with a lightning arrow connecting documents to structured results; a decision model helps identify regions that need review (illustration)." width="100%">
+  <img src="./assets/minicpm-ocr/release-hero.svg" alt="MiniCPM-OCR: fast, accurate document parsing into text, tables, and formulas, with a lightning arrow connecting documents to structured results; a decision model helps identify regions that need review (illustration)." width="100%">
 </p>
 
 <p align="center">
@@ -22,6 +22,8 @@
   <a href="./docs/minicpm_ocr_tutorial_en.md">Local Deployment</a>
   &nbsp;|&nbsp; <a href="./README_zh.md">中文</a>
   <br>
+  <a href="https://github.com/OpenBMB/MiniCPM"><img src="./assets/minicpm-ocr/minicpm-logo.jpg" width="96" align="middle" alt="MiniCPM logo"></a>
+  &ensp;
   <a href="#community"><strong>Join the Community</strong></a> &nbsp;·&nbsp;
   <a href="https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=c35j072a-9abe-4ba6-ba1d-3ab340f9ba8c">Feishu / Lark</a> &nbsp;·&nbsp;
   <a href="https://discord.gg/JE8KQqtdn">Discord</a>
