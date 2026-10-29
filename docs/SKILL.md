@@ -15,7 +15,7 @@ SDK（命令 `minicpmvocr`，发行包 `minicpm-ocr`）负责版面检测、切�
 |---|---|---|---|
 | Linux x86_64 + NVIDIA，默认方案 | `.venv-vllm`，可用 DSpark | `vllm` | [SDK 教程](./minicpmvocr_tutorial.md) |
 | Linux x86_64 + NVIDIA，选择 SGLang | `.venv-sglang`，可用 DSpark | `sglang` | [SGLang 指南（英文）](./sglang_deploy.md) |
-| CPU、本地 GPU 或 Apple Silicon，选择 llama.cpp | `sources/llama.cpp/build`，使用 GGUF | `llamacpp` | [llama.cpp 指南（英文）](./llamacpp_deploy.md) |
+| CPU、本地 GPU 或 Apple Silicon，选择 llama.cpp | `sources/llama.cpp/build`，使用 GGUF，可用 DSpark | `llamacpp` | [llama.cpp 指南](./llamacpp_deploy_zh.md) |
 | 已有兼容推理服务 | 复用服务，只装 SDK | 按服务协议选择 | 本文第 7 节 |
 
 - SGLang 使用 `--backend sglang`；SDK 内部将 `sglang` 映射到 `openai` 兼容客户端，`list-backends` 不单独列出 SGLang。llama.cpp 用 `llamacpp`，不要复用 vLLM 特有请求字段。
@@ -42,7 +42,7 @@ cd MiniCPM-OCR
 | vLLM 依赖的 PyTorch | `torch==2.14.0`、`torchvision==0.29.0` |
 | SGLang | [部署指南固定源码](./sglang_deploy.md)：`aaab6bfc3de5354b052f2e96d5e566d70b9f69a2`；根项目仅引用本地路径，不自动下载或校验此 SHA |
 | SGLang 的依赖 | 该源码声明 `torch==2.14.1`、`transformers==5.19.0`，Rust 工具链 `1.92`；不要装入 vLLM 的环境 |
-| llama.cpp | `a08ab75ae74c36c15accc6c682a989a9e98dbfd2`，MiniCPM-OCR 1.0 适配合入提交（[PR #30979](https://github.com/ggml-org/llama.cpp/pull/30979)） |
+| llama.cpp | `a08ab75ae74c36c15accc6c682a989a9e98dbfd2`，MiniCPM-OCR 1.0 适配合入提交（[PR #30979](https://github.com/ggml-org/llama.cpp/pull/30979)）。该提交已包含 `draft-dspark` |
 | SDK 版面检测 | `paddlepaddle==3.2.1` 或 `paddlepaddle-gpu==3.3.0`，`paddlex==3.4.2` |
 
 Linux CUDA 路线先检查：
@@ -195,7 +195,7 @@ CUDA_VISIBLE_DEVICES=0 python -m sglang.launch_server \
 
 ## 6. llama.cpp：GGUF、编译与启动
 
-llama.cpp 不使用 HF safetensors 直接起服；需要语言模型 GGUF 和视觉 projector GGUF 两个文件。当前路线使用 [llama.cpp 指南](./llamacpp_deploy.md)中的官方 F16 文件。已有 `hf` 时复用；服务主机没有 SDK 时只建下载环境，不需要安装 PaddlePaddle、torch 或转换权重：
+llama.cpp 不使用 HF safetensors 直接起服。默认启用 DSpark，需要主模型 GGUF、视觉 projector GGUF 和配套草稿 GGUF。当前路线使用 [llama.cpp 指南](./llamacpp_deploy_zh.md)中的官方 F16 主模型，并搭配同版本 F16 草稿。已有 `hf` 时复用；服务主机没有 SDK 时只建下载环境，不需要安装 PaddlePaddle、torch 或转换权重：
 
 ```bash
 if ! command -v hf >/dev/null; then
@@ -207,6 +207,9 @@ if ! command -v hf >/dev/null; then
 fi
 hf download openbmb/MiniCPM-OCR-1.0-gguf \
   MiniCPM-OCR-1_0-F16.gguf mmproj-model-f16-4x.gguf \
+  --local-dir ./models/MiniCPM-OCR-1.0-gguf
+hf download openbmb/MiniCPM-OCR-1.0-DSpark-gguf \
+  dspark-MiniCPM-OCR-1_0-F16.gguf \
   --local-dir ./models/MiniCPM-OCR-1.0-gguf
 mkdir -p sources
 LLAMA_COMMIT=a08ab75ae74c36c15accc6c682a989a9e98dbfd2
@@ -273,11 +276,15 @@ cmake --build sources/llama.cpp/build -j 8 --target llama-server
 ./sources/llama.cpp/build/bin/llama-server \
   --model ./models/MiniCPM-OCR-1.0-gguf/MiniCPM-OCR-1_0-F16.gguf \
   --mmproj ./models/MiniCPM-OCR-1.0-gguf/mmproj-model-f16-4x.gguf \
+  --model-draft ./models/MiniCPM-OCR-1.0-gguf/dspark-MiniCPM-OCR-1_0-F16.gguf \
+  --spec-type draft-dspark \
+  --spec-draft-n-max 15 \
   --alias minicpm-ocr --host 127.0.0.1 --port 18499 \
-  --ctx-size 40960 --n-gpu-layers 999 --parallel 1 --reasoning off
+  --ctx-size 40960 --n-gpu-layers 999 --gpu-layers-draft 999 \
+  --parallel 1 --reasoning off
 ```
 
-CPU 推理将 `--n-gpu-layers 999` 改成 `--n-gpu-layers 0`。上下文 40960 不是低内存保证；内存或显存不足时先降低 `--ctx-size`，并同步第 7 节的 `engine.max_model_len`。保留 `--reasoning off`：适配 PR 指出，默认 `auto` 可能将识别文本放进 `reasoning_content`，而当前 SDK 读取 `content`，导致读到空输出。自行转换权重时还需核对模板，按指南加入 `--chat-template-kwargs '{"enable_thinking":false}'`。llama.cpp 路线不启用 DSpark。
+`--model-draft` 加载配套草稿，`--spec-type draft-dspark` 启用 DSpark，`--spec-draft-n-max 15` 将每步草稿长度上限设为 15。不启用 DSpark 时删除这三个参数和 `--gpu-layers-draft`，并跳过草稿下载。CPU 推理将 `--n-gpu-layers` 和 `--gpu-layers-draft` 都改为 `0`，并追加 `--no-mmproj-offload`。上下文 40960 不是低内存保证；内存或显存不足时先降低 `--ctx-size`，并同步第 7 节的 `engine.max_model_len`。保留 `--reasoning off`：适配 PR 指出，默认 `auto` 可能将识别文本放进 `reasoning_content`，而当前 SDK 读取 `content`，导致读到空输出。自行转换权重时还需核对模板，按指南加入 `--chat-template-kwargs '{"enable_thinking":false}'`。启动日志应出现 `adding speculative implementation 'draft-dspark'`。
 
 在另一终端检查：
 
@@ -386,7 +393,7 @@ vLLM 开启 DSpark 后，发出实际请求再查：
 curl --noproxy 127.0.0.1 -fsS http://127.0.0.1:18499/metrics | grep spec_decode_num
 ```
 
-只有观测到 draft / accepted token 指标随请求增长，才报告 vLLM DSpark 已生效。SGLang 需检查其实际日志/指标中的 DSPARK 行为，不复用 vLLM 指标名。
+只有观测到 draft / accepted token 指标随请求增长，才报告 vLLM DSpark 已生效。SGLang 需检查其实际日志/指标中的 DSPARK 行为，不复用 vLLM 指标名。llama.cpp 在启动日志中确认 `adding speculative implementation 'draft-dspark'`，首次推理后再看 `draft acceptance`。
 
 ## 8. 按失败阶段排查并汇报
 
@@ -397,7 +404,7 @@ curl --noproxy 127.0.0.1 -fsS http://127.0.0.1:18499/metrics | grep spec_decode_
 | `minicpm_ocr` 未识别 | vLLM 核对根项目固定的两份源码；SGLang 核对 PR SHA 和导入路径；两条路线的 Transformers 不能互相覆盖 |
 | NVCC 缺失或 `--compress-mode=size` 不识别 | 恢复所选服务环境的 `CUDA_HOME` / PATH，确认实际 NVCC；不要混用其他环境的工具链 |
 | CUDA 驱动错误 | 按 FAQ 核对 GPU、驱动与兼容库，在当前终端恢复环境变量 |
-| llama.cpp 无法加载模型或图像 | 核对两个 GGUF 文件、源码 SHA、二进制版本和实际后端；不能仅以 `/health` 成功判断支持图片 |
+| llama.cpp 无法加载模型或图像 | 核对主模型、投影器、草稿 GGUF、源码 SHA、二进制版本和实际后端；不能仅以 `/health` 成功判断支持图片 |
 | llama.cpp 链接/动态库错误 | 核查 CMake 日志、CUDA toolkit 和动态库搜索路径，按实际缺库处理，不套用历史绝对路径 |
 | vLLM 请求 400 / SDK 反复重试 | 核对 `--trust-request-mm-kwargs`、图片数量限制和服务端原始错误 |
 | 输出为空、thinking 标签、乱码 | 核对实际模型 ID 和关闭 thinking 的模板参数；llama.cpp 确认启动时带 `--reasoning off`，并检查 GGUF 模板 |
