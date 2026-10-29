@@ -93,7 +93,60 @@ The scoring settings belong in the top-level `minicpm_ocr_jev` object, not insid
 | `formula` | Formula LaTeX. Escape backslashes in JSON, for example `"$$\\frac{1}{2}$$"` |
 | `table` | An HTML table. Convert OTSL or Markdown tables to HTML first |
 
-`category` must match the real type of the region. A mismatch raises no error, but the score is off. When using `items`, set the image, text, and category on each item, and also place those same original images and candidate texts in `messages`.
+`category` must match the real type of the region. A mismatch raises no error, but the score is off.
+
+### Scoring One Candidate for Each of Several Regions
+
+`mode` stays `score`. Put each region in `items`, and place the original images and candidate texts in `messages` in the same order. The pairing is defined by `items`. Encode `text_image_base64` and `formula_image_base64` the same way as `image_base64` above. The response has the same shape as a single-candidate score, and `results[i]` matches `items[i]`.
+
+```python
+response = client.chat.completions.create(
+    model=os.environ["JEV_MODEL"],
+    messages=[
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{text_image_base64}"},
+                },
+                {"type": "text", "text": "正文识别结果"},
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{formula_image_base64}"},
+                },
+                {"type": "text", "text": "$$\\frac{1}{2}$$"},
+            ],
+        }
+    ],
+    extra_body={
+        "minicpm_ocr_jev": {
+            "mode": "score",
+            "threshold": 0.5,
+            "items": [
+                {
+                    "case_id": "block-001",
+                    "image": f"data:image/png;base64,{text_image_base64}",
+                    "ocr_text": "正文识别结果",
+                    "category": "text",
+                },
+                {
+                    "case_id": "block-002",
+                    "image": f"data:image/png;base64,{formula_image_base64}",
+                    "ocr_text": "$$\\frac{1}{2}$$",
+                    "category": "formula",
+                },
+            ],
+        },
+    },
+    stream=False,
+)
+result = json.loads(response.choices[0].message.content)
+for item in result["results"]:
+    if item["verdict"] != "scored":
+        raise RuntimeError(f"{item['case_id']}: {item['verdict']}: {item.get('detail', '')}")
+    print(item["case_id"], item["prob_yes"])
+```
 
 ### Selecting among Candidates for One Region
 

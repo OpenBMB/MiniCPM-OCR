@@ -118,6 +118,8 @@
 
 <p align="center"><a href="./assets/minicpm-ocr/review-free-zh.png"><img src="./assets/minicpm-ocr/review-free-zh.png" alt="法律文书、财务票据和复杂文档在不同免检比例下的准确率。" width="100%"></a></p>
 
+具体阈值的设定建议先在真实场景下进行小批量的验证再确定。
+
 ### 判别示例
 
 文本、公式和表格识别结果的 Jev 评分。

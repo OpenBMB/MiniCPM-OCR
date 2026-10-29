@@ -120,6 +120,8 @@ Accuracy at different review-free rates across three document types.
 
 <p align="center"><a href="./assets/minicpm-ocr/review-free-en.png"><img src="./assets/minicpm-ocr/review-free-en.png" alt="Accuracy versus review-free rate for legal documents, financial receipts, and complex documents." width="100%"></a></p>
 
+Set the threshold only after checking it on a small batch from the real application.
+
 ### Decision Examples
 
 Jev scores for text, formula, and table recognition.

@@ -93,7 +93,60 @@ print(item["prob_yes"])
 | `formula` | 公式 LaTeX。JSON 字符串中的反斜杠需要转义，例如 `"$$\\frac{1}{2}$$"` |
 | `table` | HTML 表格。OTSL 或 Markdown 表格需先转成 HTML |
 
-`category` 必须与块的真实类型一致，填错不会报错，但分数会偏。使用 `items` 时，在每个 item 里分别填写图片、文本和类别，并在 `messages` 中放上同样的原图和待评分文本。
+`category` 必须与块的真实类型一致，填错不会报错，但分数会偏。
+
+### 多块单候选评分
+
+`mode` 仍为 `score`。每个块放进 `items`，并在 `messages` 里按同样顺序放上原图和候选文本；每条的对应关系以 `items` 为准。`text_image_base64` 和 `formula_image_base64` 的编码方式与上面的 `image_base64` 相同。返回结构与单候选评分相同，`results[i]` 对应 `items[i]`。
+
+```python
+response = client.chat.completions.create(
+    model=os.environ["JEV_MODEL"],
+    messages=[
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{text_image_base64}"},
+                },
+                {"type": "text", "text": "正文识别结果"},
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{formula_image_base64}"},
+                },
+                {"type": "text", "text": "$$\\frac{1}{2}$$"},
+            ],
+        }
+    ],
+    extra_body={
+        "minicpm_ocr_jev": {
+            "mode": "score",
+            "threshold": 0.5,
+            "items": [
+                {
+                    "case_id": "block-001",
+                    "image": f"data:image/png;base64,{text_image_base64}",
+                    "ocr_text": "正文识别结果",
+                    "category": "text",
+                },
+                {
+                    "case_id": "block-002",
+                    "image": f"data:image/png;base64,{formula_image_base64}",
+                    "ocr_text": "$$\\frac{1}{2}$$",
+                    "category": "formula",
+                },
+            ],
+        },
+    },
+    stream=False,
+)
+result = json.loads(response.choices[0].message.content)
+for item in result["results"]:
+    if item["verdict"] != "scored":
+        raise RuntimeError(f"{item['case_id']}: {item['verdict']}: {item.get('detail', '')}")
+    print(item["case_id"], item["prob_yes"])
+```
 
 ### 单块多候选选优
 
