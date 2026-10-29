@@ -5,6 +5,10 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/OpenBMB/MiniCPM"><img src="./assets/minicpm-ocr/minicpm-logo.jpg" width="300" alt="MiniCPM logo"></a>
+</p>
+
+<p align="center">
   <a href="./docs/minicpm_ocr_1dot0_en.md"><strong>MiniCPM-OCR 1.0 Guide</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0" title="Hugging Face"><img src="./assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0" title="ModelScope"><img src="./assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
   &emsp;
   <a href="./docs/minicpm_ocr_jev_en.md"><strong>MiniCPM-OCR Jev Guide</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev" title="Hugging Face"><img src="./assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev" title="ModelScope"><img src="./assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
@@ -14,15 +18,17 @@
   <strong>Official Demo</strong> (<a href="https://platform.modelbest.cn/console/playground/document-parse">CN</a> / <a href="https://platform.modelbest.ai/console/playground/document-parse">Global</a>)
   &nbsp;·&nbsp;
   Basic Demo (<a href="http://82.157.64.212:10111/playground/document-parse">CN</a> / <a href="https://huggingface.co/spaces/openbmb/MiniCPM-OCR">Global</a>)
-</p>
-
-<p align="center">
+  <br>
   <a href="#quick-start">Get Started</a> &nbsp;·&nbsp;
   <a href="#model-weights">Weights</a> &nbsp;·&nbsp;
   <a href="https://platform.modelbest.ai/console/docs/api/document-parse">Free API</a> &nbsp;·&nbsp;
   <a href="#skill">Skill</a> &nbsp;·&nbsp;
   <a href="./docs/minicpm_ocr_tutorial_en.md">Local Deployment</a>
   &nbsp;|&nbsp; <a href="./README_zh.md">中文</a>
+  <br>
+  Join the Community via
+  <a href="https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=c35j072a-9abe-4ba6-ba1d-3ab340f9ba8c">Feishu / Lark</a> &nbsp;·&nbsp;
+  <a href="https://discord.gg/JE8KQqtdn">Discord</a>
 </p>
 
 </div>

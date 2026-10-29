@@ -1,6 +1,6 @@
 ---
 name: minicpmvocr-sdk
-description: 安装、部署和验证 MiniCPM-OCR 1.0 文档解析 SDK 与 vLLM、SGLang 或 llama.cpp 推理服务，包括 DSpark、PDF/图片转 Markdown 和安装排错。Jev 打分服务使用 SKILL_jev.md。
+description: 安装、部署和验证 MiniCPM-OCR 1.0 文档解析 SDK 与 vLLM、SGLang、llama.cpp 或 Ollama 推理服务，包括 DSpark、PDF/图片转 Markdown 和安装排错。Jev 打分服务使用 SKILL_jev.md。
 ---
 
 # MiniCPM-OCR 1.0 安装、部署与验证
@@ -16,13 +16,14 @@ SDK（命令 `minicpmvocr`，发行包 `minicpm-ocr`）负责版面检测、切�
 | Linux x86_64 + NVIDIA，默认方案 | `.venv-vllm`，可用 DSpark | `vllm` | [SDK 教程](./minicpm_ocr_tutorial.md) |
 | Linux x86_64 + NVIDIA，选择 SGLang | `.venv-sglang`，可用 DSpark | `sglang` | [SGLang 指南](./sglang_deploy_zh.md) |
 | CPU、本地 GPU 或 Apple Silicon，选择 llama.cpp | `sources/llama.cpp/build`，使用 GGUF，可用 DSpark | `llamacpp` | [llama.cpp 指南](./llamacpp_deploy_zh.md) |
-| 已有兼容推理服务 | 复用服务，只装 SDK | 按服务协议选择 | 本文第 7 节 |
+| CPU、本地 GPU 或 Apple Silicon，选择 Ollama | Ollama ≥0.40.12，使用 GGUF，可用 DSpark | `ollama` | [Ollama 部署指南](./ollama_deploy_zh.md) |
+| 已有兼容推理服务 | 复用服务，只装 SDK | 按服务协议选择 | 本文第 8 节 |
 
-- SGLang 使用 `--backend sglang`；SDK 内部将 `sglang` 映射到 `openai` 兼容客户端，`list-backends` 不单独列出 SGLang。llama.cpp 用 `llamacpp`，不要复用 vLLM 特有请求字段。
+- SGLang 使用 `--backend sglang`；SDK 内部将 `sglang` 映射到 `openai` 兼容客户端，`list-backends` 不单独列出 SGLang。llama.cpp 用 `llamacpp`，Ollama 用 `ollama`（走 Ollama 原生 `/api/chat`，必须用 `--model` 指定已注册的模型名）；都不要复用 vLLM 特有请求字段。
 - llama.cpp 的 Metal 服务不要求 CUDA；完整解析还需要能运行 PP-DocLayoutV3 的 SDK 环境。若本机没有对应 PaddlePaddle wheel，单独安排兼容的 SDK 主机，不把 Metal 服务可用当成整个 SDK 已可用。
 - SDK 与服务可以分处两台机器。先确认实际系统、GPU/内存、可用磁盘、目标工作目录和服务地址；已知信息无需再问。
 
-SDK 直接从 PyPI 安装；连接已有推理服务时，在自己的工作目录执行第 3、7 节即可，无需克隆本仓库。自行部署 vLLM 或 SGLang 时，下面的安装步骤会使用仓库中的脚本，先进入已有仓库或克隆。推理服务示例以 **MiniCPM-OCR 仓库根目录**为工作目录；独立 SDK 主机上的 `.minicpm-ocr`、`models/` 和输入输出路径均相对其工作目录：
+SDK 直接从 PyPI 安装；连接已有推理服务时，在自己的工作目录执行第 3、8 节即可，无需克隆本仓库。自行部署 vLLM 或 SGLang 时，下面的安装步骤会使用仓库中的脚本，先进入已有仓库或克隆。推理服务示例以 **MiniCPM-OCR 仓库根目录**为工作目录；独立 SDK 主机上的 `.minicpm-ocr`、`models/` 和输入输出路径均相对其工作目录：
 
 ```bash
 git clone https://github.com/OpenBMB/MiniCPM-OCR.git
@@ -43,6 +44,7 @@ cd MiniCPM-OCR
 | SGLang | [部署指南固定源码](./sglang_deploy_zh.md)：`aaab6bfc3de5354b052f2e96d5e566d70b9f69a2`；根项目仅引用本地路径，不自动下载或校验此 SHA |
 | SGLang 的依赖 | 该源码声明 `torch==2.14.1`、`transformers==5.19.0`，Rust 工具链 `1.92`；不要装入 vLLM 的环境 |
 | llama.cpp | `a08ab75ae74c36c15accc6c682a989a9e98dbfd2`，MiniCPM-OCR 1.0 适配合入提交（[PR #30979](https://github.com/ggml-org/llama.cpp/pull/30979)）。该提交已包含 `draft-dspark` |
+| Ollama | `≥0.40.12`，与 [Ollama 部署指南](./ollama_deploy_zh.md)一致；使用 Q8_0 主模型、F16 4× 视觉投影器和 Q8_0 DSpark 草稿模型 |
 | SDK 版面检测 | `paddlepaddle==3.2.1` 或 `paddlepaddle-gpu==3.3.0`，`paddlex==3.4.2` |
 
 Linux CUDA 路线先检查：
@@ -56,7 +58,7 @@ df -h .
 
 vLLM / SGLang 安装脚本要求 Linux x86_64、`gcc-13` / `g++-13`，使用项目声明的 CUDA 13 pip 组件。CUDA 13 通常要求驱动 ≥580；旧驱动按 [FAQ](./faq_zh.md#cuda-driver-version-is-insufficient) 核对 GPU 与兼容库，安装、起服、GPU SDK 的每个新终端都需恢复相关环境变量。不要只凭驱动号宣告所有后端不可用。
 
-vLLM 完整环境按教程至少预留 40 GB 磁盘；内存有限时降低 `MAX_JOBS`，显存按上下文和并发实际检查，不把某次测试硬件当成统一门槛。CPU / Metal 路线无需执行 `nvidia-smi`；Mac 先查 `xcode-select -p`，编译还需 CMake。
+vLLM 完整环境按教程至少预留 40 GB 磁盘；内存有限时降低 `MAX_JOBS`，显存按上下文和并发实际检查，不把某次测试硬件当成统一门槛。CPU / Metal 路线无需执行 `nvidia-smi`；Mac 先查 `xcode-select -p`，编译还需 CMake。Ollama 路线不编译源码，也不需要 CUDA toolkit 或 Python 推理环境。
 
 ## 3. 通过 pip 安装 SDK
 
@@ -76,7 +78,7 @@ minicpmvocr list-backends
 python -c 'from importlib.metadata import version; import minicpmvocr, paddle, paddlex; print(version("minicpm-ocr"), minicpmvocr.__file__); print(paddle.__version__, paddlex.__version__)'
 ```
 
-记录实际安装的发行包版本，确认导入路径位于 `.minicpm-ocr` 环境的 `site-packages`；后端列表包含 `vllm`、`llamacpp`、`openai`，版面 provider 包含 `ppdoclayout3_paddlex`。这里同时沿用根项目的 `paddlex==3.4.2` 和 `pypdfium2>=4` 依赖，避免版面检测依赖缺失。需要复现特定环境时，再为 SDK 指定版本。
+记录实际安装的发行包版本，确认导入路径位于 `.minicpm-ocr` 环境的 `site-packages`；后端列表包含 `vllm`、`llamacpp`、`ollama`、`openai`，版面 provider 包含 `ppdoclayout3_paddlex`。这里同时沿用根项目的 `paddlex==3.4.2` 和 `pypdfium2>=4` 依赖，避免版面检测依赖缺失。需要复现特定环境时，再为 SDK 指定版本。
 
 需要 GPU 版面检测时，将上面的 CPU PaddlePaddle 安装行替换为教程中的 GPU 安装命令（CPU/GPU 包二选一），后面的 SDK 命令改用 `--device cuda:0`，仍激活同一个 `.minicpm-ocr` 环境：
 
@@ -135,7 +137,7 @@ CUDA_VISIBLE_DEVICES=0 vllm serve ./models/MiniCPM-OCR-1.0 \
 curl --noproxy 127.0.0.1 -fsS http://127.0.0.1:18499/v1/models
 ```
 
-返回模型列表包含 `minicpm-ocr` 后，继续第 7 节带图与 SDK 验证。
+返回模型列表包含 `minicpm-ocr` 后，继续第 8 节带图与 SDK 验证。
 
 ## 5. SGLang：准备指定源码、安装与启动
 
@@ -191,7 +193,7 @@ CUDA_VISIBLE_DEVICES=0 python -m sglang.launch_server \
 
 不启用 DSpark 时删除 `--speculative-algorithm` 和 `--speculative-draft-model-path` 两个参数，跳过草稿下载。使用 DSpark 时保持匹配的主模型和草稿模型；不要套用 vLLM 的投机 JSON。
 
-在另一终端运行第 4 节的 `/v1/models` 检查，确认有 `minicpm-ocr`，再按第 7 节使用 `--backend sglang` 验证。若端口已被占用，改服务端口与所有客户端地址；同一张卡上切换服务前先确认原服务的占用。
+在另一终端运行第 4 节的 `/v1/models` 检查，确认有 `minicpm-ocr`，再按第 8 节使用 `--backend sglang` 验证。若端口已被占用，改服务端口与所有客户端地址；同一张卡上切换服务前先确认原服务的占用。
 
 ## 6. llama.cpp：GGUF、编译与启动
 
@@ -284,7 +286,7 @@ cmake --build sources/llama.cpp/build -j 8 --target llama-server
   --parallel 1 --reasoning off
 ```
 
-`--model-draft` 加载配套草稿，`--spec-type draft-dspark` 启用 DSpark，`--spec-draft-n-max 15` 将每步草稿长度上限设为 15。不启用 DSpark 时删除这三个参数和 `--gpu-layers-draft`，并跳过草稿下载。CPU 推理将 `--n-gpu-layers` 和 `--gpu-layers-draft` 都改为 `0`，并追加 `--no-mmproj-offload`。上下文 40960 不是低内存保证；内存或显存不足时先降低 `--ctx-size`，并同步第 7 节的 `engine.max_model_len`。保留 `--reasoning off`：适配 PR 指出，默认 `auto` 可能将识别文本放进 `reasoning_content`，而当前 SDK 读取 `content`，导致读到空输出。自行转换权重时还需核对模板，按指南加入 `--chat-template-kwargs '{"enable_thinking":false}'`。启动日志应出现 `adding speculative implementation 'draft-dspark'`。
+`--model-draft` 加载配套草稿，`--spec-type draft-dspark` 启用 DSpark，`--spec-draft-n-max 15` 将每步草稿长度上限设为 15。不启用 DSpark 时删除这三个参数和 `--gpu-layers-draft`，并跳过草稿下载。CPU 推理将 `--n-gpu-layers` 和 `--gpu-layers-draft` 都改为 `0`，并追加 `--no-mmproj-offload`。上下文 40960 不是低内存保证；内存或显存不足时先降低 `--ctx-size`，并同步第 8 节的 `engine.max_model_len`。保留 `--reasoning off`：适配 PR 指出，默认 `auto` 可能将识别文本放进 `reasoning_content`，而当前 SDK 读取 `content`，导致读到空输出。自行转换权重时还需核对模板，按指南加入 `--chat-template-kwargs '{"enable_thinking":false}'`。启动日志应出现 `adding speculative implementation 'draft-dspark'`。
 
 在另一终端检查：
 
@@ -293,17 +295,123 @@ curl --noproxy 127.0.0.1 -fsS http://127.0.0.1:18499/health
 curl --noproxy 127.0.0.1 -fsS http://127.0.0.1:18499/v1/models
 ```
 
-`/health` 返回 `status=ok`，模型列表核对别名 `minicpm-ocr`，然后执行第 7 节。不要用 SDK 启动脚本的历史默认模型路径覆盖本节下载路径。
+`/health` 返回 `status=ok`，模型列表核对别名 `minicpm-ocr`，然后执行第 8 节。不要用 SDK 启动脚本的历史默认模型路径覆盖本节下载路径。
 
-## 7. 三层验证：就绪、带图请求、单页解析
+## 7. Ollama：安装、注册模型与启动
 
-### 7.1 就绪
+这一路线对应 [Ollama 部署指南](./ollama_deploy_zh.md)：把 Q8_0 主模型、F16 4× 视觉投影器和 Q8_0 DSpark 草稿模型注册成一个 Ollama 模型，默认启用 DSpark。Ollama 自带推理运行时，不需要编译源码，也不需要 CUDA toolkit 或 Python 推理环境。
 
-按相应后端检查 `/v1/models`，llama.cpp 另查 `/health`。模型名与客户端一致，SDK 的 URL 为服务根地址 `http://127.0.0.1:18499`，不带 `/v1`。健康检查成功只说明可访问。
+### 7.1 确认或安装 Ollama ≥0.40.12
 
-### 7.2 用当前 SDK 客户端发送一个真实图片块
+Modelfile 中加载 DSpark 草稿模型的 `DRAFT` 需要 Ollama 0.40.12 或更新版本。旧版本不会拒绝下文的 Modelfile：在 0.32.1 上 `ollama create` 照样成功，问题要到推理时才暴露。因此先核对版本，不能用注册成功代替版本检查。
 
-激活已安装的 SDK 环境，准备含清晰文字的 `sample.png`（真实裁切的文字块），按后端替换 `OCR_BACKEND`：vLLM 为 `vllm`，SGLang 为 `sglang`，llama.cpp 为 `llamacpp`。模型 ID、URL 按实际服务调整：
+`ollama --version` 打印的是它连接到的**服务端**版本，客户端版本只在两者不一致时以警告出现。机器上可能已有系统服务占用默认地址 `127.0.0.1:11434`；核对前把 `OLLAMA_HOST` 设成要使用的实例，或在服务启动后查 `/api/version`（见 7.4）。
+
+Linux 上可按部署指南用官方脚本安装参考版本。它需要 sudo，会替换系统中已有的 Ollama 并注册系统服务，影响机器上的其他用户：
+
+```bash
+curl -fsSL https://ollama.com/install.sh | OLLAMA_VERSION=0.40.12 sh
+```
+
+没有 sudo，或系统中已有他人在用的旧版本时，不要升级系统安装。改为把同版本的 Linux 包（约 1.5 GB，含 CUDA 运行库）解压到工作目录，只在当前终端使用；解压需要 `zstd`：
+
+```bash
+mkdir -p sources/ollama-0.40.12
+curl -fL -o sources/ollama-linux-amd64-0.40.12.tar.zst \
+  https://github.com/ollama/ollama/releases/download/v0.40.12/ollama-linux-amd64.tar.zst
+tar --zstd -xf sources/ollama-linux-amd64-0.40.12.tar.zst -C sources/ollama-0.40.12
+export PATH="$PWD/sources/ollama-0.40.12/bin:$PATH"
+```
+
+之后每个新终端都先恢复这个 `PATH`。macOS 和 Windows 按[官方下载页](https://ollama.com/download)安装；GPU 与驱动要求见 [Ollama GPU 文档](https://docs.ollama.com/gpu)。
+
+### 7.2 下载三个 GGUF 文件
+
+三个文件都需要，且来自同一个 1.0 发布：
+
+| 文件 | 大小约 | 用途 |
+|---|---|---|
+| `MiniCPM-OCR-1_0-Q8_0.gguf` | 0.81 GB | Q8_0 主模型 |
+| `mmproj-model-f16-4x.gguf` | 0.90 GB | F16 4× 视觉投影器，图片输入必需 |
+| `dspark-MiniCPM-OCR-1_0-Q8_0.gguf` | 0.33 GB | Q8_0 DSpark 草稿模型 |
+
+```bash
+mkdir -p ./models/MiniCPM-OCR-1.0-gguf
+curl -fL --retry 3 \
+  -o ./models/MiniCPM-OCR-1.0-gguf/MiniCPM-OCR-1_0-Q8_0.gguf \
+  https://huggingface.co/openbmb/MiniCPM-OCR-1.0-gguf/resolve/main/MiniCPM-OCR-1_0-Q8_0.gguf
+curl -fL --retry 3 \
+  -o ./models/MiniCPM-OCR-1.0-gguf/mmproj-model-f16-4x.gguf \
+  https://huggingface.co/openbmb/MiniCPM-OCR-1.0-gguf/resolve/main/mmproj-model-f16-4x.gguf
+curl -fL --retry 3 \
+  -o ./models/MiniCPM-OCR-1.0-gguf/dspark-MiniCPM-OCR-1_0-Q8_0.gguf \
+  https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark-gguf/resolve/main/dspark-MiniCPM-OCR-1_0-Q8_0.gguf
+```
+
+无法访问 Hugging Face 时改用 ModelScope：把 URL 前缀 `https://huggingface.co/openbmb/` 换成 `https://modelscope.cn/models/OpenBMB/`，`/resolve/main/` 换成 `/resolve/master/`。已有这三个文件时直接复用；第 6 节的 F16 主模型和 F16 草稿模型文件名不同，视觉投影器是同一个文件，两条路线可共用这个目录。
+
+### 7.3 启动服务
+
+在新的服务终端中，从仓库根目录执行：
+
+```bash
+export OLLAMA_HOST=127.0.0.1:18499
+export OLLAMA_MODELS="$PWD/models/ollama"
+export OLLAMA_NUM_PARALLEL=1
+export OLLAMA_MAX_LOADED_MODELS=1
+export OLLAMA_VULKAN=0
+CUDA_VISIBLE_DEVICES=0 ollama serve
+```
+
+保持该终端运行，日志输出在这里，第 8.4 节要用。
+
+- `OLLAMA_MODELS` 让注册的模型（会复制一份 GGUF，约 2 GB）放在工作目录，不写入系统 Ollama 的模型库。
+- `OLLAMA_NUM_PARALLEL=1` 只开一个请求槽位，SDK 侧对应 `--workers 1`。
+- `OLLAMA_VULKAN=0` 用于 NVIDIA GPU。0.40.12 默认同时启用 Vulkan，而 Vulkan 不受 `CUDA_VISIBLE_DEVICES` 限制：在一台多卡机器上实测，它把模型调度到另一张卡，实际却在 CPU 软件渲染器 `llvmpipe` 上运行，`ollama ps` 仍显示 `100% GPU`，一个文字块要几十秒。关闭后才按 `CUDA_VISIBLE_DEVICES` 使用指定的卡，首个请求后在服务日志中确认 `using device CUDA0`。
+- 其他平台按部署指南直接 `ollama serve`，由 Ollama 自动选择后端。端口 `18499` 与本文其他后端一致；被占用时改用空闲端口，并同步后续所有地址。
+
+### 7.4 注册模型并检查
+
+新开终端，从仓库根目录执行。每条 `ollama` 命令都要设置与服务相同的 `OLLAMA_HOST`；不设置时 CLI 连接默认的 `127.0.0.1:11434`，可能把模型注册进机器上另一个 Ollama 实例。
+
+```bash
+export OLLAMA_HOST=127.0.0.1:18499
+cat > ./models/MiniCPM-OCR-1.0-gguf/Modelfile <<'EOF'
+FROM ./MiniCPM-OCR-1_0-Q8_0.gguf
+FROM ./mmproj-model-f16-4x.gguf
+DRAFT ./dspark-MiniCPM-OCR-1_0-Q8_0.gguf
+REQUIRES 0.40.12
+PARAMETER num_ctx 8192
+PARAMETER temperature 0
+PARAMETER draft_num_predict 15
+EOF
+
+ollama create minicpm-ocr -f ./models/MiniCPM-OCR-1.0-gguf/Modelfile
+ollama show minicpm-ocr
+ollama show minicpm-ocr --modelfile | grep -E '^(DRAFT|PARAMETER)'
+curl --noproxy 127.0.0.1 -fsS http://127.0.0.1:18499/api/version
+curl --noproxy 127.0.0.1 -fsS http://127.0.0.1:18499/api/tags
+```
+
+通过标准：`/api/version` 不低于 `0.40.12`；`ollama show` 的 Capabilities 含 `vision`，并显示 `requires 0.40.12`；`--modelfile` 输出含 `DRAFT` 和 `PARAMETER draft_num_predict 15`；`/api/tags` 列出 `minicpm-ocr:latest`。Modelfile 中的路径相对其所在目录。保留 GGUF 内嵌的对话模板，不需要额外关闭 thinking：实测 SDK 的请求输出中没有思考内容。不要使用 `sdk/scripts/start_ollama.sh` 的默认值，其中的模型名 `surgery-ocr` 和 Modelfile 路径是历史值。
+
+SDK 连接 Ollama 时注意：
+
+- 使用 `--backend ollama --model minicpm-ocr`，地址写服务根地址 `http://127.0.0.1:18499`，不带 `/api` 或 `/v1`。SDK 通过 `/api/tags` 检查模型是否已注册。
+- SDK 在每个请求中发送 `num_ctx`（默认 8192），覆盖 Modelfile 的 `PARAMETER num_ctx`。两者保持一致，并把 `engine.max_model_len` 设成同一个值，让 SDK 按这个上下文给输出 token 设上限。
+- 用 `--workers 1` 对应单个请求槽位；多余的请求只会在 Ollama 排队。
+
+首次请求会加载主模型和草稿模型，可能需要一两分钟。然后执行第 8 节，并按 8.4 节确认 DSpark。
+
+## 8. 三层验证：就绪、带图请求、单页解析
+
+### 8.1 就绪
+
+按相应后端检查 `/v1/models`，llama.cpp 另查 `/health`，Ollama 查 `/api/tags`。模型名与客户端一致，SDK 的 URL 为服务根地址 `http://127.0.0.1:18499`，不带 `/v1` 或 `/api`。健康检查成功只说明可访问。
+
+### 8.2 用当前 SDK 客户端发送一个真实图片块
+
+激活已安装的 SDK 环境，准备含清晰文字的 `sample.png`（真实裁切的文字块），按后端替换 `OCR_BACKEND`：vLLM 为 `vllm`，SGLang 为 `sglang`，llama.cpp 为 `llamacpp`，Ollama 为 `ollama`。模型 ID、URL 按实际服务调整：
 
 ```bash
 source .minicpm-ocr/bin/activate
@@ -337,11 +445,11 @@ print("finish_reason:", result["finish_reason"])
 PYTEST
 ```
 
-这段使用当前 `create_backend` / `recognize` 接口，按后端生成请求，避免手工把 vLLM 字段发给其他服务。若服务上下文已调小，同步修改脚本里的 `max_model_len`。检查输出是否与图片一致；非空断言不能代替识别质量判断。直接调用客户端返回模型原始输出，表格后处理由完整流水线完成。
+这段使用当前 `create_backend` / `recognize` 接口，按后端生成请求，避免手工把 vLLM 字段发给其他服务；Ollama 会忽略其中的 `extra_body`，脚本可原样使用。若服务上下文已调小，同步修改脚本里的 `max_model_len`。检查输出是否与图片一致；非空断言不能代替识别质量判断。直接调用客户端返回模型原始输出，表格后处理由完整流水线完成。
 
-### 7.3 用 SDK 解析一页
+### 8.3 用 SDK 解析一页
 
-下面三个示例**按所选后端执行一个**。先激活 `.minicpm-ocr`。默认 CPU 版面；第 3 节选择 GPU PaddlePaddle 时可改用 `--device cuda:0`。`doc.pdf` 也可换成 PNG/JPG。使用 `parse` 的包内配置以启用版面模型自动准备。
+下面四个示例**按所选后端执行一个**。先激活 `.minicpm-ocr`。默认 CPU 版面；第 3 节选择 GPU PaddlePaddle 时可改用 `--device cuda:0`。`doc.pdf` 也可换成 PNG/JPG。使用 `parse` 的包内配置以启用版面模型自动准备。
 
 vLLM：
 
@@ -375,6 +483,16 @@ minicpmvocr parse --backend llamacpp \
   --input doc.pdf --output out-llamacpp.md
 ```
 
+Ollama（单槽位，上下文与 Modelfile 一致）：
+
+```bash
+minicpmvocr parse --backend ollama \
+  --server-url http://127.0.0.1:18499 --model minicpm-ocr \
+  --device cpu --workers 1 --set input.limit=1 \
+  --set engine.num_ctx=8192 --set engine.max_model_len=8192 \
+  --input doc.pdf --output out-ollama.md
+```
+
 通过标准：输出 Markdown 非空，日志没有失败的页/块，文字与原图一致；表格页检查 HTML `<table>`，公式页检查 LaTeX，不能残留未经处理的 `<otsl>` 或明显截断。通过后去掉 `input.limit=1` 处理全篇；vLLM / SGLang 再按显存逐步增加 SDK workers 与服务并发。
 
 默认解析无需 `--config`。需要自定义配置时，先从已安装的包中定位参考 YAML，再通过 `--config` 指向该文件或自己的副本，并显式设置 `layout.model_dir` 为已准备好的模型：
@@ -385,7 +503,7 @@ python -c 'from importlib.resources import files; print(files("minicpmvocr").joi
 
 该配置的源码位置为 `sdk/minicpmvocr/configs/minicpmvocr.yaml`，pip 用户无需准备此源码路径。不要再引用不存在的 `configs/backends/*.yaml`。`--set` 中的路径按配置目录解析，使用绝对路径；`--input` 按当前目录解析。`run` 等分阶段命令需要 `--set input.file_path=/absolute/path/doc.pdf`；重跑时更换 `run.run_tag`，需要时用 `run.run_root` 指定磁盘。
 
-### 7.4 可选：验证 DSpark 加速
+### 8.4 可选：验证 DSpark 加速
 
 vLLM 开启 DSpark 后，发出实际请求再查：
 
@@ -395,7 +513,9 @@ curl --noproxy 127.0.0.1 -fsS http://127.0.0.1:18499/metrics | grep spec_decode_
 
 只有观测到 draft / accepted token 指标随请求增长，才报告 vLLM DSpark 已生效。SGLang 需检查其实际日志/指标中的 DSPARK 行为，不复用 vLLM 指标名。llama.cpp 在启动日志中确认 `adding speculative implementation 'draft-dspark'`，首次推理后再看 `draft acceptance`。
 
-## 8. 按失败阶段排查并汇报
+Ollama 在 `ollama serve` 的终端输出中检查：首次请求加载模型时出现 `adding speculative implementation 'draft-dspark'`，之后每个请求出现 `draft acceptance = …` 和 `statistics     draft-dspark` 行，其中接受的 token 数应大于 0。
+
+## 9. 按失败阶段排查并汇报
 
 | 现象 | 处理 |
 |---|---|
@@ -406,10 +526,13 @@ curl --noproxy 127.0.0.1 -fsS http://127.0.0.1:18499/metrics | grep spec_decode_
 | CUDA 驱动错误 | 按 FAQ 核对 GPU、驱动与兼容库，在当前终端恢复环境变量 |
 | llama.cpp 无法加载模型或图像 | 核对主模型、投影器、草稿 GGUF、源码 SHA、二进制版本和实际后端；不能仅以 `/health` 成功判断支持图片 |
 | llama.cpp 链接/动态库错误 | 核查 CMake 日志、CUDA toolkit 和动态库搜索路径，按实际缺库处理，不套用历史绝对路径 |
+| Ollama `create` 成功，但推理失败或日志没有 DSpark | 用 `/api/version` 核对服务端不低于 0.40.12；旧版本同样接受含 `REQUIRES`、`DRAFT` 的 Modelfile |
+| Ollama 识别很慢，`ollama ps` 却显示 `100% GPU` | 在服务日志查 `using device`；若是 Vulkan 设备或 `llvmpipe`，NVIDIA 机器上以 `OLLAMA_VULKAN=0` 重启服务 |
+| SDK 报 Ollama `model ... not found`，或长时间停在等待就绪 | 模型注册在别的 Ollama 实例：在设置相同 `OLLAMA_HOST` 的终端重新 `ollama create`，或把 `--server-url` 指向注册时的实例。SDK 默认最多等 30 分钟（`engine.startup_timeout_sec`），排查时可调小 |
 | vLLM 请求 400 / SDK 反复重试 | 核对 `--trust-request-mm-kwargs`、图片数量限制和服务端原始错误 |
-| 输出为空、thinking 标签、乱码 | 核对实际模型 ID 和关闭 thinking 的模板参数；llama.cpp 确认启动时带 `--reasoning off`，并检查 GGUF 模板 |
+| 输出为空、thinking 标签、乱码 | 核对实际模型 ID 和关闭 thinking 的模板参数；llama.cpp 确认启动时带 `--reasoning off`，并检查 GGUF 模板；Ollama 确认 Modelfile 没有另写 `TEMPLATE`，使用 GGUF 内嵌模板 |
 | 显存不足 / 编译进程被杀 | 区分运行显存与编译 RAM；分别降低上下文/并发或 `MAX_JOBS` |
-| `/v1/models` 正常但解析失败 | 先跑 7.2 的单块请求，再区分识别服务、版面模型/设备与流水线问题 |
+| `/v1/models` 正常但解析失败 | 先跑 8.2 的单块请求，再区分识别服务、版面模型/设备与流水线问题 |
 | 端口已占用 / 服务不在本机 | 同步修改服务监听地址与客户端 URL；可用 SSH 隧道 `ssh -L 18499:127.0.0.1:18499 user@host` |
 
 汇报实际使用的后端、源码 SHA/包版本、模型文件、设备、地址，以及安装检查、健康检查、带图请求、单页解析分别通过与否。安装成功、服务就绪、识别正确、DSpark 生效是不同结论。不要在排错时删除用户环境、重置源码或用未核实的临时补丁掩盖版本不匹配。
