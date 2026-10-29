@@ -206,6 +206,18 @@ Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL_jev
 
 安装、模型下载、显存、输入格式与输出异常等常见问题汇总在 [FAQ](./docs/faq_zh.md)。
 
+## Star 历史
+
+<p align="center">
+  <a href="https://www.star-history.com/?repos=openbmb%2Fminicpm-ocr&amp;type=date&amp;legend=top-left">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=openbmb/minicpm-ocr&amp;type=date&amp;legend=top-left&amp;theme=dark">
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=openbmb/minicpm-ocr&amp;type=date&amp;legend=top-left">
+      <img src="https://api.star-history.com/chart?repos=openbmb/minicpm-ocr&amp;type=date&amp;legend=top-left" alt="MiniCPM-OCR 的 GitHub Star 数量随时间的变化。" width="100%">
+    </picture>
+  </a>
+</p>
+
 ## 📄 许可
 
 本项目整体采用 [Apache License 2.0](./LICENSE) 开源，包括代码、文档，以及 MiniCPM-OCR 1.0、MiniCPM-OCR Jev 等模型权重。

@@ -208,6 +208,18 @@ Run the models on your own hardware: MiniCPM-OCR 1.0 parses PDFs and images into
 
 See the [FAQ](./docs/faq_en.md) for common questions about installation, model downloads, GPU memory, input formats, and unexpected outputs.
 
+## Star History
+
+<p align="center">
+  <a href="https://www.star-history.com/?repos=openbmb%2Fminicpm-ocr&amp;type=date&amp;legend=top-left">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=openbmb/minicpm-ocr&amp;type=date&amp;legend=top-left&amp;theme=dark">
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=openbmb/minicpm-ocr&amp;type=date&amp;legend=top-left">
+      <img src="https://api.star-history.com/chart?repos=openbmb/minicpm-ocr&amp;type=date&amp;legend=top-left" alt="GitHub star history for MiniCPM-OCR over time." width="100%">
+    </picture>
+  </a>
+</p>
+
 ## 📄 License
 
 The entire project is released under the [Apache License 2.0](./LICENSE), including code, documentation, and model weights for MiniCPM-OCR 1.0 and MiniCPM-OCR Jev.
