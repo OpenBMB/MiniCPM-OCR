@@ -10,11 +10,11 @@ PyPI 介绍以根目录 `README.md` 为唯一内容来源。`scripts/prepare_pyp
 
 PyPI 项目的 **Manage → Publishing** 中应配置 GitHub 可信发布者：Owner 为 `OpenBMB`，Repository 为 `MiniCPM-OCR`，Workflow 为 `publish-pypi.yml`，Environment 为 `pypi`。
 
-`.github/workflows/publish-pypi.yml` 使用 OIDC 发布，无需保存 PyPI API Token。手动运行工作流仅构建检查；推送与 SDK 版本一致的 `sdk-v*` 标签会在构建、元数据和安装检查通过后上传到 PyPI。例如版本 `1.0.2`：
+`.github/workflows/publish-pypi.yml` 使用 OIDC 发布，无需保存 PyPI API Token。手动运行工作流仅构建检查；推送与 SDK 版本一致的 `sdk-v*` 标签会在构建、元数据和安装检查通过后上传到 PyPI。例如版本 `1.0.3`：
 
 ```bash
-git tag sdk-v1.0.2
-git push origin sdk-v1.0.2
+git tag sdk-v1.0.3
+git push origin sdk-v1.0.3
 ```
 
 ## 构建与检查
@@ -40,10 +40,10 @@ python -m twine upload sdk/dist/*
 
 按提示提供 PyPI API Token。上传方式见 [PyPA 官方发布教程](https://packaging.python.org/en/latest/tutorials/packaging-projects/#uploading-the-distribution-archives)。同一版本不能覆盖上传，后续发布需递增版本号。
 
-确认 [PyPI 项目页](https://pypi.org/project/minicpm-ocr/) 出现对应版本后，即可安装。以下以 `1.0.2` 为例：
+确认 [PyPI 项目页](https://pypi.org/project/minicpm-ocr/) 出现对应版本后，即可安装。以下以 `1.0.3` 为例：
 
 ```bash
-python -m pip install "minicpm-ocr[all]==1.0.2"
+python -m pip install "minicpm-ocr[all]==1.0.3"
 ```
 
 PaddlePaddle GPU 运行时需单独安装，具体命令见[安装与推理教程](./minicpm_ocr_tutorial.md#1-sdk-环境配置)。

@@ -1,7 +1,11 @@
 <div align="center">
 
 <p align="center">
-  <img src="./assets/minicpm-ocr/homepage-banner.svg" alt="上方为面壁小钢炮 MiniCPM 品牌标识，下方为 MiniCPM-OCR：快速、准确地将文档解析为文本、表格和公式，通过闪电箭头连接文档与结构化结果；decision model 辅助标出需要复核的区域（示意图）。" width="100%">
+  <img src="./assets/minicpm-ocr/release-hero.svg" alt="MiniCPM-OCR：快速、准确地将文档解析为文本、表格和公式，通过闪电箭头连接文档与结构化结果；decision model 辅助标出需要复核的区域（示意图）。" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://github.com/OpenBMB/MiniCPM"><img src="./assets/minicpm-ocr/minicpm-logo.jpg" width="300" alt="面壁小钢炮 MiniCPM"></a>
 </p>
 
 <p align="center">
@@ -22,7 +26,7 @@
   <a href="./docs/minicpm_ocr_tutorial.md">本地部署</a>
   &nbsp;|&nbsp; <a href="./README.md">English</a>
   <br>
-  <a href="#community"><strong>加入社区</strong></a> &nbsp;·&nbsp;
+  加入社区：
   <a href="https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=c35j072a-9abe-4ba6-ba1d-3ab340f9ba8c">飞书</a> &nbsp;·&nbsp;
   <a href="https://discord.gg/JE8KQqtdn">Discord</a>
 </p>
@@ -205,29 +209,6 @@ Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL_jev
 <td width="360">面向文本、公式和表格的 OCR 正确性判别模型，输入图像及 OCR 结果即可获得 0–1 的质量评分。</td>
 <td align="center" valign="middle" colspan="2"><a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev"><img src="./assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>BF16</strong>&emsp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev-gguf">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-gguf"><img src="./assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>GGUF</strong><br><a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev-AWQ">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-AWQ"><img src="./assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>AWQ</strong>&emsp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev-GPTQ">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-GPTQ"><img src="./assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>GPTQ</strong></td>
 </tr>
-</table>
-
-<a id="community"></a>
-
-## 加入社区
-
-欢迎加入 MiniCPM-OCR 社区，交流使用经验、反馈问题，并了解后续活动。点击链接或扫描二维码即可加入。
-
-<table>
-  <tr>
-    <th align="center">国内交流 · 飞书</th>
-    <th align="center">海外交流 · Discord</th>
-  </tr>
-  <tr>
-    <td align="center">
-      <a href="https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=c35j072a-9abe-4ba6-ba1d-3ab340f9ba8c"><img src="./assets/minicpm-ocr/community-feishu-qr.png" width="200" alt="扫描二维码加入 MiniCPM-OCR 飞书交流群"></a><br>
-      <a href="https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=c35j072a-9abe-4ba6-ba1d-3ab340f9ba8c">加入飞书群</a>
-    </td>
-    <td align="center">
-      <a href="https://discord.gg/JE8KQqtdn"><img src="./assets/minicpm-ocr/community-discord-qr.png" width="200" alt="扫描二维码加入 MiniCPM-OCR Discord 社区"></a><br>
-      <a href="https://discord.gg/JE8KQqtdn">加入 Discord</a>
-    </td>
-  </tr>
 </table>
 
 ## 💡 常见问题与排查
