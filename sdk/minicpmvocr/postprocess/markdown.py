@@ -316,8 +316,6 @@ def assemble_markdown(blocks: list, prompt_cfg: dict) -> str:
                 parts.append(formula_fmt[label].format(content=content))
         elif label == "table":
             parts.append(table_fmt.format(content=content))
-        elif label in ("header_image", "footer_image") and content:
-            parts.append(content)
         elif label in ("image", "header_image", "footer_image"):
             parts.append(render_image_block(block, content))
         elif label == "chart":
