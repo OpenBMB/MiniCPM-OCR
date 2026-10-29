@@ -105,9 +105,8 @@ Extract the "店名", "金额". Format the output as a JSON object with keys: "�
 | 推理方式 | 使用说明 |
 | :--- | :--- |
 | vLLM | [API 服务与单块识别](./vllm_deploy.md) |
-| Transformers | [Transformers 服务部署](./SKILL.md#43-transformers-serve) |
 | SGLang | [部署指南](./sglang_deploy_zh.md) |
-| llama.cpp | [GGUF 部署指南（英文）](./llamacpp_deploy.md) |
+| llama.cpp | [GGUF 部署指南](./llamacpp_deploy_zh.md) |
 | Ollama | [部署指南](./ollama_deploy_zh.md) |
 | FlagOS | [多芯片部署指南](./flagos_deploy_zh.md) |
 
@@ -215,7 +214,7 @@ SDK 的 `pipeline.max_workers` 控制识别块请求数，`pipeline.page_workers
 
 ## 复现
 
-测试设置、DSpark 对照要求与待补充的评测信息见 [复现文档](./benchmark_reproduction_zh.md)；已记录的 SDK 实测环境见 [已验证版本](./SKILL.md#9-已验证版本)。
+测试设置、DSpark 对照要求与待补充的评测信息见 [复现文档](./benchmark_reproduction_zh.md)；当前依赖版本和前置条件见 [版本与环境检查](./SKILL.md#2-以当前仓库为准检查版本和前置条件)。
 
 ## 常见问题
 

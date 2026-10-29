@@ -1,7 +1,7 @@
 <div align="center">
 
 <p align="center">
-  <img src="./assets/minicpm-ocr/release-hero.svg" alt="MiniCPM-OCR: fast, accurate document parsing into text, tables, and formulas, with a lightning arrow connecting documents to structured results; a decision model helps identify regions that need review (illustration)." width="100%">
+  <img src="./assets/minicpm-ocr/homepage-banner.svg" alt="MiniCPM brand logo above MiniCPM-OCR: fast, accurate document parsing into text, tables, and formulas, with a lightning arrow connecting documents to structured results; a decision model helps identify regions that need review (illustration)." width="100%">
 </p>
 
 <p align="center">
@@ -14,15 +14,17 @@
   <strong>Official Demo</strong> (<a href="https://platform.modelbest.cn/console/playground/document-parse">CN</a> / <a href="https://platform.modelbest.ai/console/playground/document-parse">Global</a>)
   &nbsp;·&nbsp;
   Basic Demo (<a href="http://82.157.64.212:10111/playground/document-parse">CN</a> / <a href="https://huggingface.co/spaces/openbmb/MiniCPM-OCR">Global</a>)
-</p>
-
-<p align="center">
+  <br>
   <a href="#quick-start">Get Started</a> &nbsp;·&nbsp;
   <a href="#model-weights">Weights</a> &nbsp;·&nbsp;
   <a href="https://platform.modelbest.ai/console/docs/api/document-parse">Free API</a> &nbsp;·&nbsp;
   <a href="#skill">Skill</a> &nbsp;·&nbsp;
   <a href="./docs/minicpm_ocr_tutorial_en.md">Local Deployment</a>
   &nbsp;|&nbsp; <a href="./README_zh.md">中文</a>
+  <br>
+  <a href="#community"><strong>Join the Community</strong></a> &nbsp;·&nbsp;
+  <a href="https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=c35j072a-9abe-4ba6-ba1d-3ab340f9ba8c">Feishu / Lark</a> &nbsp;·&nbsp;
+  <a href="https://discord.gg/JE8KQqtdn">Discord</a>
 </p>
 
 </div>
@@ -205,6 +207,29 @@ Run the models on your own hardware: MiniCPM-OCR 1.0 parses PDFs and images into
 <td width="360">An OCR correctness decision model for text, formulas, and tables. Given an image and its OCR result, it returns a quality score from 0 to 1.</td>
 <td align="center" valign="middle" colspan="2"><a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev"><img src="./assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>BF16</strong>&emsp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev-gguf">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-gguf"><img src="./assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>GGUF</strong><br><a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev-AWQ">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-AWQ"><img src="./assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>AWQ</strong>&emsp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev-GPTQ">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-GPTQ"><img src="./assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>GPTQ</strong></td>
 </tr>
+</table>
+
+<a id="community"></a>
+
+## Join the Community
+
+Join the MiniCPM-OCR community to share experiences, give feedback, and hear about upcoming events. Click a link or scan a QR code to join.
+
+<table>
+  <tr>
+    <th align="center">China · Feishu / Lark</th>
+    <th align="center">Global · Discord</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=c35j072a-9abe-4ba6-ba1d-3ab340f9ba8c"><img src="./assets/minicpm-ocr/community-feishu-qr.png" width="200" alt="Scan to join the MiniCPM-OCR Feishu community"></a><br>
+      <a href="https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=c35j072a-9abe-4ba6-ba1d-3ab340f9ba8c">Join Feishu / Lark</a>
+    </td>
+    <td align="center">
+      <a href="https://discord.gg/JE8KQqtdn"><img src="./assets/minicpm-ocr/community-discord-qr.png" width="200" alt="Scan to join the MiniCPM-OCR Discord community"></a><br>
+      <a href="https://discord.gg/JE8KQqtdn">Join Discord</a>
+    </td>
+  </tr>
 </table>
 
 ## 💡 FAQ and Troubleshooting
