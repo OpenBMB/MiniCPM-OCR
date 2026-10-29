@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import sys
 from contextlib import redirect_stdout
 from datetime import datetime
@@ -273,6 +274,33 @@ def _load_parse_config(args: argparse.Namespace) -> dict:
         raise
 
 
+_IMAGE_LINK_RE = re.compile(r"(!\[[^\]]*\]\()(imgs/[^)\s]+)\)")
+
+
+def _sync_markdown_images(run_dir: Path, markdown: str, output_path: Path) -> None:
+    'Copy the run images that relative imgs/ links point at next to the written markdown.'
+    if not _IMAGE_LINK_RE.search(markdown):
+        return
+    src_imgs = run_dir / "output" / "imgs"
+    if not src_imgs.is_dir():
+        return
+    if output_path.parent.resolve() == (run_dir / "output").resolve():
+        return
+    # Merge into an existing imgs/ instead of replacing it: it may hold the user's own files.
+    shutil.copytree(src_imgs, output_path.parent / "imgs", dirs_exist_ok=True)
+
+
+def _absolute_image_links(markdown: str, run_dir: Path) -> str:
+    'Point imgs/ links at the run directory, for markdown that has no directory of its own (stdout).'
+    root = (run_dir / "output").resolve().as_posix()
+
+    def _target(match: re.Match) -> str:
+        path = "%s/%s" % (root, match.group(2))
+        return match.group(1) + ("<%s>" % path if re.search(r"\s", path) else path) + ")"
+
+    return _IMAGE_LINK_RE.sub(_target, markdown)
+
+
 def _read_markdown_from_run(
     run_dir: Path, merge_pages: bool, page_delimiter: str, cfg: dict | None = None
 ) -> tuple[str, int]:
@@ -368,11 +396,12 @@ def main() -> int:
         )
 
         if args.stdout or not args.output:
-            print(markdown)
+            print(_absolute_image_links(markdown, run_dir))
             return 0
 
         output_path = Path(args.output).resolve()
         output_path.parent.mkdir(parents=True, exist_ok=True)
+        _sync_markdown_images(run_dir, markdown, output_path)
         output_path.write_text(markdown, encoding="utf-8")
 
         print(

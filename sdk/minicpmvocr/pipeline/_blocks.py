@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 import time
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -8,9 +9,12 @@ from PIL import Image
 
 from ._text import _normalize_and_dedupe_blocks
 from ._tts import _execute_block_adaptive, _execute_block_tts
+from ..backends import PNG_COMPRESS_LEVEL
+from ..constants import IMAGE_LABELS
 from ..postprocess.markdown import (
     assemble_markdown,
     has_mixed_inline_formula_content,
+    image_render_mode,
     postprocess_content,
 )
 from ..prompts import get_element_cfg
@@ -422,6 +426,45 @@ def _failed_page_result(image_id: str, page_started: float, layout_stage_sec: fl
     }
     return {"page_row": row, "page_timing": page_timing, "crop_rows": []}
 
+
+IMAGE_RENDITION_LABELS = IMAGE_LABELS + ("chart", "seal")
+
+
+def _attach_output_images(run_dir: Path, image_id: str, blocks: List[Dict], prompt_map: Dict,
+                          crop_arrays: Optional[Dict] = None) -> None:
+    'Publish the crops markdown renders as images under output/imgs/ and record their paths.'
+    assembly = prompt_map.get("markdown_assembly", {})
+    if image_render_mode(assembly) != "reference":
+        return
+    ignore_labels = set(assembly.get("ignore_labels", []))
+    crops_dir = run_dir / "runtime" / "intermediate" / "crops" / image_id
+    imgs_dir = run_dir / "output" / "imgs" / image_id
+    for block in blocks:
+        label = block.get("label", "")
+        if label not in IMAGE_RENDITION_LABELS or label in ignore_labels:
+            continue
+        if label in ("chart", "seal") and block.get("content"):
+            continue
+        crop_filename = block.get("crop_filename") or ""
+        crop_array = (crop_arrays or {}).get(crop_filename)
+        crop_path = crops_dir / crop_filename
+        if not crop_filename or (crop_array is None and not crop_path.is_file()):
+            continue
+        try:
+            x1, y1, x2, y2 = (int(round(float(v))) for v in (block.get("bbox") or [])[:4])
+        except (TypeError, ValueError):
+            continue
+        name = "{:03d}_img_in_{}_box_{}_{}_{}_{}.png".format(
+            int(block.get("order", 0)), label, x1, y1, x2, y2
+        )
+        ensure_dir(imgs_dir)
+        if crop_array is not None:
+            Image.fromarray(crop_array).save(imgs_dir / name, compress_level=PNG_COMPRESS_LEVEL)
+        else:
+            shutil.copyfile(crop_path, imgs_dir / name)
+        block["image_path"] = f"imgs/{image_id}/{name}"
+
+
 def _finalize_page(
     *,
     run_dir: Path,
@@ -432,6 +475,7 @@ def _finalize_page(
     prompt_map: Dict,
     page_started: float,
     layout_stage_sec: float,
+    crop_arrays: Optional[Dict] = None,
 ) -> Dict:
     result_blocks = []
     crop_rows: List[Dict] = []
@@ -505,6 +549,7 @@ def _finalize_page(
 
     post_t0 = time.time()
     final_blocks = _normalize_and_dedupe_blocks(result_blocks)
+    _attach_output_images(run_dir, image_id, final_blocks, prompt_map, crop_arrays)
     markdown = assemble_markdown(final_blocks, prompt_map)
     post_process_sec = time.time() - post_t0
 

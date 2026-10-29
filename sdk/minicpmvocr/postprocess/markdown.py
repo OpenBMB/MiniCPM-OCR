@@ -259,6 +259,20 @@ def postprocess_content(content: str, output_format: str, label: str = "") -> st
     return content
 
 
+IMAGE_RENDER_MODES = ("reference", "placeholder")
+
+
+def image_render_mode(assembly: dict) -> str:
+    'markdown_assembly.image_render: "reference" links the saved crop, "placeholder" emits image_format.'
+    mode = str(assembly.get("image_render") or "reference").strip().lower()
+    if mode not in IMAGE_RENDER_MODES:
+        raise ValueError(
+            "markdown_assembly.image_render must be one of %s, got %r"
+            % (", ".join(IMAGE_RENDER_MODES), assembly.get("image_render"))
+        )
+    return mode
+
+
 def assemble_markdown(blocks: list, prompt_cfg: dict) -> str:
     assembly = prompt_cfg.get("markdown_assembly", {})
     ignore_labels = set(assembly.get("ignore_labels", []))
@@ -268,6 +282,22 @@ def assemble_markdown(blocks: list, prompt_cfg: dict) -> str:
     image_fmt = assembly.get("image_format", "![image]()")
     chart_fmt = assembly.get("chart_format", "{content}")
     seal_fmt = assembly.get("seal_format", "{content}")
+    image_render = image_render_mode(assembly)
+    # None (default): show whatever text an image block was recognized with; False hides it.
+    show_image_ocr = assembly.get("image_show_ocr_content") is not False
+
+    def render_image_block(block: dict, content: str) -> str:
+        'PaddleOCR-VL plain style: the image reference, then its recognized text when enabled.'
+        image_path = block.get("image_path") if image_render == "reference" else ""
+        if image_path:
+            part = "![image](%s)" % image_path
+        elif "{content}" in image_fmt:
+            return image_fmt.replace("{content}", content)
+        else:
+            part = image_fmt
+        if show_image_ocr and content:
+            part += "\n\n" + content
+        return part
 
     parts = []
     for block in sorted(blocks, key=lambda x: x.get("order", 0)):
@@ -287,11 +317,11 @@ def assemble_markdown(blocks: list, prompt_cfg: dict) -> str:
         elif label == "table":
             parts.append(table_fmt.format(content=content))
         elif label in ("image", "header_image", "footer_image"):
-            parts.append(image_fmt)
+            parts.append(render_image_block(block, content))
         elif label == "chart":
-            parts.append(chart_fmt.format(content=content) if content else image_fmt)
+            parts.append(chart_fmt.format(content=content) if content else render_image_block(block, content))
         elif label == "seal":
-            parts.append(seal_fmt.format(content=content) if content else image_fmt)
+            parts.append(seal_fmt.format(content=content) if content else render_image_block(block, content))
         else:
             parts.append(content)
-    return "\n\n".join(parts)
+    return "\n\n".join(part for part in parts if part)
