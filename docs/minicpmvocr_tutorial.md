@@ -31,7 +31,7 @@ pip install uv
 uv venv .minicpm-ocr --python 3.12 --seed
 source .minicpm-ocr/bin/activate
 
-python -m pip install "minicpm-ocr[all]==1.0.2"
+python -m pip install --upgrade "minicpm-ocr[all]"
 python -m pip install "paddlepaddle-gpu==3.3.0" \
   -i https://www.paddlepaddle.org.cn/packages/stable/cu129/
 ```
@@ -122,8 +122,8 @@ minicpmvocr parse \
 | 框架 | 文档 |
 |---|---|
 | SGLang | [部署指南（英文）](./sglang_deploy.md)。启动命令带 DSpark。 |
-| llama.cpp | [GGUF 部署指南（英文）](./llamacpp_deploy.md)。不支持 DSpark。 |
-| Ollama | 没有单独的部署文档。SDK 通过 `--backend ollama` 连接已有服务，见 [命令行参数](./minicpmvocr_api.md#命令行参数)。 |
+| llama.cpp | [GGUF 部署指南](./llamacpp_deploy_zh.md)。默认启用 DSpark。 |
+| Ollama | [部署指南](./ollama_deploy_zh.md)。启用 DSpark。 |
 | FlagOS | [多芯片部署指南](./flagos_deploy_zh.md)。 |
 
 ---

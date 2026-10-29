@@ -6,7 +6,7 @@
 
 This document covers the SDK deployment path with llama.cpp's `llama-server` as the forward engine: how to install, start, and call the **score service** and the **render+score service**.
 
-This backend differs from the others in two ways: the model has to be converted to GGUF first, and the prompt is assembled by the engine from a template baked into the GGUF rather than by the SDK.
+This backend differs from the others in two ways: the model comes in GGUF format, published officially and ready to download, and the prompt is assembled by the engine from a template baked into the GGUF rather than by the SDK.
 
 Both services share one forward engine. The only difference is where the render image comes from:
 
@@ -20,7 +20,7 @@ Both services share one forward engine. The only difference is where the render 
 
 ## Deployment steps
 
-1. Build the engine → convert to GGUF → start the forward engine (both services need it)
+1. Build the engine → get the GGUF → start the forward engine (both services need it)
 2. Pick one:
    - **Score service** → install the service environment → start the service
    - **Render+score service** → install the render environment → start the service
@@ -62,21 +62,13 @@ brew install cmake
 
 ## 1. Forward engine
 
-### Source and conversion dependencies
+### Source
 
-Two things, both needed: fetch the source (used for the build and for the GGUF conversion), and install the Python dependencies the conversion needs.
+The build needs the source tree:
 
 ```bash
 git clone https://github.com/ggml-org/llama.cpp.git && cd llama.cpp
-
-# A virtual environment can live anywhere; the same goes for every /opt/venv-* below.
-# macOS: writing to /opt needs sudo, so put it under your home directory, e.g. ~/venv-convert
-python3 -m venv /opt/venv-convert
-source /opt/venv-convert/bin/activate
-pip install -r requirements/requirements-convert_hf_to_gguf.txt
 ```
-
-The conversion dependencies go into a virtual environment of their own: Debian/Ubuntu and friends refuse installs into the system Python. On a slow network add `-i https://<your-mirror>/simple` (in mainland China, for example `https://mirrors.ustc.edu.cn/pypi/simple`).
 
 ### Build
 
@@ -92,42 +84,31 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j --target llama-server
 ```
 
-If you only need the GGUF conversion and not the engine (for example when Ollama runs the forward pass), skip this step — conversion is pure Python and does not need the build artifacts.
+The configure log has to say `Including CUDA backend` (Linux) or `Including METAL backend` (macOS); that line is what confirms the intended backend is enabled.
 
-### Convert to GGUF
+### Get the GGUF
 
-Convert the language model and the vision encoder (`mmproj`) separately. The converter identifies the model by `architectures` in `config.json`, which has to be `MiniCPMOCRForSequenceClassification`. The original weights directory stays untouched: create a separate conversion directory, symlink every other file into it, put an edited copy of `config.json` there, and run both conversions from it:
+Two files are needed: one for the language model, one for the vision encoder (`mmproj`). Both are published in the official [MiniCPM-OCR-Jev-gguf](https://huggingface.co/openbmb/MiniCPM-OCR-Jev-gguf) repository, so just download them:
 
 ```bash
 cd llama.cpp
-source /opt/venv-convert/bin/activate
-mkdir -p ./models/MiniCPM-OCR-Jev-gguf
-for f in ./models/MiniCPM-OCR-Jev/*; do
-  [ "$(basename "$f")" = config.json ] || ln -sf "$PWD/$f" ./models/MiniCPM-OCR-Jev-gguf/
-done
-python - <<'EOF'
-import json
-c = json.load(open("./models/MiniCPM-OCR-Jev/config.json"))
-c["architectures"] = ["MiniCPMOCRForSequenceClassification"]
-json.dump(c, open("./models/MiniCPM-OCR-Jev-gguf/config.json", "w"), indent=2, ensure_ascii=False)
-EOF
-
-python convert_hf_to_gguf.py ./models/MiniCPM-OCR-Jev-gguf \
-  --outtype bf16 --outfile ./models/MiniCPM-OCR-Jev-bf16.gguf
-
-python convert_hf_to_gguf.py ./models/MiniCPM-OCR-Jev-gguf --mmproj \
-  --outtype bf16 --outfile ./models/mmproj-MiniCPM-OCR-Jev-bf16.gguf
+HF_ENDPOINT=https://hf-mirror.com hf download openbmb/MiniCPM-OCR-Jev-gguf \
+  --include "MiniCPM-OCR-Jev-F16.gguf" "mmproj-model-f16.gguf" \
+  --local-dir ./models
 ```
 
-Convert the `mmproj` from the conversion directory too: that is what gives it the same lower bound on image size as in training, so a block image below it is upscaled before encoding. Without it, small images score off.
+- The `hf` command comes from `huggingface_hub`; install it into any virtual environment with `pip install -U "huggingface_hub[cli]"`.
+- `F16` is the unquantized build (3.78 GB). When VRAM or memory is tight, swap the language model in `--include` for a quantized build: `Q8_0` (2.01 GB) or `Q4_K_M` (1.27 GB) — the model card labels the first near-lossless and the second the smallest recommended build. There is only one `mmproj` build; always use `mmproj-model-f16.gguf`.
+- The same repository is on ModelScope as `OpenBMB/MiniCPM-OCR-Jev-gguf`.
+- The GGUF carries the `systemone` chat template and the decision-model marker, which is how the engine recognises it as a scoring model — no template arguments are needed at startup.
 
 ### Start
 
 ```bash
 cd llama.cpp
 ./build/bin/llama-server \
-  -m ./models/MiniCPM-OCR-Jev-bf16.gguf \
-  --mmproj ./models/mmproj-MiniCPM-OCR-Jev-bf16.gguf \
+  -m ./models/MiniCPM-OCR-Jev-F16.gguf \
+  --mmproj ./models/mmproj-model-f16.gguf \
   -ngl 99 \
   -c 32768 \
   --port 18499
@@ -137,6 +118,8 @@ cd llama.cpp
 - `-ngl 99`: put every layer on the GPU — the same flag on macOS, where it maps to Metal.
 - `-c 32768`: context length, shared by the parallel slots.
 - `-np N`: serve N requests in parallel.
+
+The startup log has to show `decision model type: openbmb-minicpm-ocr-jev` and `listening on`, which means the engine recognised the model; `curl http://127.0.0.1:18499/health` then returns `{"status":"ok"}`.
 
 Each request is a single forward pass and generates no tokens. Every request carries exactly two images — the original first, then the render. The model has no LM head, so the text-generation endpoints are unavailable.
 
@@ -306,7 +289,7 @@ curl -s http://127.0.0.1:18501/healthz
 ```
 
 ```json
-{"status": "ok", "served_model": "./models/MiniCPM-OCR-Jev-bf16.gguf",
+{"status": "ok", "served_model": "./models/MiniCPM-OCR-Jev-F16.gguf",
  "prompt": {"template_md5": "9aab68e8ba8ab4da17ba9752bddb199c",
             "source": "server_template",
             "last_token": null, "expected_last_token": 271,

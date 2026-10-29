@@ -1,17 +1,75 @@
 ---
-name: minicpm-ocr-jev-sdk
-description: 安装、部署和验证 MiniCPM-OCR Jev 打分服务（SDK 本地部署，vLLM / SGLang / llama.cpp / Ollama 四个推理后端）。在用户要装 Jev SDK、起打分服务、给 OCR 结果打一致性分数或在多个候选里选优、排查起服与打分报错时使用。
+name: minicpm-ocr-jev-deploy
+description: 安装、部署和验证 MiniCPM-OCR Jev 打分服务，两条路径——Docker 镜像，或 SDK 本地部署（vLLM / SGLang / llama.cpp / Ollama 四个推理后端）。在用户要起 Jev 打分服务、部署 Jev 镜像或 SDK、给 OCR 结果打一致性分数或在多个候选里选优、排查起服与打分报错时使用。
 ---
 
-# MiniCPM-OCR Jev SDK 本地部署
+# MiniCPM-OCR Jev 本地部署
 
-Jev 判断一段 OCR 文本与原图是否一致：送原图与候选文本，返回 0–1 的一致性分数。SDK 部署把渲染器与模型服务分开装在主机上——引擎做前向，服务层做打分，两者必须在不同的虚拟环境里。
+Jev 判断一段 OCR 文本与原图是否一致：送原图与候选文本，返回 0–1 的一致性分数。
 
-本文的命令与 `docs/{vllm,sglang,llamacpp,ollama}_deploy_jev_zh.md` 同源，每节都标了对应文档的小节；改任一方需同步。想用 Docker 而不是 SDK 的话走 `minicpm_ocr_jev_tutorial_zh.md` 的方式一，本 skill 不覆盖。
+部署有两条路径，用同一个模型、同一套打分逻辑：**Docker 镜像**一个容器里装齐引擎、打分服务与渲染环境；**SDK** 把渲染器与模型服务分开装在主机上——引擎做前向，服务层做打分，两者必须在不同的虚拟环境里。
+
+本文的命令与 `docs/minicpm_ocr_jev_tutorial_zh.md`、`docs/minicpm_ocr_jev_docker_api_zh.md`、`docs/{vllm,sglang,llamacpp,ollama}_deploy_jev_zh.md` 同源，每节都标了对应文档的小节；改任一方需同步。
 
 ## 1. 确定方案
 
-先问清两件事：**用哪个推理后端**、**渲染图由谁提供**。用户没有偏好时用 vLLM ＋ 内置渲染器。
+### 1.1 先定走哪条路径
+
+| | Docker 镜像（1.2） | SDK（1.3 起） |
+|---|---|---|
+| 渲染环境 | 镜像内置固定版本的 Chromium 与 CJK 字体 | 自己装（6.2），或由调用方提供渲染图（6.1） |
+| 分数口径 | 与云端 API 同一套渲染环境，可直接与发布数字对照 | 排序稳定，绝对值可能差在小数点后第三位 |
+| 要装什么 | Docker ＋ NVIDIA Container Toolkit | 两个虚拟环境：引擎 ＋ 服务层 |
+| 推理后端 | 镜像内固定 vLLM | vLLM / SGLang / llama.cpp / Ollama 四选一 |
+| 平台 | 仅 Linux ＋ NVIDIA | Linux ＋ NVIDIA／macOS（见 1.3） |
+| 适合 | 要与发布数字对照、不想自己装渲染环境 | 没有 Docker、在 macOS 上、已有渲染图、或要指定后端 |
+
+机器上有 Docker 和 NVIDIA 卡、用户又没有偏好时走 Docker 镜像。**走 Docker 只需 1.2 ＋ 7.3，外加取权重的第 3 节；第 2、4、5、6、8 节都是 SDK 路径的步骤。**
+
+### 1.2 Docker 镜像（对应 `minicpm_ocr_jev_tutorial_zh.md` 方式一）
+
+前置：Docker 与 NVIDIA Container Toolkit 已装（`docker run --rm --gpus all ubuntu nvidia-smi` 能打印出卡即算通）、驱动 ≥535、显存 ≥12 GB、权重 `<WEIGHTS>` 已按第 3 节取好。
+
+```bash
+cd scripts/minicpm-ocr-jev
+docker build -f serve/Dockerfile -t minicpm-ocr-jev-1-0:latest .
+
+docker run -d --name minicpm-ocr-jev --gpus '"device=<GPU>"' \
+    -p 127.0.0.1:8030:8030 \
+    -v <WEIGHTS>:/weights:ro \
+    minicpm-ocr-jev-1-0:latest 8030 /weights
+```
+
+慢网下构建时加 `--build-arg PIP_INDEX_URL=<镜像源>` 与 `--build-arg PLAYWRIGHT_DOWNLOAD_HOST=<镜像源>`（可用值见第 3 节）。
+
+通过标准：`curl -f http://127.0.0.1:8030/healthz` 的 `status` 为 `ok`。`loading` 是还在加载权重，此时打分返回 503，等它转成 `ok`。
+
+打分：
+
+```bash
+curl -s http://127.0.0.1:8030/v1/rm/score -H 'Content-Type: application/json' -d '{
+  "input_form": "ternary",
+  "items": [
+    {"case_id": "blk-001", "image": "<base64>",
+     "ocr_text": "待评分的 OCR 文本", "category": "text"}
+  ]
+}'
+```
+
+四个端点：`/healthz`、`/v1/rm/score`（逐块各打一分）、`/v1/rm/score_best`（单块 N 候选选优）、`/v1/rm/score_best_batch`（多块各自选优，块多时用它）。完整字段定义见 `minicpm_ocr_jev_docker_api_zh.md`，调用时要守的几条：
+
+- `input_form` 固定 `"ternary"`，`score_best_batch` 的每个 item 里还要再带一次，缺了返回 422。
+- `image` 传 PNG／JPEG 的 base64 正文，**不带** `data:image/png;base64,` 前缀；带了该条返回 `encode_error`。
+- `category` 三选一 `text` / `formula` / `table`，**必须与块真实类型一致**：公式块送成 `text` 会按字面渲染，不报错但分数失真。
+- 用分数前先看 `verdict`：`0.0` 与 `-1.0` 是打分失败的固定返回值，不是低分。
+- 已有渲染图时送 `items[].render_image`（`score_best*` 是 `render_images`），服务端就跳过渲染。
+- 单次请求候选总数受 `max_items` 限制（默认 64，超出返回 400）；`threshold`（默认 0.5）只影响汇总里的 `throughput_rate`，不改任何一条的 `prob_yes`。
+
+装完按 [7.3](#73-docker-路径用自带用例打分) 用自带用例核分数——`/healthz` 返回 `ok` 只说明服务起来了。
+
+### 1.3 SDK：选后端与渲染形态
+
+走 SDK 再定两件事：**用哪个推理后端**、**渲染图由谁提供**。用户没有偏好时用 vLLM ＋ 内置渲染器。
 
 按渲染图来源分两种形态，用同一个模型、同一套打分代码：
 
@@ -30,14 +88,16 @@ Jev 判断一段 OCR 文本与原图是否一致：送原图与候选文本，�
 | vLLM | 不需要 | 否 | 8.4 GB | 仅 Linux ＋ NVIDIA | 默认选择，吞吐最好 |
 | SGLang | **需要** | 否 | 9.5 GB | 仅 Linux ＋ NVIDIA | 已有 SGLang 技术栈 |
 | llama.cpp | **需要**（仅 Linux） | **是** | 214 MB（build） | Linux ＋ NVIDIA／macOS | 显存小、不想装 torch |
-| Ollama | 不需要 | 否 | 转换环境 4.8 GB | Linux ＋ NVIDIA／macOS | 要求最轻，已有 Ollama |
+| Ollama | 不需要 | 否 | 无（引擎在安装包里） | Linux ＋ NVIDIA／macOS | 要求最轻，已有 Ollama |
 
-- llama.cpp 与 Ollama 都要先把权重转成 GGUF，转换环境（CPU 版 torch）4.8 GB，转完可删。
+- llama.cpp 与 Ollama 用 GGUF 权重，**官方已发布，默认直接下**（见 5.3），不必下 HF 原始权重、也不必装转换环境。只在要换转换参数、或权重是用户自己微调的时候才自己转，那时需要一个 4.8 GB 的转换环境（CPU 版 torch），转完可删。
 - Ollama 跑的就是 llama.cpp 的 runner，两者分数同源，**不要拿它们互相验证**。
 - ⭐ **用户在 macOS（Apple Silicon）上时只有 llama.cpp 与 Ollama 两条路**：vLLM 与 SGLang 依赖 CUDA 栈，mac 上起不来，不要建议。两者在 mac 上都走 Metal，命令与 Linux 的差别见 5.3／5.4。
 - ⭐ **macOS 上只做不带渲染器服务**：内置渲染器服务要固定字体环境，那一步依赖 apt，mac 上做不到（见 6.2）。
 
 ## 2. 安装前检查
+
+本节与第 4、5、6、8 节都只适用于 SDK 路径，Docker 路径的前置写在 1.2。
 
 ```bash
 # Linux ＋ NVIDIA
@@ -59,7 +119,7 @@ df -h .
 
 | 占位符 | 含义 |
 |---|---|
-| `<WEIGHTS>` | Jev 权重目录的绝对路径；用户没有现成副本时按第 3 节下载 |
+| `<WEIGHTS>` | Jev 权重目录的绝对路径；用户没有现成副本时按第 3 节下载。**Docker 路径与 SDK 的 vLLM、SGLang 要它**，SDK 的 llama.cpp 与 Ollama 默认直接下 GGUF（5.3） |
 | `<GPU>` | 用哪张卡（先按上面的命令确认它空闲）；macOS 上不适用 |
 
 以下命令都在仓库的 `scripts/minicpm-ocr-jev/` 下执行，虚拟环境建在 `/opt/venv-*`；macOS 上往 `/opt` 写要 sudo，建在 home 目录下即可（`~/venv-*`），后面各处路径跟着换。
@@ -73,7 +133,7 @@ git clone https://github.com/OpenBMB/MiniCPM-OCR.git
 cd MiniCPM-OCR/scripts/minicpm-ocr-jev
 ```
 
-权重＝[MiniCPM-OCR-Jev](https://huggingface.co/openbmb/MiniCPM-OCR-Jev)，四个后端共用同一份（llama.cpp 与 Ollama 再从它转 GGUF）。用户已有副本时跳过本步，把它的绝对路径当 `<WEIGHTS>`：
+权重＝[MiniCPM-OCR-Jev](https://huggingface.co/openbmb/MiniCPM-OCR-Jev)。**vLLM 与 SGLang 要这份 HF 权重**；llama.cpp 与 Ollama 用 GGUF，默认按 5.3 直接下，本步可跳过。用户已有副本时也跳过，把它的绝对路径当 `<WEIGHTS>`：
 
 ```bash
 python3 -m venv /opt/venv-dl && /opt/venv-dl/bin/pip install -U "huggingface_hub[cli]"
@@ -184,16 +244,11 @@ python -m sglang.launch_server \
 
 ### 5.3 llama.cpp（对应 `llamacpp_deploy_jev_zh.md` 一）
 
+取源码并编译。先做[第 4 节](#4-探测上游支持动手装之前先做)的 grep 探针，再编译：
+
 ```bash
 git clone https://github.com/ggml-org/llama.cpp.git && cd llama.cpp
 
-python3 -m venv /opt/venv-convert && source /opt/venv-convert/bin/activate
-pip install -r requirements/requirements-convert_hf_to_gguf.txt
-```
-
-转换依赖必须装进单独的 venv——Debian/Ubuntu 等会按 PEP 668 拒绝装进系统 Python。装完先做[第 4 节](#4-探测上游支持动手装之前先做)的 grep 探针，再编译：
-
-```bash
 # 配置，按平台二选一
 # Linux ＋ NVIDIA
 cmake -B build -DGGML_CUDA=ON -DCMAKE_BUILD_TYPE=Release
@@ -203,7 +258,7 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j --target llama-server
 ```
 
-configure 日志里出现 `Including METAL backend`（mac）或 `Including CUDA backend`（Linux）才算后端挂上了。
+configure 日志里要出现 `Including METAL backend`（mac）或 `Including CUDA backend`（Linux），这一行说明目标后端已启用。
 
 **仅 Linux**：CUDA toolkit 装在 `/usr/local/cuda` 之外时，先把它的库注册进 `ldconfig`，否则链接 `llama-server` 时会报几十个 `undefined reference to cudaXxx@libcudart.so.13`：
 
@@ -211,9 +266,23 @@ configure 日志里出现 `Including METAL backend`（mac）或 `Including CUDA 
 echo /path/to/cuda/lib64 | sudo tee /etc/ld.so.conf.d/cuda.conf && sudo ldconfig
 ```
 
-转 GGUF（语言模型与视觉编码器各一份，**两份都要从改过 `architectures` 的目录转**）：
+**取 GGUF——默认走这条**：官方仓库已发布，语言模型与 `mmproj` 各下一份：
 
 ```bash
+HF_ENDPOINT=https://hf-mirror.com hf download openbmb/MiniCPM-OCR-Jev-gguf \
+  --include "MiniCPM-OCR-Jev-F16.gguf" "mmproj-model-f16.gguf" \
+  --local-dir ./models
+```
+
+- `F16` 是未量化的完整版本（3.78 GB）。显存或内存吃紧时把语言模型换成 `Q8_0`（2.01 GB）或 `Q4_K_M`（1.27 GB）——官方卡把前者标为接近无损、后者标为建议的最小档；`mmproj` 只有一个版本。
+- 走这条就**不需要** `<WEIGHTS>`，也不需要转换环境。ModelScope 上有同一个仓库 `OpenBMB/MiniCPM-OCR-Jev-gguf`。
+
+自己转只在两种情况下做：要换转换参数，或权重是用户自己微调的。那时另外装转换依赖（必须单独 venv，Debian/Ubuntu 等会按 PEP 668 拒绝装进系统 Python），语言模型与视觉编码器各转一份，**两份都要从改过 `architectures` 的目录转**：
+
+```bash
+python3 -m venv /opt/venv-convert && source /opt/venv-convert/bin/activate
+pip install -r requirements/requirements-convert_hf_to_gguf.txt
+
 mkdir -p ./models/MiniCPM-OCR-Jev-gguf
 for f in <WEIGHTS>/*; do
   [ "$(basename "$f")" = config.json ] || ln -sf "$f" ./models/MiniCPM-OCR-Jev-gguf/
@@ -231,20 +300,20 @@ python convert_hf_to_gguf.py ./models/MiniCPM-OCR-Jev-gguf --mmproj \
   --outtype bf16 --outfile ./models/mmproj-MiniCPM-OCR-Jev-bf16.gguf
 ```
 
-（上面那段 heredoc 前先 `export W=<WEIGHTS>`。）`mmproj` 从转换目录转才会带上与训练一致的图片缩放下限，否则小图分数偏。
+（上面那段 heredoc 前先 `export W=<WEIGHTS>`。）`mmproj` 从转换目录转才会带上与训练一致的图片缩放下限，否则小图分数偏。自己转出来的文件名与官方那两份不同，下面起服命令要跟着换。
 
 ```bash
 ./build/bin/llama-server \
-  -m ./models/MiniCPM-OCR-Jev-bf16.gguf \
-  --mmproj ./models/mmproj-MiniCPM-OCR-Jev-bf16.gguf \
+  -m ./models/MiniCPM-OCR-Jev-F16.gguf \
+  --mmproj ./models/mmproj-model-f16.gguf \
   -ngl 99 -c 32768 --port 18499
 ```
 
-通过标准：转出 3.6 GB ＋ 641 MB 两份 GGUF；起服日志出现 `decision model type: openbmb-minicpm-ocr-jev` 与 `listening on`；`curl http://127.0.0.1:18499/health` 返回 `{"status":"ok"}`。两个平台同此标准。日志里**没有**那行 `decision model type` 就是这个构建不认模型，回[第 4 节](#4-探测上游支持动手装之前先做)。
+通过标准：起服日志出现 `decision model type: openbmb-minicpm-ocr-jev` 与 `listening on`；`curl http://127.0.0.1:18499/health` 返回 `{"status":"ok"}`。两个平台同此标准。日志里**没有**那行 `decision model type` 就是这个构建不认模型，回[第 4 节](#4-探测上游支持动手装之前先做)。自己转的话还要核一条：转出 3.6 GB ＋ 641 MB 两份 GGUF。
 
 ### 5.4 Ollama（对应 `ollama_deploy_jev_zh.md` 一）
 
-四个后端里要求最轻的一条：不装 CUDA toolkit，也不编译任何东西。但**要先按 5.3 把 GGUF 转出来**（只需 clone ＋ 装转换依赖，跳过编译）。
+四个后端里要求最轻的一条：引擎在 Ollama 安装包里，不装 CUDA toolkit，也不编译任何东西，连 llama.cpp 都不用取。**GGUF 按 5.3 那条 `hf download` 直接下**（自己转的话同 5.3，再把下面两个 `FROM` 换成转出来的文件名）。
 
 ```bash
 # Linux
@@ -253,8 +322,8 @@ curl -fsSL https://ollama.com/install.sh | sh
 brew install ollama
 
 cat > Modelfile <<'EOF'
-FROM ./models/MiniCPM-OCR-Jev-bf16.gguf
-FROM ./models/mmproj-MiniCPM-OCR-Jev-bf16.gguf
+FROM ./models/MiniCPM-OCR-Jev-F16.gguf
+FROM ./models/mmproj-model-f16.gguf
 EOF
 
 ollama serve &                       # 默认 11434
@@ -310,6 +379,8 @@ PATH=/opt/venv-score/bin:$PATH bash sdk/start_score.sh 18501 http://127.0.0.1:18
 
 ## 7. 验证
 
+7.1 与 7.2 是 SDK 路径（打服务层的 18501）；Docker 路径走 [7.3](#73-docker-路径用自带用例打分)。
+
 ### 7.1 起服自检
 
 ```bash
@@ -347,11 +418,38 @@ for name in ("01_text_putnam", "02_formula_putnam", "03_table_gb_standard"):
 EOF
 ```
 
-通过标准：三行分数与参考值相差都在 0.02 以内。**这是判断"装对了"的唯一客观标准**——HTTP 200 不是，`/healthz` 也不是。
+通过标准：三行分数与参考值相差都在 0.02 以内。**这是判断「装对了」的唯一客观标准**——HTTP 200 不是，`/healthz` 也不是。
 
 内置渲染器服务换成 `/v1/rm/score_best`、请求体给 `image` ＋ `category` ＋ `candidates`，服务自己渲染；两个候选都打，`best_index` 应指向 `ground_truth` 那个。
 
 打分前必看 `verdict`（镜像接口）或 `error`（`/v1/score`）：`0.0` 与 `-1.0` 是打分失败的固定返回值，不是低分。
+
+### 7.3 Docker 路径：用自带用例打分
+
+同样在 `scripts/minicpm-ocr-jev/` 下跑，端口是 1.2 里映射的 8030：
+
+```bash
+python3 - <<'EOF'
+import base64, json, urllib.request
+for name in ("01_text_putnam", "02_formula_putnam", "03_table_gb_standard"):
+    c = json.load(open(f"examples/{name}/case.json"))
+    role = c["reference_render_of"]
+    text = next(x["text"] for x in c["candidates"] if x["role"] == role)
+    b64 = lambda f: base64.b64encode(open(f"examples/{name}/{f}", "rb").read()).decode()
+    body = {"input_form": "ternary",
+            "items": [{"case_id": name, "image": b64(c["block_image"]),
+                       "render_image": b64(c["reference_render"]),
+                       "ocr_text": text, "category": c["category"]}]}
+    req = urllib.request.Request("http://127.0.0.1:8030/v1/rm/score",
+            data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
+    r = json.load(urllib.request.urlopen(req))["results"][0]
+    print(f"{name:24} {r['verdict']:8} got {r['prob_yes']:.5f}  reference {c['observed_prob_yes'][role]:.5f}")
+EOF
+```
+
+通过标准：三行 `verdict` 都是 `scored`，分数与参考值相差都在 0.02 以内。与 7.2 是同一口径，只是端点、字段名与端口不同（`/v1/rm/score`、`prob_yes`、8030）。
+
+上面把 `reference_render` 一起送了进去，走的是「渲染图由调用方提供」那条。删掉 `render_image` 那行、让镜像自己渲染，分数同样应落在 0.02 以内——镜像内置的就是参考渲染环境。块内选优改打 `/v1/rm/score_best`：请求体给 `image` ＋ `category` ＋ `candidates`，两个候选都打，`best_index` 应指向 `ground_truth` 那个。
 
 ## 8. 上游未就位时的临时路径
 
@@ -389,11 +487,21 @@ for f in $L/lib*.so*; do ln -sfn "$f" "$O/$(basename "$f")"; done
 ln -sfn $L/libggml-cuda.so $O/cuda_v13/libggml-cuda.so
 ```
 
-⚠ **只换那个二进制无效**：原装 `llama-server` 只有 15 KB，模型支持在 `libllama-server-impl.so` 等共享库里。只换二进制仍然跑得起来、仍然报同样的错，据此会得出"换了也不行"的相反结论。
+⚠ **只换那个二进制无效**：原装 `llama-server` 只有 15 KB，模型支持在 `libllama-server-impl.so` 等共享库里。只换二进制仍然跑得起来、仍然报同样的错，据此会得出「换了也不行」的相反结论。
 
 ⚠ 这个换法**跨过了 Ollama 自己的兼容补丁**，为什么能跨过未查清；Ollama 升级后要重新验证。换完重起 `ollama serve` 与服务层，自检应为 `ok`。
 
 ## 9. 报错处理
+
+### Docker 路径
+
+| 现象 | 处理 |
+|---|---|
+| `could not select device driver "nvidia"` | NVIDIA Container Toolkit 没装或装完没重起 docker；先让 1.2 的那条 `--gpus all` 探针过 |
+| `/healthz` 一直是 `loading`，打分返回 503 | 还在加载权重，等；久了读 `docker logs minicpm-ocr-jev` 找真实异常 |
+| 422 | `input_form` 不是 `"ternary"`，或 `score_best_batch` 漏了 item 里的那一份 |
+| `verdict` 为 `encode_error` | 图片 base64 带了 `data:image/...;base64,` 前缀，或字节本身有问题 |
+| 400、提到 `max_items` | 单次请求候选总数超了默认的 64，拆批重发 |
 
 ### 安装
 
@@ -436,16 +544,18 @@ ln -sfn $L/libggml-cuda.so $O/cuda_v13/libggml-cuda.so
 | SGLang | 稳定版 0.5.22 **无本模型支持**；PR #45829 源码树可用，venv 9.5 GB |
 | llama.cpp | release **v0.8.0**（含 PR #30980，2026-10-27 合入 master），build 214 MB |
 | Ollama | v0.40.11 原装 **无本模型支持**，换 runner 后可用 |
+| Docker 镜像 | 由 `serve/Dockerfile` 自建，引擎、打分服务与渲染环境都在镜像里；镜像内各件的实际版本以 `/healthz` 的 `scorer` 与 `render` 字段为准 |
 | 服务层 | Python 3.12.3，fastapi 0.162.0，uvicorn 0.54.0，httpx 0.28.1，pydantic 2.14.1，Pillow 12.3.0，venv 59 MB |
 | 渲染环境 | playwright 1.62.0，KaTeX 0.16.47，渲染流水线 v8.5，venv 205 MB |
-| GGUF | 语言模型 3.6 GB ＋ mmproj 641 MB |
+| GGUF | 官方仓 `MiniCPM-OCR-Jev-gguf`：`MiniCPM-OCR-Jev-F16.gguf` 3.78 GB ＋ `mmproj-model-f16.gguf` 671 MB；与自己转的 bf16 打分等价（三个用例分差 ≤5e-5，2026-10-29 在 mac 上用 llama.cpp 与 Ollama 各实测一遍） |
 | 硬件 | RTX 5090 单卡，驱动 590.48.01，CUDA 13.0.88，Ubuntu 24.04.5（2026-10-28） |
 | macOS | Apple M5／16 GB 统一内存／macOS 26.x，Command Line Tools 26.6.0，llama.cpp v0.8.0 自编（Metal），转换依赖 torch 2.11.0 arm64 ＋ transformers 4.57.6（2026-10-29） |
 
 ## 11. 汇报规则
 
-- 5090 与 M5 都只是验证用的机器，不要说必须用某一款。门槛是第 2 节那几个数。
+- 说清走的是哪条路径（Docker 镜像 / SDK）与端口。两条路径的渲染环境不一样，绝对分不通用；能直接与发布数字对照的只有 Docker 路径。
+- 5090 与 M5 都只是验证用的机器，不要说必须用某一款。门槛是第 2 节那几个数（Docker 路径见 1.2）。
 - 只汇报实际跑过的检查。没跑 7.2 就不要说分数对；`/healthz` 返回 `ok` 只能说服务起来了。
 - 走了第 8 节的临时路径时必须明说，并说清它与文档路径的差别。
 - 四个后端的分数不要互相当作独立验证，Ollama 与 llama.cpp 尤其——它们跑的是同一个二进制。
-- 分数只能当排序量用。不要替用户解释某个绝对分代表什么质量水平。
+- 分数不带阈值、不带标签，也没有校准到绝对质量刻度：同一批输入里比高低才有意义，单个绝对分换算不出某种质量水平——报分数时把这条边界一并说清。

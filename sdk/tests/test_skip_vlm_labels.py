@@ -164,3 +164,42 @@ def test_chart_otsl_is_converted_to_html():
     out = _text._normalize_crop_text(otsl, "chart")
     assert "<table" in out and "<fcel>" not in out
     assert "Japan" in out and "7%" in out
+
+
+@pytest.mark.parametrize("label", ["header_image", "footer_image"])
+@pytest.mark.parametrize("image_path", ["", "imgs/page/header-footer.png"])
+def test_recognized_header_footer_images_are_kept_in_markdown(label, image_path):
+    from minicpmvocr.postprocess.markdown import assemble_markdown
+
+    prompt_map = _prompt_map({"skip_vlm_labels": ["image"]})
+    prompt_map["markdown_assembly"]["ignore_labels"] = []
+    assert prompts.get_element_cfg(prompt_map, label) is not None
+    blocks = [
+        {"order": 0, "label": label, "content": "COURT OFFICE / Page 12", "image_path": image_path},
+        {"order": 1, "label": "text", "content": "Body text"},
+    ]
+    assert assemble_markdown(blocks, prompt_map) == (
+        f"![image]({image_path})\n\nCOURT OFFICE / Page 12\n\nBody text"
+    )
+
+
+@pytest.mark.parametrize("label", ["header_image", "footer_image"])
+def test_header_footer_images_without_text_keep_the_placeholder(label):
+    from minicpmvocr.postprocess.markdown import assemble_markdown
+
+    prompt_map = _prompt_map({})
+    prompt_map["markdown_assembly"]["ignore_labels"] = []
+    assert assemble_markdown(
+        [{"label": label, "content": ""}], prompt_map
+    ) == "![image]()"
+
+
+@pytest.mark.parametrize("label", ["header_image", "footer_image"])
+def test_explicitly_ignored_header_footer_images_stay_hidden(label):
+    from minicpmvocr.postprocess.markdown import assemble_markdown
+
+    prompt_map = _prompt_map({"skip_vlm_labels": ["image"]})
+    prompt_map["markdown_assembly"]["ignore_labels"] = [label]
+    assert assemble_markdown(
+        [{"label": label, "content": "COURT OFFICE"}], prompt_map
+    ) == ""

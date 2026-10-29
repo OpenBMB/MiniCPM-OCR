@@ -6,7 +6,7 @@
 
 This document covers the SDK deployment path with Ollama as the forward engine: how to install, start, and call the **score service** and the **render+score service**.
 
-Ollama serves MiniCPM-OCR Jev as a decision model. Two things set it apart from the other backends: the model has to be converted to GGUF and registered with Ollama first, and the prompt is assembled by the engine from a template baked into the GGUF rather than by the SDK.
+Ollama serves MiniCPM-OCR Jev as a decision model. Two things set it apart from the other backends: the model is registered with Ollama in GGUF format, published officially and ready to download, and the prompt is assembled by the engine from a template baked into the GGUF rather than by the SDK.
 
 Both services share one forward engine. The only difference is where the render image comes from:
 
@@ -20,7 +20,7 @@ Both services share one forward engine. The only difference is where the render 
 
 ## Deployment steps
 
-1. Install Ollama → convert to GGUF and register the model → start the forward engine (both services need it)
+1. Install Ollama → get the GGUF and register the model → start the forward engine (both services need it)
 2. Pick one:
    - **Score service** → install the service environment → start the service
    - **Render+score service** → install the render environment → start the service
@@ -36,7 +36,6 @@ The engine and the service must go into two separate virtual environments; do no
 | CUDA Toolkit    | Not needed                                                       | Not needed                          |
 | Python          | ≥3.10                                                            | ≥3.10; the system one is 3.9, install your own |
 | Ollama          | Latest stable release, whose bundled runner must include support for this model | Same                 |
-| llama.cpp       | ≥ v0.8.0 — only its conversion script is used, no build required | Same                                |
 | Pinned versions | `Pillow` 12.3.0, `playwright` 1.62.0 (render+score service only)  | `Pillow` 12.3.0                     |
 
 **System packages**:
@@ -66,17 +65,30 @@ brew install ollama
 # Download from https://ollama.com/download/windows
 ```
 
+### Get the GGUF
+
+Two files are needed: one for the language model, one for the vision encoder (`mmproj`). Both are published in the official [MiniCPM-OCR-Jev-gguf](https://huggingface.co/openbmb/MiniCPM-OCR-Jev-gguf) repository, so just download them — there is no need to install llama.cpp or to set up a conversion environment:
+
+```bash
+HF_ENDPOINT=https://hf-mirror.com hf download openbmb/MiniCPM-OCR-Jev-gguf \
+  --include "MiniCPM-OCR-Jev-F16.gguf" "mmproj-model-f16.gguf" \
+  --local-dir ./models
+```
+
+- The `hf` command comes from `huggingface_hub`; install it into any virtual environment with `pip install -U "huggingface_hub[cli]"`.
+- `F16` is the unquantized build (3.78 GB). When VRAM or memory is tight, swap the language model in `--include` for a quantized build: `Q8_0` (2.01 GB) or `Q4_K_M` (1.27 GB) — the model card labels the first near-lossless and the second the smallest recommended build. There is only one `mmproj` build; always use `mmproj-model-f16.gguf`.
+- The same repository is on ModelScope as `OpenBMB/MiniCPM-OCR-Jev-gguf`.
+- If you swap in a quantized build, change the first line of the `Modelfile` below to the file you downloaded.
+
 ### Register the model
 
-First convert the weights to GGUF. Both steps live in the llama.cpp deployment document: follow [Source and conversion dependencies](./llamacpp_deploy_jev_en.md#source-and-conversion-dependencies) to fetch the source and install the conversion dependencies (**skip its "Build" section** — conversion is pure Python), then [Convert to GGUF](./llamacpp_deploy_jev_en.md#convert-to-gguf) for the two GGUF files.
-
-The resulting GGUF carries the `systemone` chat template and the decision-model marker, which is how Ollama recognises it as a decision model.
+The GGUF carries the `systemone` chat template and the decision-model marker, which is how Ollama recognises it as a decision model.
 
 Write a `Modelfile`. The first `FROM` is the language model, the second is the vision encoder:
 
 ```
-FROM ./models/MiniCPM-OCR-Jev-bf16.gguf
-FROM ./models/mmproj-MiniCPM-OCR-Jev-bf16.gguf
+FROM ./models/MiniCPM-OCR-Jev-F16.gguf
+FROM ./models/mmproj-model-f16.gguf
 ```
 
 Register it and confirm:

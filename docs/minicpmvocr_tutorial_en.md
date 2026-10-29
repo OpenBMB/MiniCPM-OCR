@@ -31,7 +31,7 @@ pip install uv
 uv venv .minicpm-ocr --python 3.12 --seed
 source .minicpm-ocr/bin/activate
 
-python -m pip install "minicpm-ocr[all]==1.0.2"
+python -m pip install --upgrade "minicpm-ocr[all]"
 python -m pip install "paddlepaddle-gpu==3.3.0" \
   -i https://www.paddlepaddle.org.cn/packages/stable/cu129/
 ```
@@ -118,8 +118,8 @@ The installation and startup steps above use vLLM. With another inference framew
 | Framework | Guide |
 |---|---|
 | SGLang | [Deployment guide](./sglang_deploy.md). The startup command enables DSpark. |
-| llama.cpp | [GGUF deployment guide](./llamacpp_deploy.md). DSpark is not supported. |
-| Ollama | There is no separate deployment guide. The SDK connects to a running service with `--backend ollama`; see [Command-line options](./minicpmvocr_api_en.md#command-line-options). |
+| llama.cpp | [GGUF deployment guide](./llamacpp_deploy.md). DSpark is enabled by default. |
+| Ollama | [Deployment guide](./ollama_deploy.md). DSpark is enabled. |
 | FlagOS | [Multi-chip deployment guide](./flagos_deploy_en.md). |
 
 ---

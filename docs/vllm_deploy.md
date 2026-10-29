@@ -2,14 +2,15 @@
 
 [English](./vllm_deploy_en.md)
 
-本文介绍如何使用 vLLM 部署 MiniCPM-OCR 1.0，包括 OpenAI 兼容 API 服务、图片识别、离线推理，以及 SDK 文档解析。
+[← 返回首页](../README_zh.md)
+
+本文参照 [SDK 使用教程](./minicpmvocr_tutorial.md#3-启动服务)中的服务部署方式，使用 vLLM 部署 MiniCPM-OCR 1.0，**默认启用 DSpark 推测解码**，包括 OpenAI 兼容 API 服务、图片识别、离线推理，以及 SDK 文档解析。以下 Shell 命令均在**本仓库根目录**通过 Bash 执行。
 
 - 主模型：[MiniCPM-OCR-1.0](https://huggingface.co/openbmb/MiniCPM-OCR-1.0)
-- DSpark 草稿模型：[MiniCPM-OCR-1.0-DSpark](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark)，加速部署见 [SDK 使用教程](./minicpmvocr_tutorial.md#3-启动服务)
+- DSpark 草稿模型：[MiniCPM-OCR-1.0-DSpark](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark)，需要与配套主模型一起使用。
 - vLLM 版本：`xxx`
 - Transformers 版本：`xxx`
 - Python 版本：`xxx`
-
 
 ## 1. 环境准备
 
@@ -28,36 +29,53 @@ pip install 'vllm==xxx' 'transformers==xxx' 'openai==xxx' pillow
 python -c "import vllm, transformers; print('vllm', vllm.__version__, '| transformers', transformers.__version__)"
 ```
 
-从 [openbmb/MiniCPM-OCR-1.0](https://huggingface.co/openbmb/MiniCPM-OCR-1.0) 将完整主模型下载到本地目录 `/path/to/MiniCPM-OCR`。后续示例统一使用该路径。
+后续示例使用 `openbmb/MiniCPM-OCR-1.0` 和 `openbmb/MiniCPM-OCR-1.0-DSpark`。如需离线部署，请提前下载两个完整模型仓库，将这两个 ID 分别替换为匹配的本地主模型和草稿模型目录，并保留 tokenizer、processor、配置和聊天模板文件。
 
 ## 2. API 服务部署
 
 ### 2.1 启动 API 服务
 
+在仓库根目录新开一个终端，激活上文创建的 Conda 环境。以下命令沿用教程的 DSpark 配置，并为后续客户端示例添加示例 API 密钥：
+
 ```bash
-vllm serve /path/to/MiniCPM-OCR \
+conda activate minicpm-ocr-vllm
+
+vllm serve openbmb/MiniCPM-OCR-1.0 \
   --served-model-name minicpm-ocr \
   --host 127.0.0.1 \
   --port 18499 \
-  --dtype auto \
-  --max-model-len 16384 \
-  --gpu-memory-utilization 0.8 \
-  --max-num-batched-tokens 8192 \
-  --limit-mm-per-prompt '{"image":1,"video":0}' \
+  --max-model-len 40960 \
+  --max-num-batched-tokens 40960 \
+  --max-num-seqs 32 \
+  --limit-mm-per-prompt '{"image":36,"video":0}' \
+  --attention-backend FLASH_ATTN \
+  --mm-encoder-attn-backend FLASH_ATTN \
+  --mm-processor-kwargs '{"downsample_mode":"4x"}' \
+  --gpu-memory-utilization 0.85 \
   --trust-request-mm-kwargs \
-  --mm-processor-kwargs '{"downsample_mode":"4x","max_slice_nums":9}' \
+  --speculative-config '{
+    "method": "dspark",
+    "model": "openbmb/MiniCPM-OCR-1.0-DSpark",
+    "num_speculative_tokens": 15,
+    "enable_adaptive_verification": false
+  }' \
+  --default-chat-template-kwargs '{"enable_thinking":false}' \
   --api-key token-abc123
 ```
 
-- `/path/to/MiniCPM-OCR`：本地主模型目录，也可替换为模型仓库 ID `openbmb/MiniCPM-OCR-1.0`。
+- `openbmb/MiniCPM-OCR-1.0`：主模型；`--speculative-config` 中的 `model` 指向配套 DSpark 草稿模型。
+- `--speculative-config`：启用 DSpark，每步最多生成 15 个草稿 token，并关闭自适应验证，与教程保持一致。删除该参数及其完整 JSON 配置即可使用普通解码，此时无需草稿模型。
 - `--served-model-name`：客户端请求使用的模型名称。
 - `--max-model-len`：最大上下文长度，包含输入与输出 token。
 - `--gpu-memory-utilization`：服务可使用的 GPU 显存比例。
 - `--max-num-batched-tokens`：批处理 token 预算。
-- `--limit-mm-per-prompt`：本例每次请求允许一张图片，并关闭视频输入及其启动预热；PDF 由 SDK 转成图片后识别。
+- `--max-num-seqs`：同时处理的最大序列数。
+- `--limit-mm-per-prompt`：每次请求最多允许 36 张图片，并关闭视频输入及其启动预热；PDF 由 SDK 转成图片后识别。
+- `--attention-backend` 和 `--mm-encoder-attn-backend`：为解码和多模态编码器选择 Flash Attention。
+- `--default-chat-template-kwargs`：默认关闭思考。
 - `--api-key`：示例访问密钥，实际部署时替换为自己的密钥。
 
-上下文长度、显存比例和批处理预算为示例值，需根据模型配置及设备调整。SDK 会逐请求发送 `mm_processor_kwargs`，因此这里显式允许该参数。固定 vLLM 版本必须支持 `downsample_mode`、`max_slice_nums` 及 SDK 的采样字段；若不支持，不能仅凭服务能启动就认定可接入 SDK。`--trust-remote-code` 及相关补丁以最终模型适配要求为准。
+上下文长度、显存比例、并发和批处理预算与教程一致，需根据可用显存调整，同时考虑主模型和草稿模型的占用。SDK 会逐请求发送 `mm_processor_kwargs`，因此服务显式允许该参数。安装的 vLLM 和 Transformers 版本需支持 MiniCPM-OCR 与 DSpark。
 
 服务启动后，在另一终端检查模型列表：
 
@@ -107,7 +125,7 @@ response = client.chat.completions.create(
         "repetition_penalty": 1.0,
         "no_repeat_ngram_size": 100,
         "chat_template_kwargs": {"enable_thinking": False},
-        "mm_processor_kwargs": {"downsample_mode": "4x", "max_slice_nums": 9},
+        "mm_processor_kwargs": {"downsample_mode": "4x"},
     },
 )
 
@@ -139,22 +157,34 @@ print("finish_reason:", response.choices[0].finish_reason)
 
 ## 3. 离线推理
 
-不启动 HTTP 服务时，可在 vLLM 环境中直接调用模型：
+不启动 HTTP 服务时，可在 vLLM 环境中直接调用主模型，并使用相同的 DSpark 草稿配置。使用仓库 ID 时，首次运行会下载文件；如需断网运行，请使用上文说明的本地路径。
 
 ```python
 from PIL import Image
 from transformers import AutoProcessor
 from vllm import LLM, SamplingParams
 
-model_path = "/path/to/MiniCPM-OCR"
+model_path = "openbmb/MiniCPM-OCR-1.0"
+draft_model_path = "openbmb/MiniCPM-OCR-1.0-DSpark"
 image = Image.open("sample.png").convert("RGB")
 processor = AutoProcessor.from_pretrained(model_path)
 
 llm = LLM(
     model=model_path,
-    max_model_len=16384,
-    gpu_memory_utilization=0.8,
-    limit_mm_per_prompt={"image": 1, "video": 0},
+    max_model_len=40960,
+    max_num_batched_tokens=40960,
+    max_num_seqs=32,
+    gpu_memory_utilization=0.85,
+    limit_mm_per_prompt={"image": 36, "video": 0},
+    attention_backend="FLASH_ATTN",
+    mm_encoder_attn_backend="FLASH_ATTN",
+    mm_processor_kwargs={"downsample_mode": "4x"},
+    speculative_config={
+        "method": "dspark",
+        "model": draft_model_path,
+        "num_speculative_tokens": 15,
+        "enable_adaptive_verification": False,
+    },
 )
 
 messages = [
@@ -170,6 +200,7 @@ prompt = processor.apply_chat_template(
     messages,
     tokenize=False,
     add_generation_prompt=True,
+    enable_thinking=False,
 )
 
 outputs = llm.generate(
@@ -186,7 +217,7 @@ print(outputs[0].outputs[0].text)
 print("finish_reason:", outputs[0].outputs[0].finish_reason)
 ```
 
-该示例以模型提供兼容的 `AutoProcessor` 和聊天模板为前提；自定义处理器加载方式、thinking 开关与停止 token 应随正式模型版本补齐，不能直接套用其他 MiniCPM-V 版本的设置。离线推理会单独加载模型，不要在显存不足时与 API 服务同时运行。
+该示例使用模型自身的处理器和聊天模板，并关闭思考。离线推理会单独加载一组主模型和 DSpark 草稿模型，不要在显存不足时与 API 服务同时运行。
 
 ## 4. 使用 SDK 解析文档
 
@@ -198,7 +229,7 @@ API 图片识别适合单个图像块；PDF 或整页文档可使用 MiniCPM-OCR
 minicpmvocr parse --config sdk/minicpmvocr/configs/minicpmvocr.yaml \
   --backend vllm --server-url http://127.0.0.1:18499 --model minicpm-ocr \
   --set layout.model_dir=/path/to/PP-DocLayoutV3 --set layout.device=cpu \
-  --set engine.max_model_len=16384 \
+  --set engine.max_model_len=40960 \
   --set engine.api_key=token-abc123 \
   --input document.pdf --output document.md
 ```
@@ -207,7 +238,7 @@ minicpmvocr parse --config sdk/minicpmvocr/configs/minicpmvocr.yaml \
 
 ## 注意事项
 
-1. **版本匹配**：使用发布指定的 vLLM 与 Transformers 版本，不使用浮动版本替代。
+1. **版本匹配**：使用支持 MiniCPM-OCR 与 DSpark 的配套 vLLM 和 Transformers 版本。`xxx` 版本占位符沿用当前主分支的环境准备说明，安装前需要填入具体版本。
 2. **模型配置**：保留完整 tokenizer、processor 和聊天模板文件；停止 token 与特殊模板参数使用模型自身配置。
 3. **显存调整**：优先根据显存调整上下文、并发和批处理预算，不将示例设置视为硬件支持承诺。
 4. **接口地址**：OpenAI Python 客户端使用带 `/v1` 的地址，MiniCPM-OCR SDK 配置使用不带 `/v1` 的服务根地址。
