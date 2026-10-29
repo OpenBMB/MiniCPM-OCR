@@ -1,0 +1,98 @@
+/**
+ * 引导浮层样式：driver.js 默认配色与 MAP 不一致，这里只覆盖颜色与圆角，
+ * 全部取主题语义变量，深浅色自动跟随，不再写死色值。
+ */
+
+.map-tour-popover.driver-popover {
+  max-width: min(22rem, calc(100vw - 2rem));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  box-shadow: 0 12px 32px hsl(var(--foreground) / 0.16);
+}
+
+.map-tour-popover .driver-popover-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.map-tour-popover .driver-popover-description {
+  margin-top: 0.375rem;
+  white-space: pre-line;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+.map-tour-popover .driver-popover-progress-text {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.map-tour-popover .driver-popover-navigation-btns button {
+  min-height: 2rem;
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-shadow: none;
+}
+
+.map-tour-popover .driver-popover-prev-btn {
+  border: 1px solid hsl(var(--border));
+  background-color: transparent;
+  color: hsl(var(--foreground));
+}
+
+.map-tour-popover .driver-popover-next-btn,
+.map-tour-popover .driver-popover-done-btn {
+  border: 1px solid hsl(var(--primary));
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.map-tour-popover .driver-popover-close-btn {
+  color: hsl(var(--muted-foreground));
+}
+
+.map-tour-popover .driver-popover-close-btn:hover,
+.map-tour-popover .driver-popover-close-btn:focus {
+  color: hsl(var(--foreground));
+}
+
+.map-tour-popover .driver-popover-arrow-side-left.driver-popover-arrow,
+.map-tour-popover .driver-popover-arrow-side-right.driver-popover-arrow,
+.map-tour-popover .driver-popover-arrow-side-top.driver-popover-arrow,
+.map-tour-popover .driver-popover-arrow-side-bottom.driver-popover-arrow {
+  border-color: hsl(var(--card));
+}
+
+/*
+ * 识别/显示设置步骤会同时展开下拉菜单；保留背景遮罩，
+ * 再把真实下拉菜单提升到遮罩上方，避免把触发器误认为菜单本体。
+ */
+.map-tour-settings-showcase [data-radix-popper-content-wrapper] {
+  z-index: 10001 !important;
+}
+
+.map-tour-settings-showcase [role='menu'][data-state='open'] {
+  position: relative;
+  z-index: 10001 !important;
+  border-color: hsl(var(--primary) / 0.45);
+  box-shadow:
+    0 18px 48px hsl(var(--foreground) / 0.2),
+    0 0 0 2px hsl(var(--primary) / 0.55);
+}
+
+/* 触屏保留可点击尺寸，避免引导按钮小于产品内的 44px 规范。 */
+@media (pointer: coarse) {
+  .map-tour-popover .driver-popover-navigation-btns button,
+  .map-tour-popover .driver-popover-close-btn {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+}

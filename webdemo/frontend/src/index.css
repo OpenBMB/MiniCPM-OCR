@@ -1,0 +1,232 @@
+@import '@map/ui/theme.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  *:hover {
+    scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 999px;
+  }
+
+  *:hover::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.2);
+  }
+
+  *:hover::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.35);
+  }
+
+  *:hover::-webkit-scrollbar-thumb:active {
+    background: hsl(var(--muted-foreground) / 0.45);
+  }
+
+  .overlay-scroll {
+    overflow-y: overlay;
+    overflow-y: auto;
+  }
+
+  @supports (overflow: overlay) {
+    .overlay-scroll {
+      overflow-y: overlay;
+    }
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -25px) scale(1.05);
+  }
+  66% {
+    transform: translate(-20px, 15px) scale(0.95);
+  }
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes map-flyout-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes map-tab-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes map-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.16);
+    opacity: 0.8;
+  }
+}
+
+@keyframes map-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes map-process-status-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 图像解析扫描带：自身高度为容器 14%，714% 位移刚好把它推到容器底部。
+   下行再上行构成一个来回，像扫描头而不是每轮硬跳回顶部。 */
+@keyframes map-image-scan {
+  0% {
+    transform: translateY(-100%);
+  }
+  50% {
+    transform: translateY(714%);
+  }
+  100% {
+    transform: translateY(-100%);
+  }
+}
+
+/* 版面框检出：逐个出现，200ms 落在项目规范的入场区间内 */
+@keyframes map-layout-box-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes map-progress-indeterminate {
+  0% {
+    transform: translateX(-120%);
+  }
+  50% {
+    transform: translateX(220%);
+  }
+  100% {
+    transform: translateX(360%);
+  }
+}
+
+@keyframes map-stage-glow {
+  0%,
+  100% {
+    box-shadow: 0 8px 24px hsl(var(--primary) / 0.04);
+  }
+  50% {
+    box-shadow: 0 10px 30px hsl(var(--primary) / 0.12);
+  }
+}
+
+.map-sidebar-scroll,
+.map-main-scroll {
+  min-height: 0;
+}
+
+.map-sidebar-scroll .os-scrollbar-horizontal,
+.map-main-scroll .os-scrollbar-horizontal {
+  display: none;
+}
+
+.os-theme-map-overlay.os-scrollbar {
+  --os-size: 6px;
+  --os-padding-perpendicular: 1px;
+  --os-padding-axis: 4px;
+  --os-track-border-radius: 999px;
+  --os-handle-border-radius: 999px;
+  --os-handle-bg: hsl(var(--muted-foreground) / 0.28);
+  --os-handle-bg-hover: hsl(var(--muted-foreground) / 0.42);
+  --os-handle-bg-active: hsl(var(--muted-foreground) / 0.52);
+}

@@ -171,7 +171,7 @@ Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL_jev
 
 在自己的设备上运行模型：MiniCPM-OCR 1.0 将 PDF 和图片解析为 Markdown 或 JSON，MiniCPM-OCR Jev 对解析结果评分。
 
-[MiniCPM-OCR 1.0 部署教程](./docs/minicpm_ocr_tutorial.md) · [MiniCPM-OCR Jev 部署教程](./docs/minicpm_ocr_jev_tutorial_zh.md)
+[MiniCPM-OCR 1.0 部署教程](./docs/minicpm_ocr_tutorial.md) · [MiniCPM-OCR Jev 部署教程](./docs/minicpm_ocr_jev_tutorial_zh.md) · [Web Demo 部署教程](./docs/webdemo_deploy_zh.md)
 
 <a id="fine-tuning"></a>
 

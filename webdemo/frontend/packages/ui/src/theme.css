@@ -1,0 +1,96 @@
+/**
+ * MAP 设计系统 — 主题 Token 单一来源
+ *
+ * 所有应用通过 `@import '@map/ui/theme.css';` 引入。
+ * 改颜色 / 圆角 / 字体只改这里一处，全平台生效。
+ * 颜色为 HSL 通道值（不含 hsl()），供 tailwind.config.js 的 `hsl(var(--token) / <alpha-value>)` 消费。
+ */
+/* Inter 用于英文/数字; Noto Sans SC + 系统中文字体用于中文界面 */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    /* ---- 颜色（亮色） ---- */
+    --background: 230 100% 99%;
+    --foreground: 226 32% 17%;
+    --card: 0 0% 100%;
+    --card-foreground: 226 32% 17%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+    --table-row-hover: 220 14% 98%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 239 84% 67%;
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 226 32% 17%;
+    --accent: 220 14% 96%;
+    --accent-foreground: 226 32% 17%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* ---- 状态色（语义 token，亮/暗自动切换） ---- */
+    --success: 160 84% 39%; /* emerald-500 — 通过/在线/健康 */
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%; /* amber-500 — 降级/待处理 */
+    --warning-foreground: 38 92% 12%;
+    --info: 217 91% 60%; /* blue-500 — 中性提示 */
+    --info-foreground: 0 0% 100%;
+
+    /* ---- OCR 置信度：独立于全站状态色，保持原图可读与分级一致 ---- */
+    --ocr-confidence-high: 142 71% 45%;
+    --ocr-confidence-low: 24 95% 53%;
+    --ocr-confidence-error: 0 84% 60%;
+    --ocr-confidence-neutral: 220 9% 46%;
+    --ocr-link: var(--primary); /* 双栏定位跟随主题色，不改变置信度分级 */
+
+    /* ---- 图表色板（榜单/指标可视化,色盲友好且区分度高） ---- */
+    --chart-1: 239 84% 67%; /* indigo(主色系列) */
+    --chart-2: 173 80% 40%; /* teal */
+    --chart-3: 38 92% 50%; /* amber */
+    --chart-4: 330 81% 60%; /* pink */
+    --annotation-foreground: 226 32% 17%; /* 图上粉色标签始终使用深色文字 */
+    --chart-5: 217 91% 60%; /* blue */
+    --chart-6: 142 71% 45%; /* green */
+
+    /* ---- 圆角（shadcn 标准：单一基准值，派生 sm/md/lg） ---- */
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 224 71% 4%;
+    --foreground: 213 31% 91%;
+    --card: 224 47% 7%;
+    --card-foreground: 213 31% 91%;
+    --muted: 223 47% 11%;
+    --muted-foreground: 218 11% 65%;
+    --table-row-hover: 223 47% 9%;
+    --border: 216 34% 17%;
+    --input: 216 34% 17%;
+    --ring: 239 84% 67%;
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 223 47% 11%;
+    --secondary-foreground: 213 31% 91%;
+    --accent: 216 34% 17%;
+    --accent-foreground: 213 31% 91%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* ---- 状态色：暗色下调亮以保证对比度 ---- */
+    --success: 158 64% 52%; /* emerald-400 */
+    --warning: 43 96% 56%; /* amber-400 */
+    --info: 213 94% 68%; /* blue-400 */
+    --ocr-confidence-high: 142 69% 58%;
+    --ocr-confidence-low: 24 95% 53%;
+    --ocr-confidence-error: 0 84% 60%;
+    --ocr-confidence-neutral: 218 11% 65%;
+    --ocr-link: var(--primary);
+    /* 图表色板沿用 :root 定义,如需暗色微调可在此覆盖 */
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}

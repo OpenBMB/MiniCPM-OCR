@@ -1,0 +1,17 @@
+{
+  "name": "@map/store",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@map/types": "workspace:*",
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "vite": "^5.2.0"
+  }
+}

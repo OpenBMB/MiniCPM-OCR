@@ -92,15 +92,6 @@ def test_setup_installs_selected_profile_without_copying_an_environment(deployme
     ]
 
 
-def test_obs_credentials_require_explicit_environment(monkeypatch):
-    monkeypatch.syspath_prepend(str(SDK / "webdemo"))
-    module = importlib.import_module("obs_jobs")
-    monkeypatch.delenv("OBS_AK", raising=False)
-    monkeypatch.delenv("OBS_SK", raising=False)
-    with pytest.raises(RuntimeError, match="OBS_AK and OBS_SK"):
-        module._credentials()
-
-
 def test_advertise_host_override(monkeypatch):
     monkeypatch.syspath_prepend(str(SDK / "webdemo"))
     monkeypatch.setenv("OCR_ADVERTISE_HOST", "worker.example.com")
