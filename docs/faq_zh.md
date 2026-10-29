@@ -7,7 +7,7 @@
 ### `pip install minicpmvocr` 提示找不到包
 **原因**：PyPI 发行包名为 `minicpm-ocr`，Python 导入名和命令为 `minicpmvocr`。
 
-**解决**：`python -m pip install "minicpm-ocr[all]==1.0.2"`；从当前仓库开发安装可使用 `python -m pip install -e "./sdk[all]"`。
+**解决**：`python -m pip install "minicpm-ocr[all]==1.0.3"`；从当前仓库开发安装可使用 `python -m pip install -e "./sdk[all]"`。
 
 ### `minicpmvocr parse` 报告缺少 `--config`
 **原因**：安装的是旧版 SDK；当前版本的 `parse` 支持内置快速开始配置。
