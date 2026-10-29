@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_1dot0_en.md"><strong>MiniCPM-OCR 1.0 Guide</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0" title="Hugging Face"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0" title="ModelScope"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
   &emsp;
-  <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_jev_en.md"><strong>MiniCPM-OCR Jev Guide</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev" title="Hugging Face"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev" title="ModelScope"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
+  <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_jev_en.md"><strong>MiniCPM-OCR Jev Guide</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev" title="Hugging Face"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev" title="ModelScope"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#model-weights">Model Weights</a> &nbsp;·&nbsp;
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#api">Free API</a> &nbsp;·&nbsp;
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#skill">Skill</a> &nbsp;·&nbsp;
-  Online Demo (<a href="https://platform.modelbest.cn/console/playground/document-parse">CN</a> / <a href="https://platform.modelbest.ai/console/playground/document-parse">Global</a>)
+  Online Demo (<a href="https://huggingface.co/spaces/openbmb/MiniCPM-OCR">HF Space</a> / <a href="https://platform.modelbest.ai/console/playground/document-parse">Official Demo</a> / <a href="https://platform.modelbest.cn/console/playground/document-parse">Official Demo(CN)</a>)
   &nbsp;|&nbsp; English &nbsp;·&nbsp; <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md">中文</a>
 </p>
 
@@ -34,7 +34,7 @@
 - 🏆 **SOTA document parsing**: MiniCPM-OCR 1.0 achieves a **SOTA score of 93.68 on Real5-OmniDocBench**, a benchmark for real-world document parsing, and demonstrates leading parsing capabilities on OmniDocBench v1.6, Wild-OmniDocBench, and olmOCR-Bench. It supports Chinese and English documents and PDFs, handling both standard documents and challenging capture conditions, including scans, curved pages, photographs, skewed pages, and recaptured documents.
 - ⚡ **Efficient inference.** With DSpark decoding acceleration ([**DSpark-BF16**](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark), [**DSpark-GGUF**](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark-gguf)), MiniCPM-OCR 1.0 improves **end-to-end processing efficiency by 55%**. Its throughput is approximately **1.49×** that of PaddleOCR-VL-1.6 and **3.62×** that of MinerU2.5 Pro, reducing the time needed for large-scale document parsing.
 - 🔍 **General recognition and information extraction**: MiniCPM-OCR 1.0 achieves a **SOTA score of 54.7 on OCRBench v2**, demonstrating strong general OCR capabilities. It **also supports key information extraction (KIE)**, extracting relevant document content for downstream information management and automated processing.
-- 🛠️ **Easy deployment and development**: MiniCPM-OCR 1.0 supports **vLLM, SGLang, llama.cpp, and Ollama from day one**, with multiple chip platforms and quantized versions available at release. It **supports further fine-tuning** and provides a **[pip SDK](https://pypi.org/project/minicpm-ocr/)** and a **[full-featured API](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#api)** for application integration and customization. You can also **[get started quickly with SKILL.md](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#skill)**. Try the Online Demo ([CN](https://platform.modelbest.cn/console/playground/document-parse) / [Global](https://platform.modelbest.ai/console/playground/document-parse)) to explore parsing results.
+- 🛠️ **Easy deployment and development**: MiniCPM-OCR 1.0 supports **vLLM, SGLang, llama.cpp, and Ollama from day one**, with multiple chip platforms and quantized versions available at release. It **supports further fine-tuning** and provides a **[pip SDK](https://pypi.org/project/minicpm-ocr/)** and a **[full-featured API](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#api)** for application integration and customization. You can also **[get started quickly with SKILL.md](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#skill)**. Try the Online Demo ([HF Space](https://huggingface.co/spaces/openbmb/MiniCPM-OCR) / [Official Demo](https://platform.modelbest.ai/console/playground/document-parse) / [Official Demo(CN)](https://platform.modelbest.cn/console/playground/document-parse)) to explore parsing results.
 
 ### SOTA Performance, Higher Throughput
 
@@ -141,7 +141,13 @@ Ask a coding agent to follow the MiniCPM-OCR 1.0 [skill](https://github.com/Open
 Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL_en.md
 ```
 
-If you have already cloned this repository, you can use `./docs/SKILL_en.md` directly.
+Ask a coding agent to follow the MiniCPM-OCR Jev [skill](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL_jev_en.md) to deploy, start, and verify the scoring service locally, with vLLM, SGLang, llama.cpp, or Ollama as the inference backend. Send the following instruction to the agent:
+
+```text
+Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL_jev_en.md
+```
+
+If you have already cloned this repository, you can use `./docs/SKILL_en.md` and `./docs/SKILL_jev_en.md` directly.
 
 <a id="api"></a>
 
@@ -149,7 +155,7 @@ If you have already cloned this repository, you can use `./docs/SKILL_en.md` dir
 
 Use the Free API to access MiniCPM-OCR 1.0 recognition and MiniCPM-OCR Jev quality scoring.
 
-[MiniCPM-OCR 1.0 API example](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_api_en.md) &emsp;·&emsp; [MiniCPM-OCR Jev API example](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_jev_api_en.md) (coming soon)
+[MiniCPM-OCR 1.0 API example](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_api_en.md) &emsp;·&emsp; [MiniCPM-OCR Jev API example](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_jev_api_en.md)
 
 <a id="手动部署"></a>
 
@@ -191,7 +197,7 @@ Run the models on your own hardware: MiniCPM-OCR 1.0 parses PDFs and images into
 <tr>
 <td nowrap>MiniCPM&#8209;OCR&nbsp;<strong>Jev</strong></td>
 <td width="360">An OCR correctness decision model for text, formulas, and tables. Given an image and its OCR result, it returns a quality score from 0 to 1.</td>
-<td align="center" valign="middle" colspan="2"><a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>BF16</strong>&emsp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev-gguf">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-gguf"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>GGUF</strong><br><a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev-AWQ">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-AWQ"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>AWQ</strong>&emsp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0-Jev-GPTQ">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-GPTQ"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>GPTQ</strong></td>
+<td align="center" valign="middle" colspan="2"><a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>BF16</strong>&emsp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev-gguf">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-gguf"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>GGUF</strong><br><a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev-AWQ">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-AWQ"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>AWQ</strong>&emsp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev-GPTQ">🤗</a>&nbsp;&nbsp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev-GPTQ"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/modelscope_logo.png" width="20" alt="ModelScope"></a>&nbsp;<strong>GPTQ</strong></td>
 </tr>
 </table>
 
