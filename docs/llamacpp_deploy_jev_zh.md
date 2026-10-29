@@ -6,7 +6,7 @@
 
 本文介绍SDK部署模式下，以 llama.cpp 的 `llama-server` 作为前向引擎时，**不带渲染器服务**与**内置渲染器服务**的安装、启动、接口与请求格式。
 
-本后端与其他后端有两点不同：模型要先转成 GGUF 格式；prompt 由引擎按 GGUF 内置的模板自己拼，不由 SDK 拼。
+本后端与其他后端有两点不同：模型用 GGUF 格式，官方已发布，直接下载即可；prompt 由引擎按 GGUF 内置的模板自己拼，不由 SDK 拼。
 
 两种服务共用同一个前向引擎，区别只在渲染图从哪里来：
 
@@ -20,7 +20,7 @@
 
 ## 部署流程
 
-1. 编引擎 → 转 GGUF → 起前向引擎（两种服务都要）
+1. 编引擎 → 取 GGUF → 起前向引擎（两种服务都要）
 2. 二选一：
    - **不带渲染器服务** → 装服务环境 → 起服务
    - **内置渲染器服务** → 装渲染环境 → 起服务
@@ -62,21 +62,13 @@ brew install cmake
 
 ## 一、前向引擎
 
-### 准备源码与转换依赖
+### 准备源码
 
-两件事都要：取源码（编译与转 GGUF 都用它），装转 GGUF 的 Python 依赖。
+编译需要源码树：
 
 ```bash
 git clone https://github.com/ggml-org/llama.cpp.git && cd llama.cpp
-
-# 虚拟环境放哪都行，下面各处的 /opt/venv-* 同理
-# macOS：往 /opt 写要 sudo，放 home 目录即可，例如 ~/venv-convert
-python3 -m venv /opt/venv-convert
-source /opt/venv-convert/bin/activate
-pip install -r requirements/requirements-convert_hf_to_gguf.txt
 ```
-
-转换依赖装进单独的虚拟环境：Debian/Ubuntu 等系统会拒绝往系统 Python 里装。慢网下加 `-i https://mirrors.ustc.edu.cn/pypi/simple`。
 
 ### 编译
 
@@ -92,42 +84,31 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j --target llama-server
 ```
 
-只转 GGUF 不起引擎的话（例如用 Ollama 做前向），这一步可以跳过 —— 转换是纯 Python，不需要编译产物。
+配置日志里要出现 `Including CUDA backend`（Linux）或 `Including METAL backend`（macOS），这一行说明目标后端已启用。
 
-### 转 GGUF
+### 取 GGUF
 
-语言模型与视觉编码器（`mmproj`）各转一份。转换器按 `config.json` 里的 `architectures` 认模型，需要它是 `MiniCPMOCRForSequenceClassification`。原权重目录不改：另建一个转换用目录，其余文件软链过去，只放一份改过的 `config.json`，两份都从这个目录转：
+两份都要：语言模型一份，视觉编码器（`mmproj`）一份。官方仓库 [MiniCPM-OCR-Jev-gguf](https://huggingface.co/openbmb/MiniCPM-OCR-Jev-gguf) 已发布，直接下载即可：
 
 ```bash
 cd llama.cpp
-source /opt/venv-convert/bin/activate
-mkdir -p ./models/MiniCPM-OCR-Jev-gguf
-for f in ./models/MiniCPM-OCR-Jev/*; do
-  [ "$(basename "$f")" = config.json ] || ln -sf "$PWD/$f" ./models/MiniCPM-OCR-Jev-gguf/
-done
-python - <<'EOF'
-import json
-c = json.load(open("./models/MiniCPM-OCR-Jev/config.json"))
-c["architectures"] = ["MiniCPMOCRForSequenceClassification"]
-json.dump(c, open("./models/MiniCPM-OCR-Jev-gguf/config.json", "w"), indent=2, ensure_ascii=False)
-EOF
-
-python convert_hf_to_gguf.py ./models/MiniCPM-OCR-Jev-gguf \
-  --outtype bf16 --outfile ./models/MiniCPM-OCR-Jev-bf16.gguf
-
-python convert_hf_to_gguf.py ./models/MiniCPM-OCR-Jev-gguf --mmproj \
-  --outtype bf16 --outfile ./models/mmproj-MiniCPM-OCR-Jev-bf16.gguf
+HF_ENDPOINT=https://hf-mirror.com hf download openbmb/MiniCPM-OCR-Jev-gguf \
+  --include "MiniCPM-OCR-Jev-F16.gguf" "mmproj-model-f16.gguf" \
+  --local-dir ./models
 ```
 
-`mmproj` 也要从转换用目录转：这样它才带上与训练一致的图片缩放下限，小于下限的块图会先放大再编码；否则小图分数会偏。
+- `hf` 命令来自 `huggingface_hub`，没有的话装进任一虚拟环境：`pip install -U "huggingface_hub[cli]"`。
+- `F16` 是未量化的完整版本（3.78 GB）。显存或内存吃紧时，把 `--include` 里的语言模型换成量化版本：`Q8_0`（2.01 GB）或 `Q4_K_M`（1.27 GB）——官方卡把前者标为接近无损、后者标为建议的最小档。`mmproj` 只有一个版本，始终用 `mmproj-model-f16.gguf`。
+- ModelScope 上有同一个仓库：`OpenBMB/MiniCPM-OCR-Jev-gguf`。
+- GGUF 自带 `systemone` 对话模板与决策模型标识，引擎靠它们认出这是打分模型，所以起服时不需要任何模板参数。
 
 ### 启动
 
 ```bash
 cd llama.cpp
 ./build/bin/llama-server \
-  -m ./models/MiniCPM-OCR-Jev-bf16.gguf \
-  --mmproj ./models/mmproj-MiniCPM-OCR-Jev-bf16.gguf \
+  -m ./models/MiniCPM-OCR-Jev-F16.gguf \
+  --mmproj ./models/mmproj-model-f16.gguf \
   -ngl 99 \
   -c 32768 \
   --port 18499
@@ -137,6 +118,8 @@ cd llama.cpp
 - `-ngl 99`：把全部层放到 GPU 上，macOS 上对应 Metal，写法相同。
 - `-c 32768`：上下文长度，由并行槽位共享。
 - `-np N`：并行处理 N 个请求。
+
+起服日志里要出现 `decision model type: openbmb-minicpm-ocr-jev` 与 `listening on`，说明引擎认出了这个模型；此时 `curl http://127.0.0.1:18499/health` 返回 `{"status":"ok"}`。
 
 每个请求是一次前向，不生成任何 token。每个请求固定两张图：先原图、后渲染图；模型没有 LM head，文本生成类端点不可用。
 
@@ -303,7 +286,7 @@ curl -s http://127.0.0.1:18501/healthz
 ```
 
 ```json
-{"status": "ok", "served_model": "./models/MiniCPM-OCR-Jev-bf16.gguf",
+{"status": "ok", "served_model": "./models/MiniCPM-OCR-Jev-F16.gguf",
  "prompt": {"template_md5": "9aab68e8ba8ab4da17ba9752bddb199c",
             "source": "server_template",
             "last_token": null, "expected_last_token": 271,

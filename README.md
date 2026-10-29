@@ -139,7 +139,7 @@ Ask a coding agent to follow the MiniCPM-OCR 1.0 [skill](./docs/SKILL_en.md) to 
 Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL_en.md
 ```
 
-Ask a coding agent to follow the MiniCPM-OCR Jev [skill](./docs/SKILL_jev_en.md) to deploy, start, and verify the scoring service locally, with vLLM, SGLang, llama.cpp, or Ollama as the inference backend. Send the following instruction to the agent:
+Ask a coding agent to follow the MiniCPM-OCR Jev [skill](./docs/SKILL_jev_en.md) to deploy, start, and verify the scoring service locally — either from the Docker image or with the SDK, using vLLM, SGLang, llama.cpp, or Ollama as the inference backend. Send the following instruction to the agent:
 
 ```text
 Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL_jev_en.md

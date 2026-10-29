@@ -137,7 +137,7 @@
 Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL.md
 ```
 
-让编码 Agent 按 MiniCPM-OCR Jev [skill](./docs/SKILL_jev.md) 完成打分服务的本地部署、启动和验证，支持 vLLM、SGLang、llama.cpp 和 Ollama 四个推理后端。将以下指令发送给 Agent：
+让编码 Agent 按 MiniCPM-OCR Jev [skill](./docs/SKILL_jev.md) 完成打分服务的本地部署、启动和验证：Docker 镜像与 SDK 两条路径都覆盖，SDK 支持 vLLM、SGLang、llama.cpp 和 Ollama 四个推理后端。将以下指令发送给 Agent：
 
 ```text
 Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL_jev.md
