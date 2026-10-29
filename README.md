@@ -33,6 +33,8 @@
 
 ## MiniCPM-OCR 1.0
 
+<p align="center"><a href="https://x.com/OpenBMB/status/2115473600836964838"><img src="./assets/minicpm-ocr/main_video_en_play.PNG" alt="MiniCPM-OCR 1.0 and Jev promo video. Click to watch the demo on X." width="80%"></a></p>
+
 **MiniCPM-OCR 1.0** (1.3B) is the first OCR-specific model in the [MiniCPM-V/o](https://github.com/openbmb/MiniCPM-V) family. It focuses on text-centric document understanding, covering text, tables, formulas, charts, seals, and structured information extraction. Its key features include:
 
 - 🏆 **SOTA document parsing**: MiniCPM-OCR 1.0 achieves a **SOTA score of 93.68 on Real5-OmniDocBench**, a benchmark for real-world document parsing, and demonstrates leading parsing capabilities on OmniDocBench v1.6, Wild-OmniDocBench, and olmOCR-Bench. It supports Chinese and English documents and PDFs, handling both standard documents and challenging capture conditions, including scans, curved pages, photographs, skewed pages, and recaptured documents.
