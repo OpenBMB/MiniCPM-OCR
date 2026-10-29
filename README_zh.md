@@ -5,6 +5,10 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/OpenBMB/MiniCPM"><img src="./assets/minicpm-ocr/minicpm-logo.jpg" width="210" alt="面壁小钢炮 MiniCPM"></a>
+</p>
+
+<p align="center">
   <a href="./docs/minicpm_ocr_1dot0_zh.md"><strong>MiniCPM-OCR 1.0 模型指南</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0" title="Hugging Face"><img src="./assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0" title="ModelScope"><img src="./assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
   &emsp;
   <a href="./docs/minicpm_ocr_jev_zh.md"><strong>MiniCPM-OCR Jev 模型指南</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev" title="Hugging Face"><img src="./assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev" title="ModelScope"><img src="./assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
@@ -21,8 +25,6 @@
   <a href="#skill">Skill</a> &nbsp;·&nbsp;
   <a href="./docs/minicpm_ocr_tutorial.md">本地部署</a>
   &nbsp;|&nbsp; <a href="./README.md">English</a>
-  <br>
-  <a href="https://github.com/OpenBMB/MiniCPM"><img src="./assets/minicpm-ocr/minicpm-logo.jpg" width="240" align="middle" alt="面壁小钢炮 MiniCPM"></a>
   <br>
   <strong>加入社区</strong> &nbsp;·&nbsp;
   <a href="https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=c35j072a-9abe-4ba6-ba1d-3ab340f9ba8c">飞书</a> &nbsp;·&nbsp;
