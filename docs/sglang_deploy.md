@@ -1,5 +1,7 @@
 # SGLang Deployment Guide
 
+[中文](./sglang_deploy_zh.md)
+
 [← Back to README](../README.md)
 
 SGLang serves MiniCPM-OCR through an OpenAI-compatible API. This guide enables DSpark decoding with a matched target model and draft model. The SDK runs in a separate environment and connects over HTTP.

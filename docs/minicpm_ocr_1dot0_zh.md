@@ -106,7 +106,7 @@ Extract the "店名", "金额". Format the output as a JSON object with keys: "�
 | :--- | :--- |
 | vLLM | [API 服务与单块识别](./vllm_deploy.md) |
 | Transformers | [Transformers 服务部署](./SKILL.md#43-transformers-serve) |
-| SGLang | [部署指南（英文）](./sglang_deploy.md) |
+| SGLang | [部署指南](./sglang_deploy_zh.md) |
 | llama.cpp | [GGUF 部署指南（英文）](./llamacpp_deploy.md) |
 | Ollama | [SDK 服务连接与后端配置](./minicpmvocr_api.md#命令行参数) |
 | FlagOS | [多芯片部署指南](./flagos_deploy_zh.md) |

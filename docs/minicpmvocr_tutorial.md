@@ -121,7 +121,7 @@ minicpmvocr parse \
 
 | 框架 | 文档 |
 |---|---|
-| SGLang | [部署指南（英文）](./sglang_deploy.md)。启动命令带 DSpark。 |
+| SGLang | [部署指南](./sglang_deploy_zh.md)。启动命令带 DSpark。 |
 | llama.cpp | [GGUF 部署指南](./llamacpp_deploy_zh.md)。默认启用 DSpark。 |
 | Ollama | [部署指南](./ollama_deploy_zh.md)。启用 DSpark。 |
 | FlagOS | [多芯片部署指南](./flagos_deploy_zh.md)。 |

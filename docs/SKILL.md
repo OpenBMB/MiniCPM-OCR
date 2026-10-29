@@ -14,7 +14,7 @@ SDK（命令 `minicpmvocr`，发行包 `minicpm-ocr`）负责版面检测、切�
 | 情况 | 推理环境 | SDK 后端 | 详细参考 |
 |---|---|---|---|
 | Linux x86_64 + NVIDIA，默认方案 | `.venv-vllm`，可用 DSpark | `vllm` | [SDK 教程](./minicpmvocr_tutorial.md) |
-| Linux x86_64 + NVIDIA，选择 SGLang | `.venv-sglang`，可用 DSpark | `sglang` | [SGLang 指南（英文）](./sglang_deploy.md) |
+| Linux x86_64 + NVIDIA，选择 SGLang | `.venv-sglang`，可用 DSpark | `sglang` | [SGLang 指南](./sglang_deploy_zh.md) |
 | CPU、本地 GPU 或 Apple Silicon，选择 llama.cpp | `sources/llama.cpp/build`，使用 GGUF，可用 DSpark | `llamacpp` | [llama.cpp 指南](./llamacpp_deploy_zh.md) |
 | 已有兼容推理服务 | 复用服务，只装 SDK | 按服务协议选择 | 本文第 7 节 |
 
@@ -40,7 +40,7 @@ cd MiniCPM-OCR
 | vLLM | `fa3b9d1377219247060d3c8b49eae199c9e7e154`，由安装脚本准备 |
 | vLLM 依赖的 Transformers | `144ecf007b8b4f2910da104c84a79801db6985a6`，由根项目固定 |
 | vLLM 依赖的 PyTorch | `torch==2.14.0`、`torchvision==0.29.0` |
-| SGLang | [部署指南固定源码](./sglang_deploy.md)：`aaab6bfc3de5354b052f2e96d5e566d70b9f69a2`；根项目仅引用本地路径，不自动下载或校验此 SHA |
+| SGLang | [部署指南固定源码](./sglang_deploy_zh.md)：`aaab6bfc3de5354b052f2e96d5e566d70b9f69a2`；根项目仅引用本地路径，不自动下载或校验此 SHA |
 | SGLang 的依赖 | 该源码声明 `torch==2.14.1`、`transformers==5.19.0`，Rust 工具链 `1.92`；不要装入 vLLM 的环境 |
 | llama.cpp | `a08ab75ae74c36c15accc6c682a989a9e98dbfd2`，MiniCPM-OCR 1.0 适配合入提交（[PR #30979](https://github.com/ggml-org/llama.cpp/pull/30979)）。该提交已包含 `draft-dspark` |
 | SDK 版面检测 | `paddlepaddle==3.2.1` 或 `paddlepaddle-gpu==3.3.0`，`paddlex==3.4.2` |
@@ -139,7 +139,7 @@ curl --noproxy 127.0.0.1 -fsS http://127.0.0.1:18499/v1/models
 
 ## 5. SGLang：准备指定源码、安装与启动
 
-这一路线对应 [SGLang 指南](./sglang_deploy.md)。不要直接 `pip install sglang` 后假定含模型适配。
+这一路线对应 [SGLang 指南](./sglang_deploy_zh.md)。不要直接 `pip install sglang` 后假定含模型适配。
 
 先安装第 4 节列出的 APT 编译依赖（跳过其中的 `bash scripts/install.sh vllm`，不安装 vLLM），再补齐 SGLang 所需工具：
 
