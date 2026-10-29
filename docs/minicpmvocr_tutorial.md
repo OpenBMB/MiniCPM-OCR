@@ -39,7 +39,7 @@ python -m pip install "paddlepaddle-gpu==3.3.0" \
 
 ### 2. 推理服务环境配置
 
-推理服务任选其一，本文使用 vLLM；SGLang 和 llama.cpp 见 [SGLang 部署指南](./sglang_deploy.md)、[llama.cpp 部署指南](./llamacpp_deploy.md)（英文）。
+推理服务任选其一，本文使用 vLLM。SGLang、llama.cpp、Ollama 和 FlagOS 见 [其他推理框架](#其他推理框架)。
 
 
 > **旧驱动**：驱动低于 580 时，先按 [FAQ](./faq_zh.md#cuda-driver-version-is-insufficient) 配置适用于所用 GPU 的 CUDA 兼容库。安装和启动 vLLM、运行 GPU 版 SDK 的终端都需要设置相应的环境变量。
@@ -113,6 +113,18 @@ minicpmvocr parse \
 ---
 
 更多配置请参见 [SDK API 与配置说明](./minicpmvocr_api.md)。
+
+---
+## 其他推理框架
+
+上面的安装和启动步骤使用 vLLM。换用其他推理框架时，SDK 的版面检测和结果拼接不变，按对应文档启动识别服务后再连接。
+
+| 框架 | 文档 |
+|---|---|
+| SGLang | [部署指南（英文）](./sglang_deploy.md)。启动命令带 DSpark。 |
+| llama.cpp | [GGUF 部署指南（英文）](./llamacpp_deploy.md)。不支持 DSpark。 |
+| Ollama | 没有单独的部署文档。SDK 通过 `--backend ollama` 连接已有服务，见 [命令行参数](./minicpmvocr_api.md#命令行参数)。 |
+| FlagOS | [多芯片部署指南](./flagos_deploy_zh.md)。 |
 
 ---
 ## 常见问题

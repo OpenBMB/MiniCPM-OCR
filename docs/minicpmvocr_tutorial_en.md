@@ -38,7 +38,7 @@ python -m pip install "paddlepaddle-gpu==3.3.0" \
 
 ### 2. Set up the inference environment
 
-Choose one inference service. This tutorial uses vLLM; for SGLang and llama.cpp, see the [SGLang deployment guide](./sglang_deploy.md) and [llama.cpp deployment guide](./llamacpp_deploy.md).
+Choose one inference service. This tutorial uses vLLM. For SGLang, llama.cpp, Ollama, and FlagOS, see [Other inference frameworks](#other-inference-frameworks).
 
 > **Older drivers**: For drivers below 580, first configure a CUDA compatibility library suitable for your GPU as described in the [FAQ](./faq_en.md#cuda-driver-version-is-insufficient). Set its environment variables in each terminal used to install or start vLLM, or run the GPU SDK.
 
@@ -109,6 +109,18 @@ minicpmvocr parse \
 ```
 
 For more options, see [SDK API and Configuration](./minicpmvocr_api_en.md).
+
+---
+## Other inference frameworks
+
+The installation and startup steps above use vLLM. With another inference framework, the SDK still handles layout detection and result assembly. Start the recognition service from its guide, then connect the SDK to it.
+
+| Framework | Guide |
+|---|---|
+| SGLang | [Deployment guide](./sglang_deploy.md). The startup command enables DSpark. |
+| llama.cpp | [GGUF deployment guide](./llamacpp_deploy.md). DSpark is not supported. |
+| Ollama | There is no separate deployment guide. The SDK connects to a running service with `--backend ollama`; see [Command-line options](./minicpmvocr_api_en.md#command-line-options). |
+| FlagOS | [Multi-chip deployment guide](./flagos_deploy_en.md). |
 
 ---
 ## FAQ
