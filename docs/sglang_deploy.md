@@ -4,7 +4,7 @@
 
 SGLang serves MiniCPM-OCR through an OpenAI-compatible API. This guide enables DSpark decoding with a matched target model and draft model. The SDK runs in a separate environment and connects over HTTP.
 
-This guide follows the environment layout and SDK settings in the [vLLM tutorial](./minicpmvocr_tutorial_en.md). The commands target Linux x86_64, an NVIDIA GPU and Python 3.12. End-to-end SGLang deployment with these settings remains to be verified.
+This guide follows the environment layout and SDK settings in the [vLLM tutorial](./minicpmvocr_tutorial_en.md). The commands target Linux x86_64, an NVIDIA GPU and Python 3.12.
 
 ## 1. Prepare the source
 
@@ -139,7 +139,7 @@ In a separate terminal at the repository root:
 source .minicpm-ocr/bin/activate
 
 minicpmvocr parse --config sdk/minicpmvocr/configs/minicpmvocr.yaml \
-  --backend openai \
+  --backend sglang \
   --server-url http://127.0.0.1:18499 \
   --model minicpm-ocr \
   --set layout.model_dir="$PWD/models/PP-DocLayoutV3_infer" \
@@ -154,7 +154,7 @@ minicpmvocr parse --config sdk/minicpmvocr/configs/minicpmvocr.yaml \
 
 The input can be a PDF, PNG or JPG. PDFs are parsed in full; add `--set input.limit=1` to check only the first page. The SDK model name must match the service's `--served-model-name`.
 
-`pipeline.overlap_layout=true` lets layout detection and recognition run at the same time. `pipeline.max_workers=32` limits concurrent recognition requests, rather than pages; adjust it for the service's capacity. `pipeline.queue_mode` applies when layout overlap is disabled. `--backend openai` selects the OpenAI-compatible client for SGLang.
+`pipeline.overlap_layout=true` lets layout detection and recognition run at the same time. `pipeline.max_workers=32` limits concurrent recognition requests, rather than pages; adjust it for the service's capacity. `pipeline.queue_mode` applies when layout overlap is disabled. `--backend sglang` selects SGLang; the SDK internally maps this alias to its OpenAI-compatible client.
 
 > **CPU layout detection:** Use the CPU PaddlePaddle environment configured above, activate `.minicpm-ocr`, and replace `--set layout.device=cuda:0` with `--set layout.device=cpu`.
 

@@ -1,371 +1,410 @@
 ---
 name: minicpmvocr-sdk
-description: 安装、部署和验证 MiniCPM-OCR 1.0 文档解析（PDF / 图片 → Markdown）。在用户要安装 minicpmvocr SDK、启动 vLLM 或 transformers 推理服务（含 DSpark 加速版）、解析文档、排查安装与推理报错，或做 vLLM 与 transformers 双端逐字验证时使用。
+description: 安装、部署和验证 MiniCPM-OCR 1.0 文档解析 SDK 与 vLLM、SGLang 或 llama.cpp 推理服务，包括 DSpark、PDF/图片转 Markdown 和安装排错。Jev 打分服务使用 SKILL_jev.md。
 ---
 
-# MiniCPM-OCR 1.0 部署
+# MiniCPM-OCR 1.0 安装、部署与验证
 
-SDK（`minicpmvocr`）负责版面检测（PP-DocLayoutV3）、切块、拼接和并发调度，通过 HTTP 调用推理服务。SDK 和推理服务装在不同的 venv 里。
+[English](./SKILL_en.md) · [返回首页](../README_zh.md)
 
-## 1. 确定方案
+SDK（命令 `minicpmvocr`，发行包 `minicpm-ocr`）负责版面检测、切块、拼接，通过 HTTP 调用独立的推理服务。保留用户选择的后端；尚未选择时，根据系统和设备选路。只安装所选推理后端，SDK 与 PyTorch 推理环境分开。
 
-先问清用户用哪个推理后端、SDK 与服务是否在同一台机器。用户没有偏好时用默认方案。
+## 1. 选择后端与执行目录
 
-| 用户目标 | 环境 |
-|---|---|
-| 解析文档（默认） | `sdk-env` + `vllm-ocr-env`，DSpark 加速版 |
-| 不想编译 vLLM | `sdk-env` + `tf-ocr-env` |
-| 已有 llama.cpp / OpenAI 兼容服务 | 只装 `sdk-env` |
-| vLLM 与 transformers 双端逐字验证 | 两个推理环境，或合并的 `ocr-env`（见第 7 节） |
+| 情况 | 推理环境 | SDK 后端 | 详细参考 |
+|---|---|---|---|
+| Linux x86_64 + NVIDIA，默认方案 | `.venv-vllm`，可用 DSpark | `vllm` | [SDK 教程](./minicpmvocr_tutorial.md) |
+| Linux x86_64 + NVIDIA，选择 SGLang | `.venv-sglang`，可用 DSpark | `sglang` | [SGLang 指南（英文）](./sglang_deploy.md) |
+| CPU、本地 GPU 或 Apple Silicon，选择 llama.cpp | `sources/llama.cpp/build`，使用 GGUF | `llamacpp` | [llama.cpp 指南（英文）](./llamacpp_deploy.md) |
+| 已有兼容推理服务 | 复用服务，只装 SDK | 按服务协议选择 | 本文第 7 节 |
 
-- 推理环境只装一个，除非用户要做双端验证。
-- `sdk-env` 不能和 torch / vLLM 装在一起，否则 numpy、opencv 版本冲突。
-- SDK 可以在没有 GPU 的机器上运行，用 `--server-url` 或 SSH 隧道连接远程服务。
+- SGLang 使用 `--backend sglang`；SDK 内部将 `sglang` 映射到 `openai` 兼容客户端，`list-backends` 不单独列出 SGLang。llama.cpp 用 `llamacpp`，不要复用 vLLM 特有请求字段。
+- llama.cpp 的 Metal 服务不要求 CUDA；完整解析还需要能运行 PP-DocLayoutV3 的 SDK 环境。若本机没有对应 PaddlePaddle wheel，单独安排兼容的 SDK 主机，不把 Metal 服务可用当成整个 SDK 已可用。
+- SDK 与服务可以分处两台机器。先确认实际系统、GPU/内存、可用磁盘、目标工作目录和服务地址；已知信息无需再问。
 
-## 2. 安装前检查
+SDK 直接从 PyPI 安装；连接已有推理服务时，在自己的工作目录执行第 3、7 节即可，无需克隆本仓库。自行部署 vLLM 或 SGLang 时，下面的安装步骤会使用仓库中的脚本，先进入已有仓库或克隆。推理服务示例以 **MiniCPM-OCR 仓库根目录**为工作目录；独立 SDK 主机上的 `.minicpm-ocr`、`models/` 和输入输出路径均相对其工作目录：
 
 ```bash
-nvidia-smi                                                      # 显存 ≥ 24 GB，驱动 ≥ 580
-nvidia-smi --query-compute-apps=pid,used_memory --format=csv    # 找一张空闲卡
-df -h .                                                         # 剩余 ≥ 20 GB
+git clone https://github.com/OpenBMB/MiniCPM-OCR.git
+cd MiniCPM-OCR
 ```
 
-- 驱动 535–579 跑不了默认组合（torch cu130）。告诉用户需要升级驱动，或改用 torch cu126 自行编译 vLLM（A100 上验证过，本 skill 不覆盖）。
-- vLLM 环境需要 Python ≥ 3.11；SDK 和 transformers 环境 ≥ 3.10。
+## 2. 以当前仓库为准检查版本和前置条件
 
-需要用户提供的路径（没有给出时先问，不要猜）：
+自行部署推理服务前读取根目录 [`pyproject.toml`](../pyproject.toml)、[`scripts/install.sh`](../scripts/install.sh)、[`sdk/pyproject.toml`](../sdk/pyproject.toml) 和 [`sdk/minicpmvocr/_version.py`](../sdk/minicpmvocr/_version.py)。仅安装 SDK 时按第 3 节使用 PyPI 包。下面是本 Skill 对齐的版本；仓库更新时以实际声明为准，同步检查启动参数，不混用旧的 feat-ocr 源码与公开适配版本。
 
-| 占位符 | 含义 |
+| 组件 | 当前来源 / 版本 |
 |---|---|
-| `<SDK_REPO>` | 官方仓库地址：`https://github.com/OpenBMB/MiniCPM-OCR.git` |
-| `<VLLM_SRC>` | feat-ocr vLLM 源码目录（commit `5c2b92a5dc`） |
-| `<TRANSFORMERS_SRC>` | feat-ocr transformers 源码目录（commit `69eafbc5bd`） |
+| SDK | PyPI 包 `minicpm-ocr[all]`，默认安装或升级到与当前 Python 兼容的最新稳定版，与 [SDK 教程](./minicpmvocr_tutorial.md)一致 |
+| Python | 安装脚本默认 `3.12`；根项目要求 `>=3.11,<3.14`（SDK 单独要求 `>=3.10`） |
+| vLLM | `18343393b4da41a7e8027efbc4c7e77c28301bf0`，由安装脚本准备 |
+| vLLM 依赖的 Transformers | `549e5b410733fb50e8efbbe4aa585cb89f6478ea`，由根项目固定 |
+| vLLM 依赖的 PyTorch | `torch==2.14.0`、`torchvision==0.29.0` |
+| SGLang | [部署指南固定源码](./sglang_deploy.md)：`aaab6bfc3de5354b052f2e96d5e566d70b9f69a2`；根项目仅引用本地路径，不自动下载或校验此 SHA |
+| SGLang 的依赖 | 该源码声明 `torch==2.14.1`、`transformers==5.19.0`，Rust 工具链 `1.92`；不要装入 vLLM 的环境 |
+| llama.cpp | `a08ab75ae74c36c15accc6c682a989a9e98dbfd2`，MiniCPM-OCR 1.0 适配合入提交（[PR #30979](https://github.com/ggml-org/llama.cpp/pull/30979)） |
+| SDK 版面检测 | `paddlepaddle==3.2.1` 或 `paddlepaddle-gpu==3.3.0`，`paddlex==3.4.2` |
 
-以下命令都在同一个工作目录下执行：环境建在 `./sdk-env` 等目录，模型在 `./models/`，仓库克隆到 `./minicpmvocr-sdk/`，SDK 源码在其 `sdk/` 子目录。
-
-## 3. 安装
-
-### 3.1 sdk-env
+Linux CUDA 路线先检查：
 
 ```bash
-python3 -m venv sdk-env && source sdk-env/bin/activate
-pip install paddlepaddle-gpu==3.3.0 -i https://www.paddlepaddle.org.cn/packages/stable/cu129/
-# 没有 GPU 时改装 CPU 版：pip install paddlepaddle==3.2.1
-git clone <SDK_REPO> minicpmvocr-sdk
-pip install -e "./minicpmvocr-sdk/sdk[all]"
-pip install paddlex==3.4.2
+uname -srm
+nvidia-smi
+nvidia-smi --query-compute-apps=pid,used_memory --format=csv
+df -h .
+```
+
+vLLM / SGLang 安装脚本要求 Linux x86_64、`gcc-13` / `g++-13`，使用项目声明的 CUDA 13 pip 组件。CUDA 13 通常要求驱动 ≥580；旧驱动按 [FAQ](./faq_zh.md#cuda-driver-version-is-insufficient) 核对 GPU 与兼容库，安装、起服、GPU SDK 的每个新终端都需恢复相关环境变量。不要只凭驱动号宣告所有后端不可用。
+
+vLLM 完整环境按教程至少预留 40 GB 磁盘；内存有限时降低 `MAX_JOBS`，显存按上下文和并发实际检查，不把某次测试硬件当成统一门槛。CPU / Metal 路线无需执行 `nvidia-smi`；Mac 先查 `xcode-select -p`，编译还需 CMake。
+
+## 3. 通过 pip 安装 SDK
+
+按 [SDK 教程](./minicpmvocr_tutorial.md#1-sdk-环境配置)创建独立的 `.minicpm-ocr` 环境，再用 pip 安装已发布的 SDK 包。已有 uv 则直接复用；没有时可执行 `python3 -m pip install uv`。若系统 Python 受 PEP 668 管理，将 uv 装进单独的工具 venv。SDK 安装本身不需要 Git；自行部署推理服务时再准备 Git、curl 和编译工具。
+
+默认先用 CPU 版面检测，避免占用推理卡；在支持此 PaddlePaddle wheel 的机器上执行：
+
+```bash
+if [ ! -x .minicpm-ocr/bin/python ]; then
+  uv venv .minicpm-ocr --python 3.12 --seed
+fi
+source .minicpm-ocr/bin/activate
+python -m pip install --upgrade "minicpm-ocr[all]" "paddlex==3.4.2" "pypdfium2>=4"
+python -m pip install "paddlepaddle==3.2.1"
+python -m pip check
 minicpmvocr list-backends
+python -c 'from importlib.metadata import version; import minicpmvocr, paddle, paddlex; print(version("minicpm-ocr"), minicpmvocr.__file__); print(paddle.__version__, paddlex.__version__)'
 ```
 
-通过标准：输出包含 `vllm`、`llamacpp`、`openai` 后端和 `ppdoclayout3_paddlex`、`ppdoclayout3_torch`、`ppdoclayout3_server` 三个版面 provider。
+记录实际安装的发行包版本，确认导入路径位于 `.minicpm-ocr` 环境的 `site-packages`；后端列表包含 `vllm`、`llamacpp`、`openai`，版面 provider 包含 `ppdoclayout3_paddlex`。这里同时沿用根项目的 `paddlex==3.4.2` 和 `pypdfium2>=4` 依赖，避免版面检测依赖缺失。需要复现特定环境时，再为 SDK 指定版本。
 
-装的是 CPU 版 paddle 时，后面每条 `minicpmvocr` 命令都要加 `--set layout.device=cpu`。
-
-### 3.2 vllm-ocr-env
+需要 GPU 版面检测时，将上面的 CPU PaddlePaddle 安装行替换为教程中的 GPU 安装命令（CPU/GPU 包二选一），后面的 SDK 命令改用 `--device cuda:0`，仍激活同一个 `.minicpm-ocr` 环境：
 
 ```bash
+python -m pip install "paddlepaddle-gpu==3.3.0" \
+  -i https://www.paddlepaddle.org.cn/packages/stable/cu129/
+```
+
+已有可用 SDK 环境时直接复用。只有开发或修改 SDK 源码时才使用仓库中的 editable 安装；正常解析使用上述 pip 安装。
+
+`parse` 不传 `--config` 时使用包内配置，默认寻找 `models/PP-DocLayoutV3_infer`，缺失时自动下载并校验官方版面模型。已有模型可用 `--layout-model /absolute/path/PP-DocLayoutV3_infer`；它必须包含 `inference.pdiparams`、`inference.json`、`inference.yml`。显式传入模型路径或 `--config` 时，不依赖此自动下载行为。
+
+## 4. vLLM：安装、启动与就绪检查
+
+Ubuntu 系统依赖（具有相应权限时执行，否则由管理员安装）：
+
+```bash
+sudo apt-get update
+sudo apt-get install -y software-properties-common build-essential git curl ca-certificates
 sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-sudo apt-get update && sudo apt-get install -y gcc-13 g++-13 libdw-dev libelf-dev
-
-python3.13 -m venv vllm-ocr-env && source vllm-ocr-env/bin/activate
-pip install torch==2.14.0 torchaudio==2.11.0 torchvision==0.29.0
-pip install "transformers>=5.16.1,<5.20.0"
-pip install "setuptools-rust>=1.9.0" "setuptools-scm>=8.0" "setuptools>=77.0.3,<81.0.0" \
-    "cmake>=3.26.1" ninja packaging wheel jinja2
-pip install nvidia-cuda-nvcc==13.0.48 nvidia-cuda-crt==13.0.48 nvidia-nvvm==13.0.48 \
-    nvidia-cuda-runtime==13.0.96 nvidia-cuda-nvrtc==13.0.88 nvidia-nvjitlink==13.4.92 \
-    nvidia-cuda-cccl==13.3.4.3.1
+sudo apt-get update
+sudo apt-get install -y gcc-13 g++-13 libdw-dev libelf-dev
+bash scripts/install.sh vllm
 ```
 
-`nvidia-cuda-cccl` 不能省，缺了会报 `cuda_fp16.h: nv/target: No such file or directory`。
+安装脚本自动准备固定 SHA 的 `sources/vllm`、`sources/transformers`，调整 vLLM 的 Transformers 依赖并建立 CUDA 编译目录，默认 `MAX_JOBS=8`。已有源码版本不匹配时会停止；先保留本地改动并处理版本，不能直接 reset。不要另装浮动版本的 Transformers 覆盖它。
 
-补齐 pip CUDA 包的目录布局：
-
-```bash
-CU="$VIRTUAL_ENV/lib/python$(python -c 'import sys; print("%d.%d" % sys.version_info[:2])')/site-packages/nvidia/cu13"
-mkdir -p "$CU/nvvm/bin" && ln -sf "$CU/bin/cicc" "$CU/nvvm/bin/cicc"
-ln -sfn lib "$CU/lib64"
-ln -sf "$CU/lib/libcudart.so.13" "$CU/lib/libcudart.so"
-ln -sf "$CU/lib/libnvrtc.so.13" "$CU/lib/libnvrtc.so"
-mkdir -p "$CU/lib64/stubs" && ln -sf /usr/lib/x86_64-linux-gnu/libcuda.so.1 "$CU/lib64/stubs/libcuda.so"
-```
-
-如果 13.0.48 的包缺少 `bin/crt/link.stub`、`prelink.stub` 或 `bin/nvdisasm`，从同一台机器上装了 13.4.92 的环境复制到 `$CU/bin/` 对应位置。
-
-编译（96 核约 20 分钟；内存小时调低 `MAX_JOBS`）：
+在新的服务终端中，从仓库根目录执行：
 
 ```bash
-cd <VLLM_SRC>
-# 无法访问 GitHub 时，先设置下面“离线编译”中的变量
-CUDA_HOME="$CU" PATH="$VIRTUAL_ENV/bin:$CU/bin:$PATH" \
-  CC=gcc-13 CXX=g++-13 CUDAHOSTCXX=g++-13 MAX_JOBS=64 \
-  pip install -e . --no-build-isolation --progress-bar off
-cd -
-python -c "from vllm import LLM; print('vLLM OK')"
-```
+source .venv-vllm/bin/activate
+uv pip check --python "$VIRTUAL_ENV/bin/python"
+python -c 'import torch, transformers, vllm; print(torch.__version__, transformers.__version__, vllm.__version__)'
+hf download openbmb/MiniCPM-OCR-1.0 --local-dir ./models/MiniCPM-OCR-1.0
+hf download openbmb/MiniCPM-OCR-1.0-DSpark --local-dir ./models/MiniCPM-OCR-1.0-DSpark
+export CC=gcc-13 CXX=g++-13
+export CUDA_HOME="$(python -c 'import sysconfig; print(sysconfig.get_path("purelib") + "/nvidia/cu13")')"
+export PATH="$CUDA_HOME/bin:$PATH"
 
-不要用 `import vllm._C` 判断编译是否成功。这个分支的扩展名是 `_C_stable_libtorch.abi3.so`。
-
-DSpark 主模型是 `minicpm_ocr` 架构，PyPI 的 transformers 不支持。编译完 vLLM 后再装 feat-ocr transformers，顺序不能反：
-
-```bash
-pip install --no-deps -e <TRANSFORMERS_SRC>
-python -c "import transformers; print(transformers.__version__)"   # 应为 5.19.0.dev0
-```
-
-离线编译（CMake 拉取 CUTLASS 等依赖超时时）：
-
-```bash
-DEPS=<已有 vLLM 源码>/.deps
-export VLLM_CUTLASS_SRC_DIR="$DEPS/cutlass-src"
-export VLLM_FLASH_ATTN_SRC_DIR="$DEPS/vllm-flash-attn-src"
-export FLASH_KDA_SRC_DIR="$DEPS/flashkda-src"
-export DEEPSELECT_SRC_DIR="$DEPS/deepselect-src"
-export FLASH_MLA_SRC_DIR="$DEPS/flashmla-src"
-export TRITON_KERNELS_SRC_DIR="$DEPS/triton_kernels-src/python/triton_kernels/triton_kernels"
-export TML_FA4_SRC_DIR="$DEPS/tml_fa4-src"
-export FMHA_SM100_SRC_DIR="$DEPS/fmha_sm100-src"
-export QUTLASS_SRC_DIR="$DEPS/qutlass-src"
-export DEEPGEMM_SRC_DIR="$DEPS/deepgemm-src"
-export CMAKE_ARGS="-DCUTLASS_ENABLE_TESTS=OFF"   # 否则还会拉取 googletest
-```
-
-编译后可以忽略的告警：
-
-- `vllm.third_party.deep_gemm ... undefined symbol: _ZSt8to_charsPcS_DF128_`：OCR 模型不用 DeepGEMM。
-- `FlashInfer's precompiled kernels are missing or do not match`：冷启动会慢一些（实测初始化约 104 秒），不影响结果。
-
-### 3.3 tf-ocr-env
-
-```bash
-python3 -m venv tf-ocr-env && source tf-ocr-env/bin/activate
-pip install torch==2.14.0 torchvision
-pip install -e <TRANSFORMERS_SRC>         # 需要 OpenAI 兼容服务时装 "<TRANSFORMERS_SRC>[serving]"
-pip install accelerate
-# 可选加速内核，不装时回退参考实现，结果相同但更慢：
-# pip install causal-conv1d flash-linear-attention
-```
-
-### 3.4 下载模型
-
-主模型：[MiniCPM-OCR-1.0](https://huggingface.co/openbmb/MiniCPM-OCR-1.0)；DSpark 草稿模型：[MiniCPM-OCR-1.0-DSpark](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark)。
-
-```bash
-# DSpark：主模型和 draft 必须来自同一次发布，不能和其他 checkpoint 混用
-HF_ENDPOINT=https://hf-mirror.com hf download openbmb/MiniCPM-OCR-1.0 --local-dir ./models/MiniCPM-OCR-1.0
-HF_ENDPOINT=https://hf-mirror.com hf download openbmb/MiniCPM-OCR-1.0-DSpark --local-dir ./models/MiniCPM-OCR-1.0-DSpark
-sha256sum ./models/MiniCPM-OCR-1.0-DSpark/model.safetensors   # 对照 release_manifest.json 的 weight_sha256
-
-curl -L -o PP-DocLayoutV3_infer.tar \
-  https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-DocLayoutV3_infer.tar
-tar xf PP-DocLayoutV3_infer.tar
-export OCR_LAYOUT_MODEL_DIR=$PWD/PP-DocLayoutV3_infer
-test -f "$OCR_LAYOUT_MODEL_DIR/inference.pdiparams" && echo "layout OK"
-```
-
-- ModelScope：`modelscope download --model <MS_REPO_ID> --local_dir <同名目录>`。
-- 主模型目录应包含 `config.json`、`model.safetensors`、`tokenizer.json`、`preprocessor_config.json`、`chat_template.jinja`。
-- `OCR_LAYOUT_MODEL_DIR` 必须是 Paddle inference 目录（含 `inference.pdiparams`、`inference.json`、`inference.yml`），不是 safetensors 目录。
-
-## 4. 启动推理服务
-
-每个新 shell 里启动 vLLM 前都要设置 `CUDA_HOME`，否则 Blackwell 显卡首次启动会报 `Could not find nvcc`：
-
-```bash
-source vllm-ocr-env/bin/activate
-CU="$VIRTUAL_ENV/lib/python$(python -c 'import sys; print("%d.%d" % sys.version_info[:2])')/site-packages/nvidia/cu13"
-export CUDA_HOME="$CU" PATH="$VIRTUAL_ENV/bin:$CU/bin:$PATH"
-```
-
-### 4.1 DSpark 加速版（默认）
-
-```bash
-CUDA_VISIBLE_DEVICES=<空闲卡> python -m vllm.entrypoints.openai.api_server \
-  --model ./models/MiniCPM-OCR-1.0 \
-  --served-model-name minicpm-ocr \
-  --port 18499 \
-  --max-model-len 40960 \
-  --max-num-batched-tokens 40960 \
-  --max-num-seqs 1 \
-  --attention-backend FLASH_ATTN \
-  --mm-encoder-attn-backend FLASH_ATTN \
+CUDA_VISIBLE_DEVICES=0 vllm serve ./models/MiniCPM-OCR-1.0 \
+  --served-model-name minicpm-ocr --host 127.0.0.1 --port 18499 \
+  --max-model-len 40960 --max-num-batched-tokens 40960 --max-num-seqs 32 \
+  --limit-mm-per-prompt '{"image":36,"video":0}' \
+  --attention-backend FLASH_ATTN --mm-encoder-attn-backend FLASH_ATTN \
   --mm-processor-kwargs '{"downsample_mode":"4x"}' \
-  --gpu-memory-utilization 0.85 \
-  --trust-request-mm-kwargs \
+  --gpu-memory-utilization 0.85 --trust-request-mm-kwargs \
   --speculative-config '{"method":"dspark","model":"./models/MiniCPM-OCR-1.0-DSpark","num_speculative_tokens":15,"enable_adaptive_verification":false}' \
   --default-chat-template-kwargs '{"enable_thinking":false}'
 ```
 
-- `--max-num-seqs 1` 表示一次只处理一个请求，SDK 的并发请求会排队。用户需要高吞吐时，起多个实例并重复传 `--server-url`，或改用标准版。
-- 服务启动时使用 `--served-model-name minicpm-ocr`，SDK 解析命令对应使用 `--model minicpm-ocr`。修改名称时，两处需一起修改。
+主模型与草稿模型须来自同一发布；已有模型可复用。普通解码可删除整个 `--speculative-config` 参数，并跳过草稿下载。`CUDA_VISIBLE_DEVICES=0` 是示例，按空闲卡调整。SDK 请求需要 `--trust-request-mm-kwargs`。不要将 SGLang 的 `DSPARK` 参数复制到 vLLM。
 
-### 4.2 标准版（无投机采样）
-
-```bash
-CUDA_VISIBLE_DEVICES=<空闲卡> python -m vllm.entrypoints.openai.api_server \
-  --model ./models/MiniCPM-OCR-1.0 \
-  --served-model-name minicpm-ocr \
-  --port 18499 \
-  --max-model-len 40960 \
-  --limit-mm-per-prompt '{"image": 36}' \
-  --gpu-memory-utilization 0.85 \
-  --trust-request-mm-kwargs
-```
-
-两个版本都必须带 `--trust-request-mm-kwargs`。漏掉时服务对每个请求返回 400，SDK 会静默重试，直到 600 秒后才报错，看起来像卡死。
-
-### 4.3 transformers serve
+在另一终端检查：
 
 ```bash
-source tf-ocr-env/bin/activate
-transformers serve ./models/MiniCPM-OCR-1.0 --port 18499 --host 0.0.0.0 --continuous-batching
+curl --noproxy 127.0.0.1 -fsS http://127.0.0.1:18499/v1/models
 ```
 
-### 4.4 就绪检查
+返回模型列表包含 `minicpm-ocr` 后，继续第 7 节带图与 SDK 验证。
+
+## 5. SGLang：准备指定源码、安装与启动
+
+这一路线对应 [SGLang 指南](./sglang_deploy.md)。不要直接 `pip install sglang` 后假定含模型适配。
+
+先安装第 4 节列出的 APT 编译依赖（跳过其中的 `bash scripts/install.sh vllm`，不安装 vLLM），再补齐 SGLang 所需工具：
 
 ```bash
-curl --noproxy 127.0.0.1 http://127.0.0.1:18499/v1/models     # 首次启动约 3 分钟
+sudo apt-get install -y pkg-config libssl-dev protobuf-compiler
+mkdir -p sources
+SGLANG_COMMIT=aaab6bfc3de5354b052f2e96d5e566d70b9f69a2
+if [ ! -e sources/sglang ]; then
+  git clone https://github.com/sgl-project/sglang.git sources/sglang &&
+  git -C sources/sglang fetch origin pull/45799/head &&
+  git -C sources/sglang checkout --detach "$SGLANG_COMMIT"
+fi
+test "$(git -C sources/sglang rev-parse HEAD)" = "$SGLANG_COMMIT" || {
+  echo "SGLang source revision mismatch; preserve local work and resolve it before installing." >&2
+  exit 1
+}
+protoc --version
+bash scripts/install.sh sglang
 ```
 
-返回里有 `"id":"minicpm-ocr"` 才算就绪。首次启动在 CUDA graph capture 阶段超时或被 SIGTERM 时，直接重启一次（编译缓存已经生成）；仍然失败再加 `--enforce-eager`。
+脚本仅从 `sources/sglang/python` 安装；它不会替你 clone 或锁定 SGLang 源码。上面的版本检查因此不能省略。脚本读取 `rust/rust-toolchain.toml`，安装所需 rustup / Rust，并准备 pip CUDA 目录。`libcuda.so.1` 不在默认位置时，安装前设置 `OCR_LIBCUDA` 为实际路径；兼容库场景沿用 FAQ 配置。
 
-## 5. 解析文档
+在新的服务终端中，从仓库根目录执行。先激活环境，再恢复 Cargo、Rust、C++ 和 CUDA 设置，避免首次启动编译扩展时找错工具：
 
 ```bash
-source sdk-env/bin/activate
-export OCR_LAYOUT_MODEL_DIR=$PWD/PP-DocLayoutV3_infer
-export PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True
+source .venv-sglang/bin/activate
+export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
+export RUSTUP_TOOLCHAIN="$(python -c 'import tomllib; print(tomllib.load(open("sources/sglang/rust/rust-toolchain.toml", "rb"))["toolchain"]["channel"])')"
+export CC=gcc-13 CXX=g++-13 CUDAHOSTCXX=g++-13
+export CUDA_HOME="$(python -c 'import sysconfig; print(sysconfig.get_path("purelib") + "/nvidia/cu13")')"
+export PATH="$CUDA_HOME/bin:$PATH"
+uv pip check --python "$VIRTUAL_ENV/bin/python"
+cargo --version
+"$CUDA_HOME/bin/nvcc" --version
+python -c 'import sglang, torch, transformers; print(sglang.__file__); print(torch.__version__, transformers.__version__); print((torch.ones(1, device="cuda") + 1).item())'
+hf download openbmb/MiniCPM-OCR-1.0 --local-dir ./models/MiniCPM-OCR-1.0
+hf download openbmb/MiniCPM-OCR-1.0-DSpark --local-dir ./models/MiniCPM-OCR-1.0-DSpark
 
-minicpmvocr parse --config minicpmvocr-sdk/configs/backends/vllm.yaml \
-  --server-url http://127.0.0.1:18499 \
-  --model minicpm-ocr \
-  --set input.limit=1 --input <文件> --output out.md
+CUDA_VISIBLE_DEVICES=0 python -m sglang.launch_server \
+  --model-path ./models/MiniCPM-OCR-1.0 \
+  --served-model-name minicpm-ocr --host 127.0.0.1 --port 18499 \
+  --context-length 40960 --max-running-requests 32 --mem-fraction-static 0.85 \
+  --speculative-algorithm DSPARK \
+  --speculative-draft-model-path ./models/MiniCPM-OCR-1.0-DSpark \
+  --default-chat-template-kwargs '{"enable_thinking":false}'
 ```
 
-- 先用 `--set input.limit=1` 只解析一页，确认通过后再去掉，解析全部页面。
-- 配置文件都在 `minicpmvocr-sdk/configs/backends/`：vLLM 用 `vllm.yaml`；transformers serve 和其他 OpenAI 兼容服务用 `openai.yaml`；llama.cpp 用 `llamacpp.yaml`。
-- 用 `openai.yaml` 时加 `--set engine.extra_body='{"chat_template_kwargs":{"enable_thinking":false}}'`，否则输出可能为空或乱码。`vllm.yaml` 已自动关闭思考模式。
-- 多卡机器上版面检测默认用 GPU 0。GPU 0 被占用时加 `--set layout.device=cuda:N`。
-- 除 `parse` 外的命令（`run`、`parse-layout`、`prepare`、`infer`、`show-config`）都要用 `--set input.file_path`、`input.files_dir` 或 `input.image_dir` 指定输入。
-- `--set` 里的相对路径按配置文件所在目录解析，一律写绝对路径（如 `$PWD/doc.pdf`）。`--input` 按当前目录解析。
-- `run` 的输出目录由配置里固定的 `run.run_tag` 决定，已有结果的页面会被跳过。重跑前换 `--set run.run_tag=<新名字>`。
-- 产物默认写在 SDK 目录的 `runs/` 下。磁盘紧张时加 `--set run.run_root=<其他盘的绝对路径>`。
+安装路径应指向 `sources/sglang/python/sglang`。该源码的 Rust 为 1.92，NVCC 应为项目声明的 CUDA 13.0。不要把 vLLM 路线的 Transformers editable 安装进这个环境；SGLang 使用自己的模型配置与 processor 适配。
 
-## 6. 验证结果
+不启用 DSpark 时删除 `--speculative-algorithm` 和 `--speculative-draft-model-path` 两个参数，跳过草稿下载。使用 DSpark 时保持匹配的主模型和草稿模型；不要套用 vLLM 的投机 JSON。
+
+在另一终端运行第 4 节的 `/v1/models` 检查，确认有 `minicpm-ocr`，再按第 7 节使用 `--backend sglang` 验证。若端口已被占用，改服务端口与所有客户端地址；同一张卡上切换服务前先确认原服务的占用。
+
+## 6. llama.cpp：GGUF、编译与启动
+
+llama.cpp 不使用 HF safetensors 直接起服；需要语言模型 GGUF 和视觉 projector GGUF 两个文件。当前路线使用 [llama.cpp 指南](./llamacpp_deploy.md)中的官方 F16 文件。已有 `hf` 时复用；服务主机没有 SDK 时只建下载环境，不需要安装 PaddlePaddle、torch 或转换权重：
 
 ```bash
-python - <<'PY'
-from pathlib import Path
-md = Path("out.md").read_text(encoding="utf-8")
-assert md.strip(), "输出为空"
-assert "<otsl>" not in md, "表格仍是 OTSL，没有转成 HTML"
-print("OK", len(md), "chars", "| table" if "<table>" in md else "")
-PY
+if ! command -v hf >/dev/null; then
+  if [ ! -x .venv-models/bin/python ]; then
+    uv venv --python 3.12 .venv-models
+  fi
+  uv pip install --python .venv-models/bin/python huggingface-hub
+  export PATH="$PWD/.venv-models/bin:$PATH"
+fi
+hf download openbmb/MiniCPM-OCR-1.0-gguf \
+  MiniCPM-OCR-1_0-F16.gguf mmproj-model-f16-4x.gguf \
+  --local-dir ./models/MiniCPM-OCR-1.0-gguf
+mkdir -p sources
+LLAMA_COMMIT=a08ab75ae74c36c15accc6c682a989a9e98dbfd2
+if [ ! -e sources/llama.cpp ]; then
+  git clone https://github.com/ggml-org/llama.cpp.git sources/llama.cpp &&
+  git -C sources/llama.cpp checkout --detach "$LLAMA_COMMIT"
+fi
+test "$(git -C sources/llama.cpp rev-parse HEAD)" = "$LLAMA_COMMIT" || {
+  echo "llama.cpp source revision mismatch; preserve local work and resolve it before building." >&2
+  exit 1
+}
+git -C sources/llama.cpp rev-parse HEAD
 ```
 
-- 表格页应有 `<table>`，公式页应有 LaTeX（如 `\frac`），正文页应是可读文本。
-- DSpark 版本还要确认投机采样生效。发几个请求后：
+本 Skill 固定到 MiniCPM-OCR 1.0 的适配合入提交。已有源码版本不匹配时先保留本地改动，再处理版本或使用独立目录；不要直接 reset。确认 SHA 一致后再编译，避免复用其他版本的旧二进制。
+
+Ubuntu 上先准备编译依赖：
 
 ```bash
-curl --noproxy 127.0.0.1 -s http://127.0.0.1:18499/metrics | grep spec_decode_num
+sudo apt-get update
+sudo apt-get install -y cmake build-essential git curl ca-certificates
 ```
 
-应看到 `spec_decode_num_accepted_tokens_total` 和 `spec_decode_num_drafts_total`，且数值随请求增加。accept length = 1 + accepted / drafts，验证环境中为 5.2–7.0。没有这两项说明服务没带 `--speculative-config`。服务能响应不代表 DSpark 生效。
-
-## 7. 可选：双端逐字验证
-
-只有用户要求时才做。`verify_transformers.py` 和 `verify_vllm.py` 随 feat-ocr 源码提供，不在 SDK 里。用户没有这两个脚本时跳过，不要声称已验证双端一致。
-
-如果想在一个环境里跑两端，在编译好 vLLM 的环境里执行（顺序不能反）：
+macOS 上检查 Command Line Tools；若未安装，执行 `xcode-select --install` 并等安装完成。用 Homebrew 准备 CMake：
 
 ```bash
-pip install --no-deps -e <TRANSFORMERS_SRC>
-pip install --no-deps accelerate
-python -c "import transformers, vllm, torch; print(transformers.__version__, vllm.__version__, torch.__version__)"
+xcode-select -p
+brew install cmake
 ```
 
-两端分别运行：
+CUDA 构建还需可找到的完整 CUDA toolkit（`nvcc --version`、`CUDA_HOME`），只有显卡驱动不足以编译；CPU / Metal 不需要 CUDA。按平台**只执行下面一个配置块**，切换后端时使用独立 build 目录或清理自己生成的 CMake 缓存：
+
+Linux + NVIDIA：
 
 ```bash
-# transformers 端（tf-ocr-env 或合并环境）
-CUDA_VISIBLE_DEVICES=<空闲卡> python verify_transformers.py \
-  --model ./models/MiniCPM-OCR-1.0 --image table.png \
-  --prompt "请识别图中的表格并输出 OTSL" --attn sdpa --max-new-tokens 512
-
-# vLLM 端（vllm-ocr-env 或合并环境，先按第 4 节设置 CUDA_HOME）
-CUDA_VISIBLE_DEVICES=<空闲卡> python verify_vllm.py \
-  --model ./models/MiniCPM-OCR-1.0 --image table.png \
-  --prompt "请识别图中的表格并输出 OTSL" --max-tokens 512
+cmake -S sources/llama.cpp -B sources/llama.cpp/build \
+  -DGGML_CUDA=ON -DCMAKE_BUILD_TYPE=Release
 ```
 
-通过标准：
+macOS + Apple Silicon（Metal 默认启用）：
 
-- transformers 端加载时没有 missing、unexpected 或 mismatched keys，参数量 1.300B。
-- 两端的 prompt token 数相同，输出逐字相同，都以 `</otsl>` 结尾。
+```bash
+cmake -S sources/llama.cpp -B sources/llama.cpp/build \
+  -DCMAKE_BUILD_TYPE=Release
+```
 
-参考值（1080×1080 表格图）：prompt 1975 tokens，视觉 1936 tokens，生成 284 tokens，输出 677 字符。换图片或 prompt 后数值会变，判断依据是两端一致。
+CPU（显式关闭 GPU 后端）：
 
-## 8. 报错处理
+```bash
+cmake -S sources/llama.cpp -B sources/llama.cpp/build \
+  -DGGML_CUDA=OFF -DGGML_METAL=OFF -DCMAKE_BUILD_TYPE=Release
+```
 
-### 安装与编译
+确认配置输出包含预期后端；然后编译。`-j 8` 按本机内存调整：
+
+```bash
+cmake --build sources/llama.cpp/build -j 8 --target llama-server
+./sources/llama.cpp/build/bin/llama-server --version
+```
+
+从仓库根目录启动（这里统一用端口 18499，客户端显式指定地址，不依赖 SDK 的后端默认端口）：
+
+```bash
+./sources/llama.cpp/build/bin/llama-server \
+  --model ./models/MiniCPM-OCR-1.0-gguf/MiniCPM-OCR-1_0-F16.gguf \
+  --mmproj ./models/MiniCPM-OCR-1.0-gguf/mmproj-model-f16-4x.gguf \
+  --alias minicpm-ocr --host 127.0.0.1 --port 18499 \
+  --ctx-size 40960 --n-gpu-layers 999 --parallel 1 --reasoning off
+```
+
+CPU 推理将 `--n-gpu-layers 999` 改成 `--n-gpu-layers 0`。上下文 40960 不是低内存保证；内存或显存不足时先降低 `--ctx-size`，并同步第 7 节的 `engine.max_model_len`。保留 `--reasoning off`：适配 PR 指出，默认 `auto` 可能将识别文本放进 `reasoning_content`，而当前 SDK 读取 `content`，导致读到空输出。自行转换权重时还需核对模板，按指南加入 `--chat-template-kwargs '{"enable_thinking":false}'`。llama.cpp 路线不启用 DSpark。
+
+在另一终端检查：
+
+```bash
+curl --noproxy 127.0.0.1 -fsS http://127.0.0.1:18499/health
+curl --noproxy 127.0.0.1 -fsS http://127.0.0.1:18499/v1/models
+```
+
+`/health` 返回 `status=ok`，模型列表核对别名 `minicpm-ocr`，然后执行第 7 节。不要用 SDK 启动脚本的历史默认模型路径覆盖本节下载路径。
+
+## 7. 三层验证：就绪、带图请求、单页解析
+
+### 7.1 就绪
+
+按相应后端检查 `/v1/models`，llama.cpp 另查 `/health`。模型名与客户端一致，SDK 的 URL 为服务根地址 `http://127.0.0.1:18499`，不带 `/v1`。健康检查成功只说明可访问。
+
+### 7.2 用当前 SDK 客户端发送一个真实图片块
+
+激活已安装的 SDK 环境，准备含清晰文字的 `sample.png`（真实裁切的文字块），按后端替换 `OCR_BACKEND`：vLLM 为 `vllm`，SGLang 为 `sglang`，llama.cpp 为 `llamacpp`。模型 ID、URL 按实际服务调整：
+
+```bash
+source .minicpm-ocr/bin/activate
+export OCR_BACKEND=llamacpp
+export OCR_TEST_URL=http://127.0.0.1:18499
+export OCR_TEST_MODEL=minicpm-ocr
+python - <<'PYTEST'
+import os
+from copy import deepcopy
+from PIL import Image
+from minicpmvocr import DEFAULT_CONFIG, create_backend
+
+cfg = deepcopy(DEFAULT_CONFIG)
+cfg["engine"].update({
+    "type": os.environ["OCR_BACKEND"],
+    "server_url": os.environ["OCR_TEST_URL"],
+    "model_name": os.environ["OCR_TEST_MODEL"],
+    "max_model_len": 40960,
+    "startup_timeout_sec": 60,
+    "request_ready_timeout_sec": 30,
+    "extra_body": {"chat_template_kwargs": {"enable_thinking": False}},
+})
+client = create_backend(cfg)
+client.wait_ready(timeout_sec=60)
+with Image.open("sample.png") as image:
+    result = client.recognize(image.convert("RGB"), "Text Recognition:", max_new_tokens=2048)
+assert result["text"].strip(), "Empty OCR output"
+assert result["finish_reason"] != "length", "Output truncated; inspect the token budget"
+print(result["text"])
+print("finish_reason:", result["finish_reason"])
+PYTEST
+```
+
+这段使用当前 `create_backend` / `recognize` 接口，按后端生成请求，避免手工把 vLLM 字段发给其他服务。若服务上下文已调小，同步修改脚本里的 `max_model_len`。检查输出是否与图片一致；非空断言不能代替识别质量判断。直接调用客户端返回模型原始输出，表格后处理由完整流水线完成。
+
+### 7.3 用 SDK 解析一页
+
+下面三个示例**按所选后端执行一个**。先激活 `.minicpm-ocr`。默认 CPU 版面；第 3 节选择 GPU PaddlePaddle 时可改用 `--device cuda:0`。`doc.pdf` 也可换成 PNG/JPG。使用 `parse` 的包内配置以启用版面模型自动准备。
+
+vLLM：
+
+```bash
+minicpmvocr parse --backend vllm \
+  --server-url http://127.0.0.1:18499 --model minicpm-ocr \
+  --device cpu --workers 1 --set input.limit=1 \
+  --set engine.max_model_len=40960 \
+  --input doc.pdf --output out-vllm.md
+```
+
+SGLang：
+
+```bash
+minicpmvocr parse --backend sglang \
+  --server-url http://127.0.0.1:18499 --model minicpm-ocr \
+  --device cpu --workers 1 --set input.limit=1 \
+  --set engine.max_model_len=40960 \
+  --set engine.extra_body='{"chat_template_kwargs":{"enable_thinking":false}}' \
+  --input doc.pdf --output out-sglang.md
+```
+
+llama.cpp（单 slot，串行识别）：
+
+```bash
+minicpmvocr parse --backend llamacpp \
+  --server-url http://127.0.0.1:18499 --model minicpm-ocr \
+  --device cpu --workers 1 --set input.limit=1 \
+  --set engine.max_model_len=40960 \
+  --set pipeline.queue_mode=serial --set pipeline.overlap_layout=false \
+  --input doc.pdf --output out-llamacpp.md
+```
+
+通过标准：输出 Markdown 非空，日志没有失败的页/块，文字与原图一致；表格页检查 HTML `<table>`，公式页检查 LaTeX，不能残留未经处理的 `<otsl>` 或明显截断。通过后去掉 `input.limit=1` 处理全篇；vLLM / SGLang 再按显存逐步增加 SDK workers 与服务并发。
+
+默认解析无需 `--config`。需要自定义配置时，先从已安装的包中定位参考 YAML，再通过 `--config` 指向该文件或自己的副本，并显式设置 `layout.model_dir` 为已准备好的模型：
+
+```bash
+python -c 'from importlib.resources import files; print(files("minicpmvocr").joinpath("configs/minicpmvocr.yaml"))'
+```
+
+该配置的源码位置为 `sdk/minicpmvocr/configs/minicpmvocr.yaml`，pip 用户无需准备此源码路径。不要再引用不存在的 `configs/backends/*.yaml`。`--set` 中的路径按配置目录解析，使用绝对路径；`--input` 按当前目录解析。`run` 等分阶段命令需要 `--set input.file_path=/absolute/path/doc.pdf`；重跑时更换 `run.run_tag`，需要时用 `run.run_root` 指定磁盘。
+
+### 7.4 可选：验证 DSpark 加速
+
+vLLM 开启 DSpark 后，发出实际请求再查：
+
+```bash
+curl --noproxy 127.0.0.1 -fsS http://127.0.0.1:18499/metrics | grep spec_decode_num
+```
+
+只有观测到 draft / accepted token 指标随请求增长，才报告 vLLM DSpark 已生效。SGLang 需检查其实际日志/指标中的 DSPARK 行为，不复用 vLLM 指标名。
+
+## 8. 按失败阶段排查并汇报
 
 | 现象 | 处理 |
 |---|---|
-| `Failed to clone https://github.com/nvidia/cutlass.git` | 无法访问 GitHub，按 3.2 的离线编译设置 `*_SRC_DIR` |
-| 关掉 CUTLASS 拉取后还要拉 `googletest` | 设 `CMAKE_ARGS="-DCUTLASS_ENABLE_TESTS=OFF"` |
-| `Could not find a package configuration file provided by "MLIR"` | `TRITON_KERNELS_SRC_DIR` 层级错了，应指向 `.../python/triton_kernels/triton_kernels` |
-| 编译中大量 `FAILED: [code=9]` | 编译进程因内存不足被杀。调低 `MAX_JOBS`（147 GB 内存用 8–32），先装 `ccache` 避免重编 |
-| `ld: cannot find -lcudart` | 补 3.2 里的 `lib64`、`libcudart.so`、`stubs/libcuda.so` 链接 |
-| `CUDA_nvrtc_LIBRARY ... NOTFOUND` | 补 `libnvrtc.so` 链接 |
-| `cuda_fp16.h ... nv/target: No such file` | 装 `nvidia-cuda-cccl==13.3.4.3.1` |
-| `No module named vllm._C` | 不是编译失败，用 `from vllm import LLM` 验证 |
-| vLLM 环境里 transformers 是 `5.19.0` 而非 `5.19.0.dev0` | editable 安装被 vLLM 依赖覆盖，重新 `pip install --no-deps -e <TRANSFORMERS_SRC>` |
-| 版面报缺 `pypdfium2` | `pip install "pypdfium2>=4"`，只处理图片也需要 |
+| `Clone the SGLang source ... first` | 按第 5 节准备和校验固定源码，再运行安装脚本 |
+| SGLang 缺 `protoc`、Rust 编译失败 | 装 `protobuf-compiler`；新终端恢复 Cargo PATH 和源码声明的 `RUSTUP_TOOLCHAIN`，读首个编译错误 |
+| `minicpm_ocr` 未识别 | vLLM 核对根项目固定的两份源码；SGLang 核对 PR SHA 和导入路径；两条路线的 Transformers 不能互相覆盖 |
+| NVCC 缺失或 `--compress-mode=size` 不识别 | 恢复所选服务环境的 `CUDA_HOME` / PATH，确认实际 NVCC；不要混用其他环境的工具链 |
+| CUDA 驱动错误 | 按 FAQ 核对 GPU、驱动与兼容库，在当前终端恢复环境变量 |
+| llama.cpp 无法加载模型或图像 | 核对两个 GGUF 文件、源码 SHA、二进制版本和实际后端；不能仅以 `/health` 成功判断支持图片 |
+| llama.cpp 链接/动态库错误 | 核查 CMake 日志、CUDA toolkit 和动态库搜索路径，按实际缺库处理，不套用历史绝对路径 |
+| vLLM 请求 400 / SDK 反复重试 | 核对 `--trust-request-mm-kwargs`、图片数量限制和服务端原始错误 |
+| 输出为空、thinking 标签、乱码 | 核对实际模型 ID 和关闭 thinking 的模板参数；llama.cpp 确认启动时带 `--reasoning off`，并检查 GGUF 模板 |
+| 显存不足 / 编译进程被杀 | 区分运行显存与编译 RAM；分别降低上下文/并发或 `MAX_JOBS` |
+| `/v1/models` 正常但解析失败 | 先跑 7.2 的单块请求，再区分识别服务、版面模型/设备与流水线问题 |
+| 端口已占用 / 服务不在本机 | 同步修改服务监听地址与客户端 URL；可用 SSH 隧道 `ssh -L 18499:127.0.0.1:18499 user@host` |
 
-### 启动服务
+汇报实际使用的后端、源码 SHA/包版本、模型文件、设备、地址，以及安装检查、健康检查、带图请求、单页解析分别通过与否。安装成功、服务就绪、识别正确、DSpark 生效是不同结论。不要在排错时删除用户环境、重置源码或用未核实的临时补丁掩盖版本不匹配。
 
-| 现象 | 处理 |
-|---|---|
-| `model type 'minicpm_ocr' ... does not recognize this architecture` | vLLM 环境缺 feat-ocr transformers，按 3.2 安装。不需要重编 vLLM |
-| `Could not find nvcc` | 没有设置 `CUDA_HOME`，见第 4 节 |
-| `ptxas fatal: Unsupported .version 9.4` 或 `CUDA compiler and CUDA toolkit headers are incompatible` | 把 nvcc、runtime、nvrtc、nvjitlink 统一到 13.4.92，再按 3.2 补链接 |
-| `flashinfer-cubin version does not match` | `pip uninstall flashinfer-cubin`；`vllm download-kernels` 存在时运行它 |
-| `CUDA driver version is insufficient` | 驱动低于 580，见第 2 节 |
-| 驱动 < 580 时报 `TopKMaskLogits ... device kernel image is invalid` | 设 `VLLM_USE_FLASHINFER_SAMPLER=0`，贪心解码结果相同 |
-| 驱动 < 580 时报 `nvcc fatal: Unknown option '--compress-mode=size'` | `CUDA_HOME` 指向与 torch 匹配的工具链（cu126 对应 12.8） |
-| 导入 vLLM 时报 `libtorchcodec_image.so` | `pip uninstall torchcodec` |
-| `Free memory on device ... less than desired GPU memory utilization` | 这张卡被占用，换 `CUDA_VISIBLE_DEVICES` |
-| OOM | `--gpu-memory-utilization` 降到 0.7，或 `--max-model-len` 降到 16384 |
-| CUDA graph capture 超时或被 SIGTERM | 重启一次；仍失败加 `--enforce-eager` |
-
-### 解析
-
-| 现象 | 处理 |
-|---|---|
-| 解析长时间没有结果，日志里出现 `request failed until timeout` | 服务漏了 `--trust-request-mm-kwargs`，请求被拒后 SDK 一直重试到 600 秒超时 |
-| SDK 等待很久后报 `no ... endpoint became ready within 1800s` | 服务没起来或地址不对，先用 `curl /v1/models` 检查 |
-| 带图请求返回 400 | 标准版漏了 `--limit-mm-per-prompt '{"image": 36}'` |
-| 输出为空或乱码 | 思考模式没关，见第 5 节 |
-| 表格是 `<otsl>` 而不是 `<table>` | 直接调用 API 时不会转换，要走 SDK 流水线 |
-| crop 小图报 `assign N multimodal tokens to M placeholders` | vLLM 版本太旧，换成 feat-ocr build |
-| 版面报 CUDA 错误 | 装的是 CPU 版 paddle，加 `--set layout.device=cpu` |
-| `At least one of input.image_dir / input.files_dir / input.file_path is required` | 加 `--set input.file_path=<文件的绝对路径>` |
-| `input.file_path not found`，但文件存在 | `--set` 里用了相对路径，改成绝对路径 |
-| `run` 重跑结果没变 | 换 `--set run.run_tag=<新名字>` |
-| pip 超时 | 换国内镜像。访问 localhost 时设 `no_proxy=127.0.0.1,localhost,::1` |
-| 服务在远程机器 | `ssh -L 18499:127.0.0.1:18499 user@host`，SDK 用 `--server-url http://127.0.0.1:18499` |
-
-## 9. 已验证版本
-
-| 组件 | 版本 |
-|---|---|
-| vLLM 环境 | Python 3.13.9，torch 2.14.0+cu130，vLLM 源码 `5c2b92a5dc`，feat-ocr transformers `69eafbc5bd` |
-| transformers 环境 | Python 3.10.12 / 3.13.9，torch 2.14.0+cu130，transformers 5.19.0.dev0（`69eafbc5bd`） |
-| SDK 环境 | minicpmvocr 0.2.3，paddlepaddle-gpu 3.3.0 或 paddlepaddle 3.2.1，paddlex 3.4.2 |
-| 硬件 | 3×RTX 5090，驱动 590.48.01，Ubuntu 22.04.5（2026-10-19） |
-
-## 10. 汇报规则
-
-- 5090 只是验证用的机器，不要说必须用 5090。门槛是显存 ≥ 24 GB 和驱动 ≥ 580。
-- 只汇报实际跑过的检查。没跑双端验证就不要说两端一致；没查 `/metrics` 就不要说 DSpark 生效。
-- SDK 仓库里没有 Web UI 脚本，不要向用户提及或引导用户运行任何 `demo_*.py`。
+参数与 API 细节见 [SDK 配置说明](./minicpmvocr_api.md)；Jev 打分服务使用 [Jev Skill](./SKILL_jev.md)，不混用其权重、分类架构和验证标准。

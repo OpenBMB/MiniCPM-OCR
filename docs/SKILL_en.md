@@ -1,371 +1,410 @@
 ---
 name: minicpmvocr-sdk
-description: Install, deploy and verify MiniCPM-OCR 1.0 document parsing (PDF / image → Markdown). Use when the user wants to install the minicpmvocr SDK, start a vLLM or transformers inference service (including the DSpark accelerated build), parse documents, troubleshoot installation or inference errors, or run a word-for-word vLLM vs transformers two-sided verification.
+description: Install, deploy and verify the MiniCPM-OCR 1.0 document parsing SDK with vLLM, SGLang or llama.cpp, including DSpark, PDF/image to Markdown and installation troubleshooting. Use SKILL_jev_en.md for Jev scoring services.
 ---
 
-# MiniCPM-OCR 1.0 deployment
+# MiniCPM-OCR 1.0 installation, deployment and verification
 
-The SDK (`minicpmvocr`) handles layout detection (PP-DocLayoutV3), chunking, stitching and concurrency scheduling, and calls the inference service over HTTP. The SDK and the inference service are installed in separate venvs.
+[中文](./SKILL.md) · [Back to README](../README.md)
 
-## 1. Determine the plan
+The SDK (command `minicpmvocr`, distribution `minicpm-ocr`) detects layout, crops regions and assembles results over HTTP with a separate inference service. Preserve the user's backend choice; otherwise select a route for their system and hardware. Install only the selected inference backend, keeping the SDK separate from PyTorch inference environments.
 
-First ask which inference backend the user wants, and whether the SDK and the service are on the same machine. If the user has no preference, use the default plan.
+## 1. Choose a backend and working directory
 
-| User goal | Environment |
-|---|---|
-| Parse documents (default) | `sdk-env` + `vllm-ocr-env`, DSpark accelerated build |
-| Do not want to compile vLLM | `sdk-env` + `tf-ocr-env` |
-| Already have llama.cpp / OpenAI-compatible service | Install `sdk-env` only |
-| Word-for-word vLLM vs transformers verification | Both inference environments, or a combined `ocr-env` (see section 7) |
+| Situation | Inference environment | SDK backend | Detailed reference |
+|---|---|---|---|
+| Linux x86_64 + NVIDIA, default route | `.venv-vllm`, DSpark available | `vllm` | [SDK tutorial](./minicpmvocr_tutorial_en.md) |
+| Linux x86_64 + NVIDIA, SGLang selected | `.venv-sglang`, DSpark available | `sglang` | [SGLang guide](./sglang_deploy.md) |
+| CPU, local GPU or Apple Silicon, llama.cpp selected | `sources/llama.cpp/build`, GGUF weights | `llamacpp` | [llama.cpp guide](./llamacpp_deploy.md) |
+| Existing compatible inference service | Reuse it; install only the SDK | Select by protocol | Section 7 below |
 
-- Install only one inference environment, unless the user needs two-sided verification.
-- `sdk-env` must not be installed together with torch / vLLM, otherwise numpy and opencv versions conflict.
-- The SDK can run on a machine without a GPU, connecting to a remote service via `--server-url` or an SSH tunnel.
+- Use `--backend sglang` for SGLang. The SDK internally maps `sglang` to the `openai`-compatible client; `list-backends` does not list SGLang separately. Select `llamacpp` for llama.cpp and avoid vLLM-specific request fields.
+- A llama.cpp Metal server does not require CUDA. Full parsing also needs an SDK environment that can run PP-DocLayoutV3. If PaddlePaddle has no matching local wheel, use a compatible SDK host; a working Metal server alone does not validate the entire SDK.
+- The SDK and server may run on different machines. Establish the actual OS, GPU/memory, free disk space, destination directory and endpoint; reuse information already provided.
 
-## 2. Pre-installation checks
+Install the SDK directly from PyPI. When connecting to an existing inference service, run sections 3 and 7 in your own working directory without cloning this repository. To deploy vLLM or SGLang yourself, the installation steps below use repository scripts; enter an existing checkout or clone it first. Inference examples use the **MiniCPM-OCR repository root**; on a separate SDK host, `.minicpm-ocr`, `models/` and input/output paths are relative to its working directory:
 
 ```bash
-nvidia-smi                                                      # VRAM ≥ 24 GB, driver ≥ 580
-nvidia-smi --query-compute-apps=pid,used_memory --format=csv    # find an idle GPU
-df -h .                                                         # at least 20 GB free
+git clone https://github.com/OpenBMB/MiniCPM-OCR.git
+cd MiniCPM-OCR
 ```
 
-- Drivers 535–579 cannot run the default combination (torch cu130). Tell the user they need to upgrade the driver, or build vLLM themselves with torch cu126 (verified on A100; not covered by this skill).
-- The vLLM environment needs Python ≥ 3.11; the SDK and transformers environments ≥ 3.10.
+## 2. Check versions and prerequisites against the checkout
 
-Paths the user must provide (ask if not given; do not guess):
+Before deploying an inference service yourself, read the root [`pyproject.toml`](../pyproject.toml), [`scripts/install.sh`](../scripts/install.sh), [`sdk/pyproject.toml`](../sdk/pyproject.toml) and [`sdk/minicpmvocr/_version.py`](../sdk/minicpmvocr/_version.py). For SDK-only installation, use the PyPI package in section 3. The versions below describe this Skill's baseline. When the checkout changes, use its declarations and recheck launch arguments; do not mix old feat-ocr checkouts with the public adaptation.
 
-| Placeholder | Meaning |
+| Component | Current source / version |
 |---|---|
-| `<SDK_REPO>` | Official repository: `https://github.com/OpenBMB/MiniCPM-OCR.git` |
-| `<VLLM_SRC>` | feat-ocr vLLM source directory (commit `5c2b92a5dc`) |
-| `<TRANSFORMERS_SRC>` | feat-ocr transformers source directory (commit `69eafbc5bd`) |
+| SDK | PyPI package `minicpm-ocr[all]`; install or upgrade to the latest stable version compatible with the current Python, matching the [SDK tutorial](./minicpmvocr_tutorial_en.md) |
+| Python | Installer default `3.12`; root project requires `>=3.11,<3.14` (SDK alone requires `>=3.10`) |
+| vLLM | `18343393b4da41a7e8027efbc4c7e77c28301bf0`, prepared by the installer |
+| Transformers required by vLLM | `549e5b410733fb50e8efbbe4aa585cb89f6478ea`, pinned by the root project |
+| PyTorch required by vLLM | `torch==2.14.0`, `torchvision==0.29.0` |
+| SGLang | [Guide's pinned source](./sglang_deploy.md): `aaab6bfc3de5354b052f2e96d5e566d70b9f69a2`; the root project references a local path without downloading or checking this SHA |
+| SGLang dependencies | That source declares `torch==2.14.1`, `transformers==5.19.0` and Rust toolchain `1.92`; keep it separate from vLLM |
+| llama.cpp | `a08ab75ae74c36c15accc6c682a989a9e98dbfd2`, the merged MiniCPM-OCR 1.0 adaptation ([PR #30979](https://github.com/ggml-org/llama.cpp/pull/30979)) |
+| SDK layout detection | `paddlepaddle==3.2.1` or `paddlepaddle-gpu==3.3.0`, `paddlex==3.4.2` |
 
-All commands below run in the same working directory: environments are created in directories such as `./sdk-env`, models are in `./models/`, and the repository is cloned into `./minicpmvocr-sdk/`, with the SDK source in its `sdk/` subdirectory.
-
-## 3. Installation
-
-### 3.1 sdk-env
+For Linux CUDA routes, check:
 
 ```bash
-python3 -m venv sdk-env && source sdk-env/bin/activate
-pip install paddlepaddle-gpu==3.3.0 -i https://www.paddlepaddle.org.cn/packages/stable/cu129/
-# Without a GPU, install the CPU build instead: pip install paddlepaddle==3.2.1
-git clone <SDK_REPO> minicpmvocr-sdk
-pip install -e "./minicpmvocr-sdk/sdk[all]"
-pip install paddlex==3.4.2
+uname -srm
+nvidia-smi
+nvidia-smi --query-compute-apps=pid,used_memory --format=csv
+df -h .
+```
+
+The vLLM / SGLang installer requires Linux x86_64 and `gcc-13` / `g++-13`, using the CUDA 13 pip components declared by the project. CUDA 13 normally requires driver ≥580. For older drivers, check the GPU and compatibility library in the [FAQ](./faq_en.md#cuda-driver-version-is-insufficient); restore the relevant variables in every installation, server and GPU SDK terminal. Do not reject all backends based solely on the driver number.
+
+Reserve at least 40 GB of disk space for the full vLLM setup described by the tutorial. Lower `MAX_JOBS` when RAM is limited; assess VRAM for the actual context length and concurrency rather than imposing one test machine's hardware. CPU / Metal routes do not need `nvidia-smi`; on Mac, check `xcode-select -p` and install CMake for compilation.
+
+## 3. Install the SDK with pip
+
+Follow the [SDK tutorial](./minicpmvocr_tutorial_en.md) to create a separate `.minicpm-ocr` environment, then install the published SDK package with pip. Reuse uv if installed; otherwise `python3 -m pip install uv` is an option. If system Python is managed under PEP 668, install uv in a separate tools venv. Installing the SDK itself does not require Git; provide Git, curl and build tools when deploying an inference service yourself.
+
+Start with CPU layout detection to avoid consuming inference VRAM. On a machine with a supported PaddlePaddle wheel, run:
+
+```bash
+if [ ! -x .minicpm-ocr/bin/python ]; then
+  uv venv .minicpm-ocr --python 3.12 --seed
+fi
+source .minicpm-ocr/bin/activate
+python -m pip install --upgrade "minicpm-ocr[all]" "paddlex==3.4.2" "pypdfium2>=4"
+python -m pip install "paddlepaddle==3.2.1"
+python -m pip check
 minicpmvocr list-backends
+python -c 'from importlib.metadata import version; import minicpmvocr, paddle, paddlex; print(version("minicpm-ocr"), minicpmvocr.__file__); print(paddle.__version__, paddlex.__version__)'
 ```
 
-Pass criterion: the output contains the backends `vllm`, `llamacpp`, `openai` and the three layout providers `ppdoclayout3_paddlex`, `ppdoclayout3_torch`, `ppdoclayout3_server`.
+Record the installed distribution version and confirm an import path under the `.minicpm-ocr` environment's `site-packages`. Backends should include `vllm`, `llamacpp`, `openai`, and layout providers should include `ppdoclayout3_paddlex`. These commands also retain the root project's `paddlex==3.4.2` and `pypdfium2>=4` dependencies to provide the layout requirements. Pin the SDK version when reproducing a specific environment.
 
-If the CPU build of paddle is installed, every subsequent `minicpmvocr` command needs `--set layout.device=cpu`.
-
-### 3.2 vllm-ocr-env
+For GPU layout detection, replace the CPU PaddlePaddle installation line above with the tutorial's GPU command (choose one of the CPU/GPU packages), then use `--device cuda:0` in later SDK commands. Keep using the same `.minicpm-ocr` environment:
 
 ```bash
+python -m pip install "paddlepaddle-gpu==3.3.0" \
+  -i https://www.paddlepaddle.org.cn/packages/stable/cu129/
+```
+
+Reuse an existing working SDK environment. Use an editable checkout installation only when developing or modifying SDK source; use the pip installation above for normal parsing.
+
+Without `--config`, `parse` uses the bundled configuration and looks for `models/PP-DocLayoutV3_infer`, downloading and checking the official layout model when needed. Reuse an existing model with `--layout-model /absolute/path/PP-DocLayoutV3_infer`; it must contain `inference.pdiparams`, `inference.json`, `inference.yml`. Do not rely on this automatic download when providing an explicit model path or `--config`.
+
+## 4. vLLM: install, launch and check readiness
+
+Ubuntu system dependencies (install with appropriate permissions or ask the administrator to provide them):
+
+```bash
+sudo apt-get update
+sudo apt-get install -y software-properties-common build-essential git curl ca-certificates
 sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-sudo apt-get update && sudo apt-get install -y gcc-13 g++-13 libdw-dev libelf-dev
-
-python3.13 -m venv vllm-ocr-env && source vllm-ocr-env/bin/activate
-pip install torch==2.14.0 torchaudio==2.11.0 torchvision==0.29.0
-pip install "transformers>=5.16.1,<5.20.0"
-pip install "setuptools-rust>=1.9.0" "setuptools-scm>=8.0" "setuptools>=77.0.3,<81.0.0" \
-    "cmake>=3.26.1" ninja packaging wheel jinja2
-pip install nvidia-cuda-nvcc==13.0.48 nvidia-cuda-crt==13.0.48 nvidia-nvvm==13.0.48 \
-    nvidia-cuda-runtime==13.0.96 nvidia-cuda-nvrtc==13.0.88 nvidia-nvjitlink==13.4.92 \
-    nvidia-cuda-cccl==13.3.4.3.1
+sudo apt-get update
+sudo apt-get install -y gcc-13 g++-13 libdw-dev libelf-dev
+bash scripts/install.sh vllm
 ```
 
-`nvidia-cuda-cccl` cannot be omitted; without it you get `cuda_fp16.h: nv/target: No such file or directory`.
+The installer prepares `sources/vllm` and `sources/transformers` at fixed SHAs, adjusts vLLM's Transformers requirement and prepares the CUDA compiler layout, using `MAX_JOBS=8` by default. It stops if an existing checkout has the wrong revision; preserve local work before resolving that mismatch rather than resetting it. Do not overwrite the adaptation with a floating Transformers install.
 
-Fill in the directory layout of the pip CUDA packages:
-
-```bash
-CU="$VIRTUAL_ENV/lib/python$(python -c 'import sys; print("%d.%d" % sys.version_info[:2])')/site-packages/nvidia/cu13"
-mkdir -p "$CU/nvvm/bin" && ln -sf "$CU/bin/cicc" "$CU/nvvm/bin/cicc"
-ln -sfn lib "$CU/lib64"
-ln -sf "$CU/lib/libcudart.so.13" "$CU/lib/libcudart.so"
-ln -sf "$CU/lib/libnvrtc.so.13" "$CU/lib/libnvrtc.so"
-mkdir -p "$CU/lib64/stubs" && ln -sf /usr/lib/x86_64-linux-gnu/libcuda.so.1 "$CU/lib64/stubs/libcuda.so"
-```
-
-If the 13.0.48 packages lack `bin/crt/link.stub`, `prelink.stub` or `bin/nvdisasm`, copy them from a 13.4.92 environment on the same machine into the corresponding location under `$CU/bin/`.
-
-Compile (about 20 minutes on 96 cores; lower `MAX_JOBS` when memory is small):
+In a new server terminal at the repository root, run:
 
 ```bash
-cd <VLLM_SRC>
-# If GitHub is unreachable, first set the variables under "Offline compilation" below
-CUDA_HOME="$CU" PATH="$VIRTUAL_ENV/bin:$CU/bin:$PATH" \
-  CC=gcc-13 CXX=g++-13 CUDAHOSTCXX=g++-13 MAX_JOBS=64 \
-  pip install -e . --no-build-isolation --progress-bar off
-cd -
-python -c "from vllm import LLM; print('vLLM OK')"
-```
+source .venv-vllm/bin/activate
+uv pip check --python "$VIRTUAL_ENV/bin/python"
+python -c 'import torch, transformers, vllm; print(torch.__version__, transformers.__version__, vllm.__version__)'
+hf download openbmb/MiniCPM-OCR-1.0 --local-dir ./models/MiniCPM-OCR-1.0
+hf download openbmb/MiniCPM-OCR-1.0-DSpark --local-dir ./models/MiniCPM-OCR-1.0-DSpark
+export CC=gcc-13 CXX=g++-13
+export CUDA_HOME="$(python -c 'import sysconfig; print(sysconfig.get_path("purelib") + "/nvidia/cu13")')"
+export PATH="$CUDA_HOME/bin:$PATH"
 
-Do not use `import vllm._C` to judge whether compilation succeeded. On this branch the extension is named `_C_stable_libtorch.abi3.so`.
-
-The DSpark main model uses the `minicpm_ocr` architecture, which PyPI transformers does not support. Install the feat-ocr transformers after vLLM is compiled; the order cannot be reversed:
-
-```bash
-pip install --no-deps -e <TRANSFORMERS_SRC>
-python -c "import transformers; print(transformers.__version__)"   # should be 5.19.0.dev0
-```
-
-Offline compilation (when CMake times out fetching CUTLASS and other dependencies):
-
-```bash
-DEPS=<existing vLLM source>/.deps
-export VLLM_CUTLASS_SRC_DIR="$DEPS/cutlass-src"
-export VLLM_FLASH_ATTN_SRC_DIR="$DEPS/vllm-flash-attn-src"
-export FLASH_KDA_SRC_DIR="$DEPS/flashkda-src"
-export DEEPSELECT_SRC_DIR="$DEPS/deepselect-src"
-export FLASH_MLA_SRC_DIR="$DEPS/flashmla-src"
-export TRITON_KERNELS_SRC_DIR="$DEPS/triton_kernels-src/python/triton_kernels/triton_kernels"
-export TML_FA4_SRC_DIR="$DEPS/tml_fa4-src"
-export FMHA_SM100_SRC_DIR="$DEPS/fmha_sm100-src"
-export QUTLASS_SRC_DIR="$DEPS/qutlass-src"
-export DEEPGEMM_SRC_DIR="$DEPS/deepgemm-src"
-export CMAKE_ARGS="-DCUTLASS_ENABLE_TESTS=OFF"   # otherwise googletest is also fetched
-```
-
-Warnings that can be ignored after compiling:
-
-- `vllm.third_party.deep_gemm ... undefined symbol: _ZSt8to_charsPcS_DF128_`: OCR models do not use DeepGEMM.
-- `FlashInfer's precompiled kernels are missing or do not match`: cold start is slightly slower (about 104 seconds of initialization measured), with no effect on results.
-
-### 3.3 tf-ocr-env
-
-```bash
-python3 -m venv tf-ocr-env && source tf-ocr-env/bin/activate
-pip install torch==2.14.0 torchvision
-pip install -e <TRANSFORMERS_SRC>         # install "<TRANSFORMERS_SRC>[serving]" if you need the OpenAI-compatible service
-pip install accelerate
-# Optional acceleration kernels; without them it falls back to the reference implementation, same results but slower:
-# pip install causal-conv1d flash-linear-attention
-```
-
-### 3.4 Download models
-
-Main model: [MiniCPM-OCR-1.0](https://huggingface.co/openbmb/MiniCPM-OCR-1.0); DSpark draft model: [MiniCPM-OCR-1.0-DSpark](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark).
-
-```bash
-# DSpark: the main model and draft must come from the same release and must not be mixed with other checkpoints
-HF_ENDPOINT=https://hf-mirror.com hf download openbmb/MiniCPM-OCR-1.0 --local-dir ./models/MiniCPM-OCR-1.0
-HF_ENDPOINT=https://hf-mirror.com hf download openbmb/MiniCPM-OCR-1.0-DSpark --local-dir ./models/MiniCPM-OCR-1.0-DSpark
-sha256sum ./models/MiniCPM-OCR-1.0-DSpark/model.safetensors   # compare with weight_sha256 in release_manifest.json
-
-curl -L -o PP-DocLayoutV3_infer.tar \
-  https://paddle-model-ecology.bj.bcebos.com/paddlex/official_inference_model/paddle3.0.0/PP-DocLayoutV3_infer.tar
-tar xf PP-DocLayoutV3_infer.tar
-export OCR_LAYOUT_MODEL_DIR=$PWD/PP-DocLayoutV3_infer
-test -f "$OCR_LAYOUT_MODEL_DIR/inference.pdiparams" && echo "layout OK"
-```
-
-- ModelScope: `modelscope download --model <MS_REPO_ID> --local_dir <same-named directory>`.
-- The main model directory should contain `config.json`, `model.safetensors`, `tokenizer.json`, `preprocessor_config.json`, `chat_template.jinja`.
-- `OCR_LAYOUT_MODEL_DIR` must be a Paddle inference directory (containing `inference.pdiparams`, `inference.json`, `inference.yml`), not a safetensors directory.
-
-## 4. Start the inference service
-
-Before starting vLLM in each new shell, set `CUDA_HOME`; otherwise the first start on Blackwell GPUs fails with `Could not find nvcc`:
-
-```bash
-source vllm-ocr-env/bin/activate
-CU="$VIRTUAL_ENV/lib/python$(python -c 'import sys; print("%d.%d" % sys.version_info[:2])')/site-packages/nvidia/cu13"
-export CUDA_HOME="$CU" PATH="$VIRTUAL_ENV/bin:$CU/bin:$PATH"
-```
-
-### 4.1 DSpark accelerated build (default)
-
-```bash
-CUDA_VISIBLE_DEVICES=<idle GPU> python -m vllm.entrypoints.openai.api_server \
-  --model ./models/MiniCPM-OCR-1.0 \
-  --served-model-name minicpm-ocr \
-  --port 18499 \
-  --max-model-len 40960 \
-  --max-num-batched-tokens 40960 \
-  --max-num-seqs 1 \
-  --attention-backend FLASH_ATTN \
-  --mm-encoder-attn-backend FLASH_ATTN \
+CUDA_VISIBLE_DEVICES=0 vllm serve ./models/MiniCPM-OCR-1.0 \
+  --served-model-name minicpm-ocr --host 127.0.0.1 --port 18499 \
+  --max-model-len 40960 --max-num-batched-tokens 40960 --max-num-seqs 32 \
+  --limit-mm-per-prompt '{"image":36,"video":0}' \
+  --attention-backend FLASH_ATTN --mm-encoder-attn-backend FLASH_ATTN \
   --mm-processor-kwargs '{"downsample_mode":"4x"}' \
-  --gpu-memory-utilization 0.85 \
-  --trust-request-mm-kwargs \
+  --gpu-memory-utilization 0.85 --trust-request-mm-kwargs \
   --speculative-config '{"method":"dspark","model":"./models/MiniCPM-OCR-1.0-DSpark","num_speculative_tokens":15,"enable_adaptive_verification":false}' \
   --default-chat-template-kwargs '{"enable_thinking":false}'
 ```
 
-- `--max-num-seqs 1` means only one request is handled at a time, so the SDK's concurrent requests queue up. If the user needs high throughput, start multiple instances and pass `--server-url` repeatedly, or switch to the standard build.
-- Start the service with `--served-model-name minicpm-ocr` and use `--model minicpm-ocr` in the SDK parsing command. If you change the name, update both options.
+Use target and draft models from the same release; reuse existing downloads. For ordinary decoding, remove the entire `--speculative-config` argument and skip the draft download. Adjust the example `CUDA_VISIBLE_DEVICES=0` to a free GPU. SDK requests require `--trust-request-mm-kwargs`. Do not copy SGLang's `DSPARK` arguments into vLLM.
 
-### 4.2 Standard build (no speculative sampling)
-
-```bash
-CUDA_VISIBLE_DEVICES=<idle GPU> python -m vllm.entrypoints.openai.api_server \
-  --model ./models/MiniCPM-OCR-1.0 \
-  --served-model-name minicpm-ocr \
-  --port 18499 \
-  --max-model-len 40960 \
-  --limit-mm-per-prompt '{"image": 36}' \
-  --gpu-memory-utilization 0.85 \
-  --trust-request-mm-kwargs
-```
-
-Both builds must include `--trust-request-mm-kwargs`. Without it the service returns 400 for every request and the SDK retries silently until it errors out after 600 seconds, which looks like a hang.
-
-### 4.3 transformers serve
+Check from another terminal:
 
 ```bash
-source tf-ocr-env/bin/activate
-transformers serve ./models/MiniCPM-OCR-1.0 --port 18499 --host 0.0.0.0 --continuous-batching
+curl --noproxy 127.0.0.1 -fsS http://127.0.0.1:18499/v1/models
 ```
 
-### 4.4 Readiness check
+Once the model list includes `minicpm-ocr`, continue with image and SDK verification in section 7.
+
+## 5. SGLang: prepare the pinned source, install and launch
+
+This route follows the [SGLang guide](./sglang_deploy.md). Do not assume a plain `pip install sglang` includes the adaptation.
+
+Install the APT build dependencies from section 4 (skip `bash scripts/install.sh vllm`; do not install vLLM), then add SGLang's tools:
 
 ```bash
-curl --noproxy 127.0.0.1 http://127.0.0.1:18499/v1/models     # first start takes about 3 minutes
+sudo apt-get install -y pkg-config libssl-dev protobuf-compiler
+mkdir -p sources
+SGLANG_COMMIT=aaab6bfc3de5354b052f2e96d5e566d70b9f69a2
+if [ ! -e sources/sglang ]; then
+  git clone https://github.com/sgl-project/sglang.git sources/sglang &&
+  git -C sources/sglang fetch origin pull/45799/head &&
+  git -C sources/sglang checkout --detach "$SGLANG_COMMIT"
+fi
+test "$(git -C sources/sglang rev-parse HEAD)" = "$SGLANG_COMMIT" || {
+  echo "SGLang source revision mismatch; preserve local work and resolve it before installing." >&2
+  exit 1
+}
+protoc --version
+bash scripts/install.sh sglang
 ```
 
-It is only ready if the response contains `"id":"minicpm-ocr"`. If the first start times out or gets SIGTERM during CUDA graph capture, simply restart once (the compilation cache has been generated); if it still fails, add `--enforce-eager`.
+The script installs from `sources/sglang/python`; it neither clones nor pins the SGLang checkout, so retain the revision check above. It reads `rust/rust-toolchain.toml`, installs rustup / Rust as needed and prepares the pip CUDA layout. If `libcuda.so.1` is outside its default location, set `OCR_LIBCUDA` to the actual path before installation; retain the FAQ settings when using a compatibility library.
 
-## 5. Parse documents
+In a new server terminal at the repository root, activate the environment first, then restore Cargo, Rust, C++ and CUDA settings so first-start extension compilation uses the right tools:
 
 ```bash
-source sdk-env/bin/activate
-export OCR_LAYOUT_MODEL_DIR=$PWD/PP-DocLayoutV3_infer
-export PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True
+source .venv-sglang/bin/activate
+export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:$PATH"
+export RUSTUP_TOOLCHAIN="$(python -c 'import tomllib; print(tomllib.load(open("sources/sglang/rust/rust-toolchain.toml", "rb"))["toolchain"]["channel"])')"
+export CC=gcc-13 CXX=g++-13 CUDAHOSTCXX=g++-13
+export CUDA_HOME="$(python -c 'import sysconfig; print(sysconfig.get_path("purelib") + "/nvidia/cu13")')"
+export PATH="$CUDA_HOME/bin:$PATH"
+uv pip check --python "$VIRTUAL_ENV/bin/python"
+cargo --version
+"$CUDA_HOME/bin/nvcc" --version
+python -c 'import sglang, torch, transformers; print(sglang.__file__); print(torch.__version__, transformers.__version__); print((torch.ones(1, device="cuda") + 1).item())'
+hf download openbmb/MiniCPM-OCR-1.0 --local-dir ./models/MiniCPM-OCR-1.0
+hf download openbmb/MiniCPM-OCR-1.0-DSpark --local-dir ./models/MiniCPM-OCR-1.0-DSpark
 
-minicpmvocr parse --config minicpmvocr-sdk/configs/backends/vllm.yaml \
-  --server-url http://127.0.0.1:18499 \
-  --model minicpm-ocr \
-  --set input.limit=1 --input <file> --output out.md
+CUDA_VISIBLE_DEVICES=0 python -m sglang.launch_server \
+  --model-path ./models/MiniCPM-OCR-1.0 \
+  --served-model-name minicpm-ocr --host 127.0.0.1 --port 18499 \
+  --context-length 40960 --max-running-requests 32 --mem-fraction-static 0.85 \
+  --speculative-algorithm DSPARK \
+  --speculative-draft-model-path ./models/MiniCPM-OCR-1.0-DSpark \
+  --default-chat-template-kwargs '{"enable_thinking":false}'
 ```
 
-- Start with `--set input.limit=1` to parse only one page; once it passes, remove it to parse all pages.
-- The configuration files are all in `minicpmvocr-sdk/configs/backends/`: `vllm.yaml` for vLLM; `openai.yaml` for transformers serve and other OpenAI-compatible services; `llamacpp.yaml` for llama.cpp.
-- With `openai.yaml` add `--set engine.extra_body='{"chat_template_kwargs":{"enable_thinking":false}}'`, otherwise the output may be empty or garbled. `vllm.yaml` already disables thinking mode automatically.
-- On multi-GPU machines layout detection uses GPU 0 by default. If GPU 0 is occupied, add `--set layout.device=cuda:N`.
-- Commands other than `parse` (`run`, `parse-layout`, `prepare`, `infer`, `show-config`) all need the input specified via `--set input.file_path`, `input.files_dir` or `input.image_dir`.
-- Relative paths in `--set` are resolved against the configuration file's directory, so always write absolute paths (such as `$PWD/doc.pdf`). `--input` is resolved against the current directory.
-- `run`'s output directory is determined by the fixed `run.run_tag` in the configuration, and pages that already have results are skipped. Before rerunning, change `--set run.run_tag=<new name>`.
-- Artifacts are written under `runs/` in the SDK directory by default. If disk space is tight, add `--set run.run_root=<absolute path on another disk>`.
+The package path should point into `sources/sglang/python/sglang`. This source uses Rust 1.92; NVCC should report the project's CUDA 13.0. Do not install the vLLM route's editable Transformers into this environment: SGLang supplies its own model configuration and processor adaptation.
 
-## 6. Verify results
+For ordinary decoding, remove both `--speculative-algorithm` and `--speculative-draft-model-path` and skip the draft download. DSpark requires matched target and draft models; do not reuse vLLM's speculative JSON.
+
+Run the section 4 `/v1/models` check from another terminal, confirm `minicpm-ocr`, then verify with `--backend sglang` in section 7. If the port is occupied, change it in both the server and every client address. Check the previous server's GPU usage before switching services on the same GPU.
+
+## 6. llama.cpp: GGUF files, compilation and launch
+
+llama.cpp needs both a language-model GGUF and a vision-projector GGUF rather than serving HF safetensors directly. This route uses the official F16 files from the [llama.cpp guide](./llamacpp_deploy.md). Reuse `hf` if available. If the server host has no SDK, create only a download environment; PaddlePaddle, torch and weight conversion are unnecessary:
 
 ```bash
-python - <<'PY'
-from pathlib import Path
-md = Path("out.md").read_text(encoding="utf-8")
-assert md.strip(), "output is empty"
-assert "<otsl>" not in md, "table is still OTSL, not converted to HTML"
-print("OK", len(md), "chars", "| table" if "<table>" in md else "")
-PY
+if ! command -v hf >/dev/null; then
+  if [ ! -x .venv-models/bin/python ]; then
+    uv venv --python 3.12 .venv-models
+  fi
+  uv pip install --python .venv-models/bin/python huggingface-hub
+  export PATH="$PWD/.venv-models/bin:$PATH"
+fi
+hf download openbmb/MiniCPM-OCR-1.0-gguf \
+  MiniCPM-OCR-1_0-F16.gguf mmproj-model-f16-4x.gguf \
+  --local-dir ./models/MiniCPM-OCR-1.0-gguf
+mkdir -p sources
+LLAMA_COMMIT=a08ab75ae74c36c15accc6c682a989a9e98dbfd2
+if [ ! -e sources/llama.cpp ]; then
+  git clone https://github.com/ggml-org/llama.cpp.git sources/llama.cpp &&
+  git -C sources/llama.cpp checkout --detach "$LLAMA_COMMIT"
+fi
+test "$(git -C sources/llama.cpp rev-parse HEAD)" = "$LLAMA_COMMIT" || {
+  echo "llama.cpp source revision mismatch; preserve local work and resolve it before building." >&2
+  exit 1
+}
+git -C sources/llama.cpp rev-parse HEAD
 ```
 
-- Table pages should contain `<table>`, formula pages should contain LaTeX (such as `\frac`), and body-text pages should contain readable text.
-- For the DSpark build, also confirm that speculative sampling is active. After sending a few requests:
+This Skill pins the merged MiniCPM-OCR 1.0 adaptation. If an existing checkout has a different revision, preserve local work before resolving the version or using a separate directory; do not reset it. Confirm the SHA before building and avoid reusing an old binary from another revision.
+
+On Ubuntu, install build dependencies first:
 
 ```bash
-curl --noproxy 127.0.0.1 -s http://127.0.0.1:18499/metrics | grep spec_decode_num
+sudo apt-get update
+sudo apt-get install -y cmake build-essential git curl ca-certificates
 ```
 
-You should see `spec_decode_num_accepted_tokens_total` and `spec_decode_num_drafts_total`, and the values should increase with requests. accept length = 1 + accepted / drafts, which was 5.2–7.0 in the verification environment. If neither metric is present, the service was started without `--speculative-config`. A service that responds does not mean DSpark is active.
-
-## 7. Optional: word-for-word two-sided verification
-
-Do this only when the user asks for it. `verify_transformers.py` and `verify_vllm.py` are provided with the feat-ocr source, not in the SDK. If the user does not have these two scripts, skip this step and do not claim that the two sides were verified to match.
-
-If you want to run both sides in one environment, do it in the environment where vLLM is already compiled (the order cannot be reversed):
+On macOS, check Command Line Tools; if missing, run `xcode-select --install` and wait for installation to finish. Install CMake with Homebrew:
 
 ```bash
-pip install --no-deps -e <TRANSFORMERS_SRC>
-pip install --no-deps accelerate
-python -c "import transformers, vllm, torch; print(transformers.__version__, vllm.__version__, torch.__version__)"
+xcode-select -p
+brew install cmake
 ```
 
-Run each side separately:
+CUDA builds also need a discoverable full CUDA toolkit (`nvcc --version`, `CUDA_HOME`); the GPU driver alone is insufficient for compilation. CPU / Metal builds do not need CUDA. Run **one configuration block** for the selected platform. When changing backends, use a separate build directory or clear the CMake cache you generated:
+
+Linux + NVIDIA:
 
 ```bash
-# transformers side (tf-ocr-env or the combined environment)
-CUDA_VISIBLE_DEVICES=<idle GPU> python verify_transformers.py \
-  --model ./models/MiniCPM-OCR-1.0 --image table.png \
-  --prompt "请识别图中的表格并输出 OTSL" --attn sdpa --max-new-tokens 512
-
-# vLLM side (vllm-ocr-env or the combined environment; set CUDA_HOME as in section 4 first)
-CUDA_VISIBLE_DEVICES=<idle GPU> python verify_vllm.py \
-  --model ./models/MiniCPM-OCR-1.0 --image table.png \
-  --prompt "请识别图中的表格并输出 OTSL" --max-tokens 512
+cmake -S sources/llama.cpp -B sources/llama.cpp/build \
+  -DGGML_CUDA=ON -DCMAKE_BUILD_TYPE=Release
 ```
 
-Pass criteria:
+macOS + Apple Silicon (Metal is enabled by default):
 
-- The transformers side loads with no missing, unexpected or mismatched keys, and the parameter count is 1.300B.
-- Both sides have the same prompt token count and produce word-for-word identical output, both ending with `</otsl>`.
+```bash
+cmake -S sources/llama.cpp -B sources/llama.cpp/build \
+  -DCMAKE_BUILD_TYPE=Release
+```
 
-Reference values (1080×1080 table image): prompt 1975 tokens, vision 1936 tokens, 284 tokens generated, 677 characters of output. These numbers change with a different image or prompt; the criterion is that the two sides agree.
+CPU (explicitly disable GPU backends):
 
-## 8. Troubleshooting
+```bash
+cmake -S sources/llama.cpp -B sources/llama.cpp/build \
+  -DGGML_CUDA=OFF -DGGML_METAL=OFF -DCMAKE_BUILD_TYPE=Release
+```
 
-### Installation and compilation
+Confirm that configuration output includes the intended backend, then build. Adjust `-j 8` for available RAM:
+
+```bash
+cmake --build sources/llama.cpp/build -j 8 --target llama-server
+./sources/llama.cpp/build/bin/llama-server --version
+```
+
+Launch from the repository root (this guide uses port 18499 with an explicit client URL rather than relying on the SDK's backend default port):
+
+```bash
+./sources/llama.cpp/build/bin/llama-server \
+  --model ./models/MiniCPM-OCR-1.0-gguf/MiniCPM-OCR-1_0-F16.gguf \
+  --mmproj ./models/MiniCPM-OCR-1.0-gguf/mmproj-model-f16-4x.gguf \
+  --alias minicpm-ocr --host 127.0.0.1 --port 18499 \
+  --ctx-size 40960 --n-gpu-layers 999 --parallel 1 --reasoning off
+```
+
+For CPU inference, replace `--n-gpu-layers 999` with `--n-gpu-layers 0`. Context length 40960 is not a low-memory guarantee: reduce `--ctx-size` if RAM or VRAM is insufficient, and match `engine.max_model_len` in section 7. Keep `--reasoning off`: the adaptation PR notes that default `auto` can put transcription in `reasoning_content`, while the current SDK reads `content`, resulting in empty output. For self-converted weights, also inspect the template and add `--chat-template-kwargs '{"enable_thinking":false}'` as described by the guide. This llama.cpp route does not enable DSpark.
+
+Check from another terminal:
+
+```bash
+curl --noproxy 127.0.0.1 -fsS http://127.0.0.1:18499/health
+curl --noproxy 127.0.0.1 -fsS http://127.0.0.1:18499/v1/models
+```
+
+Expect `status=ok` from `/health` and check the `minicpm-ocr` alias in the model list, then continue with section 7. Do not replace these download paths with historical model defaults from SDK launch scripts.
+
+## 7. Three verification layers: readiness, image request and one-page parsing
+
+### 7.1 Readiness
+
+Check `/v1/models` for the selected backend and also `/health` for llama.cpp. Match the client model name to the server. The SDK takes the server root URL `http://127.0.0.1:18499` without `/v1`. A health check establishes reachability only.
+
+### 7.2 Send one real image crop through the current SDK client
+
+Activate the installed SDK environment and prepare `sample.png`, a real text crop with readable text. Set `OCR_BACKEND` to `vllm` for vLLM, `sglang` for SGLang, or `llamacpp` for llama.cpp. Adjust the model ID and URL to the actual service:
+
+```bash
+source .minicpm-ocr/bin/activate
+export OCR_BACKEND=llamacpp
+export OCR_TEST_URL=http://127.0.0.1:18499
+export OCR_TEST_MODEL=minicpm-ocr
+python - <<'PYTEST'
+import os
+from copy import deepcopy
+from PIL import Image
+from minicpmvocr import DEFAULT_CONFIG, create_backend
+
+cfg = deepcopy(DEFAULT_CONFIG)
+cfg["engine"].update({
+    "type": os.environ["OCR_BACKEND"],
+    "server_url": os.environ["OCR_TEST_URL"],
+    "model_name": os.environ["OCR_TEST_MODEL"],
+    "max_model_len": 40960,
+    "startup_timeout_sec": 60,
+    "request_ready_timeout_sec": 30,
+    "extra_body": {"chat_template_kwargs": {"enable_thinking": False}},
+})
+client = create_backend(cfg)
+client.wait_ready(timeout_sec=60)
+with Image.open("sample.png") as image:
+    result = client.recognize(image.convert("RGB"), "Text Recognition:", max_new_tokens=2048)
+assert result["text"].strip(), "Empty OCR output"
+assert result["finish_reason"] != "length", "Output truncated; inspect the token budget"
+print(result["text"])
+print("finish_reason:", result["finish_reason"])
+PYTEST
+```
+
+This uses the current `create_backend` / `recognize` interface to generate backend-specific requests instead of sending vLLM fields to other services. If the server context was reduced, update `max_model_len` in the script too. Inspect whether the output matches the image; a nonempty assertion is not a quality check. Direct client calls return raw model output; the full pipeline performs table postprocessing.
+
+### 7.3 Parse one page with the SDK
+
+Run **one** of the three examples for the selected backend after activating `.minicpm-ocr`. These use CPU layout detection; if GPU PaddlePaddle was selected in section 3, you can use `--device cuda:0`. Replace `doc.pdf` with a PNG/JPG if needed. Use `parse` with the bundled configuration to enable automatic layout-model preparation.
+
+vLLM:
+
+```bash
+minicpmvocr parse --backend vllm \
+  --server-url http://127.0.0.1:18499 --model minicpm-ocr \
+  --device cpu --workers 1 --set input.limit=1 \
+  --set engine.max_model_len=40960 \
+  --input doc.pdf --output out-vllm.md
+```
+
+SGLang:
+
+```bash
+minicpmvocr parse --backend sglang \
+  --server-url http://127.0.0.1:18499 --model minicpm-ocr \
+  --device cpu --workers 1 --set input.limit=1 \
+  --set engine.max_model_len=40960 \
+  --set engine.extra_body='{"chat_template_kwargs":{"enable_thinking":false}}' \
+  --input doc.pdf --output out-sglang.md
+```
+
+llama.cpp (one slot, serial recognition):
+
+```bash
+minicpmvocr parse --backend llamacpp \
+  --server-url http://127.0.0.1:18499 --model minicpm-ocr \
+  --device cpu --workers 1 --set input.limit=1 \
+  --set engine.max_model_len=40960 \
+  --set pipeline.queue_mode=serial --set pipeline.overlap_layout=false \
+  --input doc.pdf --output out-llamacpp.md
+```
+
+Pass criteria: Markdown is nonempty, logs show no failed pages/regions, and text matches the image. On table pages, inspect HTML `<table>` output; on formula pages, inspect LaTeX. Check for unprocessed `<otsl>` and obvious truncation. After passing, remove `input.limit=1` to parse the full document; increase vLLM / SGLang SDK workers and server concurrency gradually according to VRAM.
+
+Default parsing does not need `--config`. For custom configuration, locate the reference YAML in the installed package, then point `--config` at that file or your own copy and explicitly set `layout.model_dir` to a prepared model:
+
+```bash
+python -c 'from importlib.resources import files; print(files("minicpmvocr").joinpath("configs/minicpmvocr.yaml"))'
+```
+
+The source location is `sdk/minicpmvocr/configs/minicpmvocr.yaml`; pip users do not need that source path. Do not use the nonexistent `configs/backends/*.yaml` files. Paths in `--set` are relative to the configuration directory, so use absolute paths; `--input` is relative to the working directory. Staged commands such as `run` need `--set input.file_path=/absolute/path/doc.pdf`. Change `run.run_tag` when rerunning and use `run.run_root` to select another disk when needed.
+
+### 7.4 Optional: verify DSpark acceleration
+
+After enabling DSpark in vLLM and sending real requests, check:
+
+```bash
+curl --noproxy 127.0.0.1 -fsS http://127.0.0.1:18499/metrics | grep spec_decode_num
+```
+
+Report vLLM DSpark as active only when draft / accepted-token metrics increase with requests. For SGLang, inspect DSPARK behavior in its actual logs/metrics rather than reusing vLLM metric names.
+
+## 8. Diagnose the failing stage and report evidence
 
 | Symptom | Action |
 |---|---|
-| `Failed to clone https://github.com/nvidia/cutlass.git` | GitHub is unreachable; set `*_SRC_DIR` as in the offline compilation in 3.2 |
-| Still fetches `googletest` after disabling the CUTLASS fetch | Set `CMAKE_ARGS="-DCUTLASS_ENABLE_TESTS=OFF"` |
-| `Could not find a package configuration file provided by "MLIR"` | The `TRITON_KERNELS_SRC_DIR` level is wrong; it should point to `.../python/triton_kernels/triton_kernels` |
-| Many `FAILED: [code=9]` during compilation | Compiler processes were killed for lack of memory. Lower `MAX_JOBS` (8–32 for 147 GB of RAM), and install `ccache` first to avoid recompiling |
-| `ld: cannot find -lcudart` | Add the `lib64`, `libcudart.so` and `stubs/libcuda.so` links from 3.2 |
-| `CUDA_nvrtc_LIBRARY ... NOTFOUND` | Add the `libnvrtc.so` link |
-| `cuda_fp16.h ... nv/target: No such file` | Install `nvidia-cuda-cccl==13.3.4.3.1` |
-| `No module named vllm._C` | Not a compilation failure; verify with `from vllm import LLM` |
-| transformers in the vLLM environment is `5.19.0` instead of `5.19.0.dev0` | The editable install was overwritten by vLLM dependencies; re-run `pip install --no-deps -e <TRANSFORMERS_SRC>` |
-| Layout reports missing `pypdfium2` | `pip install "pypdfium2>=4"`; needed even for image-only processing |
+| `Clone the SGLang source ... first` | Prepare and check the pinned source in section 5, then rerun the installer |
+| Missing SGLang `protoc` or Rust build failure | Install `protobuf-compiler`; restore Cargo PATH and the source's `RUSTUP_TOOLCHAIN` in new terminals; read the first compiler error |
+| Unknown `minicpm_ocr` | For vLLM, check both root-project source pins; for SGLang, check the PR SHA and import path. Do not overwrite one route's Transformers with the other's |
+| Missing NVCC or unknown `--compress-mode=size` | Restore the selected server environment's `CUDA_HOME` / PATH and check the actual NVCC; avoid mixing toolchains from other environments |
+| CUDA driver error | Check the GPU, driver and compatibility library in the FAQ and restore variables in the current terminal |
+| llama.cpp cannot load the model or image | Check both GGUF files, source SHA, binary version and actual backend. A successful `/health` does not establish image support |
+| llama.cpp linker / shared-library error | Inspect CMake logs, the CUDA toolkit and library search paths; resolve the actual missing library instead of copying historical absolute paths |
+| vLLM returns 400 / SDK keeps retrying | Check `--trust-request-mm-kwargs`, image limits and the original server error |
+| Empty output, thinking tags or garbled text | Check the actual model ID and thinking template settings; for llama.cpp, confirm the server was launched with `--reasoning off` and inspect the GGUF template |
+| Out of VRAM / compiler process killed | Distinguish inference VRAM from build RAM; reduce context/concurrency or `MAX_JOBS` accordingly |
+| `/v1/models` works but parsing fails | Run the single-crop request in 7.2, then isolate inference service, layout model/device and pipeline failures |
+| Port occupied / remote service | Update server binding and client URLs together; an SSH tunnel can use `ssh -L 18499:127.0.0.1:18499 user@host` |
 
-### Starting the service
+Report the actual backend, source SHAs/package versions, model files, device, endpoint and the separate outcomes of installation checks, health checks, image requests and one-page parsing. Installation success, service readiness, correct recognition and active DSpark are distinct conclusions. Do not delete user environments, reset source or conceal version mismatches with unverified temporary patches.
 
-| Symptom | Action |
-|---|---|
-| `model type 'minicpm_ocr' ... does not recognize this architecture` | The vLLM environment lacks feat-ocr transformers; install as in 3.2. vLLM does not need to be recompiled |
-| `Could not find nvcc` | `CUDA_HOME` was not set; see section 4 |
-| `ptxas fatal: Unsupported .version 9.4` or `CUDA compiler and CUDA toolkit headers are incompatible` | Unify nvcc, runtime, nvrtc and nvjitlink on 13.4.92, then add the links as in 3.2 |
-| `flashinfer-cubin version does not match` | `pip uninstall flashinfer-cubin`; run `vllm download-kernels` if it exists |
-| `CUDA driver version is insufficient` | Driver is below 580; see section 2 |
-| With a driver below 580: `TopKMaskLogits ... device kernel image is invalid` | Set `VLLM_USE_FLASHINFER_SAMPLER=0`; greedy decoding results are the same |
-| With a driver below 580: `nvcc fatal: Unknown option '--compress-mode=size'` | Point `CUDA_HOME` at the toolchain matching torch (cu126 corresponds to 12.8) |
-| `libtorchcodec_image.so` when importing vLLM | `pip uninstall torchcodec` |
-| `Free memory on device ... less than desired GPU memory utilization` | That GPU is occupied; switch `CUDA_VISIBLE_DEVICES` |
-| OOM | Lower `--gpu-memory-utilization` to 0.7, or lower `--max-model-len` to 16384 |
-| CUDA graph capture times out or gets SIGTERM | Restart once; if it still fails, add `--enforce-eager` |
-
-### Parsing
-
-| Symptom | Action |
-|---|---|
-| Parsing produces no result for a long time and the log shows `request failed until timeout` | The service is missing `--trust-request-mm-kwargs`, so requests are rejected and the SDK keeps retrying until the 600-second timeout |
-| The SDK waits a long time and then reports `no ... endpoint became ready within 1800s` | The service is not up or the address is wrong; check with `curl /v1/models` first |
-| Requests with images return 400 | The standard build is missing `--limit-mm-per-prompt '{"image": 36}'` |
-| Output is empty or garbled | Thinking mode was not disabled; see section 5 |
-| Tables are `<otsl>` rather than `<table>` | Direct API calls do not convert them; go through the SDK pipeline |
-| Crop images report `assign N multimodal tokens to M placeholders` | The vLLM version is too old; switch to the feat-ocr build |
-| Layout reports a CUDA error | The CPU build of paddle is installed; add `--set layout.device=cpu` |
-| `At least one of input.image_dir / input.files_dir / input.file_path is required` | Add `--set input.file_path=<absolute path to the file>` |
-| `input.file_path not found` although the file exists | A relative path was used in `--set`; change it to an absolute path |
-| `run` produces the same results when rerun | Change `--set run.run_tag=<new name>` |
-| pip times out | Use a domestic mirror. When accessing localhost, set `no_proxy=127.0.0.1,localhost,::1` |
-| The service is on a remote machine | `ssh -L 18499:127.0.0.1:18499 user@host`, and use `--server-url http://127.0.0.1:18499` in the SDK |
-
-## 9. Verified versions
-
-| Component | Version |
-|---|---|
-| vLLM environment | Python 3.13.9, torch 2.14.0+cu130, vLLM source `5c2b92a5dc`, feat-ocr transformers `69eafbc5bd` |
-| transformers environment | Python 3.10.12 / 3.13.9, torch 2.14.0+cu130, transformers 5.19.0.dev0 (`69eafbc5bd`) |
-| SDK environment | minicpmvocr 0.2.3, paddlepaddle-gpu 3.3.0 or paddlepaddle 3.2.1, paddlex 3.4.2 |
-| Hardware | 3×RTX 5090, driver 590.48.01, Ubuntu 22.04.5 (2026-10-19) |
-
-## 10. Reporting rules
-
-- The 5090 is only the verification machine; do not say that a 5090 is required. The thresholds are VRAM ≥ 24 GB and driver ≥ 580.
-- Report only the checks that were actually run. If two-sided verification was not run, do not say the two sides match; if `/metrics` was not checked, do not say DSpark is active.
-- The SDK repository has no Web UI scripts; do not mention or direct the user to run any `demo_*.py`.
+See [SDK configuration](./minicpmvocr_api_en.md) for parameter and API details. For Jev scoring, use the [Jev Skill](./SKILL_jev_en.md); its weights, classification architecture and validation criteria are separate.
