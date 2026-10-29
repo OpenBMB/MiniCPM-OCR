@@ -17,7 +17,7 @@ interface BlockInput {
   status?: string;
 }
 
-/** 构造正文与结构化块不一致的服务响应，覆盖真实适配与渲染链路。 */
+/** Build a service response whose body and structured blocks disagree, covering the real adapt and render path. */
 function adapt(content: string, inputs: BlockInput[]) {
   return adaptImageParseV2({
     choices: [{ message: { content } }],

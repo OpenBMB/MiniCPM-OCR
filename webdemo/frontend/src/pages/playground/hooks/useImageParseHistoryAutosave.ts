@@ -21,9 +21,9 @@ interface ImageParseHistoryAutosaveOptions {
 }
 
 /**
- * 自动存档仅观察实际结果变化；失败后后续阅读操作可限频重试，恢复记录不重复上传。
- * @param options 当前账号范围、已完成快照和串行保存入口
- * @returns 标记恢复记录身份的入口
+ * Autosave observes only real result changes; after a failure, later reading actions may retry at a limited rate, and a restored record is not uploaded again.
+ * @param options current account scope, finished snapshot, and the serial save entry
+ * @returns the entry that marks the identity of a restored record
  */
 export function useImageParseHistoryAutosave({
   scopeKey,
@@ -34,7 +34,7 @@ export function useImageParseHistoryAutosave({
 }: ImageParseHistoryAutosaveOptions) {
   const state = useRef<AutosaveState>({ skipNextSave: false });
   useLayoutEffect(() => {
-    // 父级清除旧快照前不能把同一结果提交到新账号；仅丢弃旧范围的恢复与重试状态。
+    // Before the parent clears the old snapshot, the same result must not be submitted to the new account; only the old scope's restore and retry state is discarded.
     state.current = { seen: state.current.seen, skipNextSave: false };
   }, [scopeKey]);
   const setActiveEntry = useCallback(
@@ -61,7 +61,7 @@ export function useImageParseHistoryAutosave({
       Date.now() >= failed.retryAt &&
       sameImageParseHistoryContent(failed.snapshot, snapshot);
     if (sameImageParseHistoryContent(previous, snapshot) && !retry) return;
-    // 提交时清除失败资格，避免未返回的重试因连续滚动再次排队。
+    // Clear failure eligibility on submit, so a retry that has not returned is not queued again by continuous scrolling.
     observed.failed = undefined;
     void save(snapshot).then((saved) => {
       if (!current() || state.current !== observed) return;

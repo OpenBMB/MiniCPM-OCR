@@ -1,6 +1,6 @@
 /**
- * 将基准语言资源映射为值均为字符串的同构资源类型。
- * @template T 基准语言资源的结构。
+ * Map a base-language resource to an isomorphic resource type whose values are all strings.
+ * @template T Structure of the base-language resource.
  */
 export type TranslationShape<T> = T extends string
   ? string

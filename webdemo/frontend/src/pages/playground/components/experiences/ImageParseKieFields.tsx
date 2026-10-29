@@ -20,8 +20,7 @@ interface ImageParseKieFieldsProps {
 }
 
 /**
- * 关键信息抽取字段区。列表下方添加字段，选择模式支持批量删除；
- * 字段在进入请求前会再次由 API 层和后端校验。
+ * Key information extraction field area. Add fields under the list; selection mode supports batch delete. Fields are validated again by the API layer and the backend before they enter a request.
  */
 export function ImageParseKieFields({
   fields,

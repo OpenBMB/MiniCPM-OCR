@@ -1,5 +1,5 @@
 /**
- * attachments 工具单测：模态识别 + content-part 映射 + 大小格式化。
+ * Unit tests for the attachments helpers: modality recognition + content-part mapping + size formatting.
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -242,7 +242,7 @@ describe('readFileAsAttachment cancellation', () => {
   });
 });
 
-/** 构造测试用附件 */
+/** Build a test attachment */
 function att(overrides: Partial<Attachment>): Attachment {
   return {
     id: 'a',

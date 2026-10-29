@@ -1,100 +1,100 @@
 /**
- * MAP 体验中心「语音合成（TTS）」API。
+ * MAP experience center speech synthesis (TTS) API.
  *
- * 用途：TTS 合成走 L2 的 OpenAI 兼容 `/v1/audio/speech`（对接 LIS VoxCPM2，契约 voxcpm_speech@2），
- * 体验中心请求 WAV；L2 会强制注入 stream=true 并以 SSE 返回。前端逐段聚合
- * `speech.audio.delta` 中现网的 `audio` 字段，兼容历史 `delta` 字段，在 `speech.audio.done` 后生成
- * 可播放的音频 Blob。该终态同时是 LIS 返回权威 token usage 的唯一计量点，因此不再使用无 usage 的
- * unary 路径。
+ * Purpose: TTS synthesis uses L2’s OpenAI-compatible `/v1/audio/speech` (LIS VoxCPM2, contract voxcpm_speech@2).
+ * The experience center requests WAV; L2 forces stream=true and returns SSE. The frontend aggregates
+ * the live `audio` field in `speech.audio.delta`, still accepts the historical `delta` field, and after `speech.audio.done` builds
+ * a playable audio Blob. That terminal event is also the only metering point where LIS returns authoritative token usage, so the usage-less
+ * unary path is no longer used.
  *
- * 音色：VoxCPM 无命名音色库、上游对未知 voice 直接 4xx，故 `voice` 恒发 `default`，音色差异一律由
- * `ref_audio` 参考音频承载（零样本克隆）。参考音频出于安全只接受内联 Base64 WAV
- * （`data:audio/wav;base64,...`），不支持任何 URL，解码后上限 5 MiB。
+ * Voice: VoxCPM has no named voice library, and upstream returns 4xx for an unknown voice, so `voice` is always `default`. Voice differences come only from
+ * `ref_audio` reference audio (zero-shot cloning). For safety, reference audio accepts only inline Base64 WAV
+ * (`data:audio/wav;base64,...`), no URL of any kind, with a 5 MiB limit after decoding.
  *
- * 声音描述（control，Control Instruction）以 `(描述)` 前缀注入 input，VoxCPM 原生解析：无参考音频
- * 即「声音设计」，有参考音频即在克隆基础上叠加情绪/语速/风格。引导强度（cfg → cfg_value）、参考音频
- * 降噪（denoise）、文本规范化（do_normalize）按需下发——契约未列这三个字段，我方作透传，是否生效
- * 取决于上游 LIS 能力（M0 契约项），故仅在用户显式调整时才带上，默认路径不携带契约外字段。
- * 实时全双工语音对话不走本模块，改由 realtime WS 通道（utils/realtimeConnection.ts）承载。
+ * The voice description (control, Control Instruction) is injected into input as a `(description)` prefix. VoxCPM parses it natively: with no reference audio
+ * it is voice design; with reference audio it layers emotion, pace, and style on the clone. Guidance strength (cfg → cfg_value), reference-audio
+ * denoising (denoise), and text normalization (do_normalize) are sent only when needed. The contract does not list these three fields; we pass them through, and whether they take effect
+ * depends on upstream LIS capability (M0 contract item). They are sent only when the user changes them explicitly; the default path carries no extra-contract fields.
+ * Realtime full-duplex voice conversation does not use this module; the realtime WebSocket channel (utils/realtimeConnection.ts) carries it.
  *
- * L2 用 map[string]any 原样透传 body 到 LIS。**不复用** mapRequest（后者解 L3 信封），
- * 以明文 API Key 作 Bearer。
+ * L2 passes the body through to LIS as map[string]any. Do **not** reuse mapRequest (that one unwraps the L3 envelope);
+ * use the plaintext API Key as the Bearer token.
  *
- * 安全：secret（明文 lis_sk_xxx）仅由调用方内存传入，本模块不持久化、不打印。
+ * Security: secret (plaintext lis_sk_xxx) is passed in memory by the caller only. This module does not persist or print it.
  */
 
 import { CHAT_API_BASE } from './chat';
 import { createPlaygroundClientRequestID } from './chat';
 import { getToken } from './request';
 
-/** 体验中心使用的输出格式（平台强制 SSE，仅支持 WAV） */
+/** Output format used by the experience center (the platform forces SSE and supports only WAV) */
 export type TtsFormat = 'wav';
 
-/** TTS 合成结果：可直接播放/下载的 Object URL（调用方负责 revoke） */
+/** TTS synthesis result: an object URL that can be played or downloaded directly (the caller must revoke it) */
 export interface TtsResult {
-  /** 由二进制音频 blob 生成的 Object URL */
+  /** Object URL created from the binary audio blob */
   objectUrl: string;
-  /** 实际输出格式，用于派生下载文件名 */
+  /** Actual output format, used to derive the download filename */
   format: TtsFormat;
 }
 
-/** TTS 合成入参（私有音色使用 voice_xxx；临时参考音频使用 refAudio） */
+/** TTS synthesis input (private voices use voice_xxx; temporary reference audio uses refAudio) */
 export interface SynthesizeParams {
   model: string;
   secret: string;
-  /** 待合成文本（Target Text） */
+  /** Text to synthesize (Target Text) */
   text: string;
-  /** 平台私有音色 ID；voice_xxx 由 MAP 校验归属后解析 */
+  /** Platform private-voice ID; MAP checks ownership of voice_xxx and then resolves it */
   voice?: string;
   /**
-   * 声音描述 / 风格控制（Control Instruction，可选）。非空时以 `(描述)` 前缀注入 input，
-   * VoxCPM 原生解析：无参考音频即凭描述造声（声音设计），有参考音频即叠加风格。
+   * Voice description / style control (Control Instruction, optional). When non-empty, inject it into input as a `(description)` prefix.
+   * VoxCPM parses it natively: with no reference audio it builds a voice from the description (voice design); with reference audio it layers style on top.
    */
   control?: string;
   /**
-   * 参考音频 data URI（`data:audio/wav;base64,...`），用于语音复刻；缺省则不克隆。
-   * 契约只允许内联 Base64 WAV，不接受 http/https/file URL；解码后不得超过 5 MiB。
+   * Reference-audio data URI (`data:audio/wav;base64,...`), used for voice cloning; omit it to skip cloning.
+   * The contract allows only inline Base64 WAV and rejects http/https/file URLs; decoded size must not exceed 5 MiB.
    */
   refAudio?: string;
-  /** 引导强度 cfg_value（越高越贴合提示/参考音色）。缺省则不下发，沿用上游默认 */
+  /** Guidance strength cfg_value (higher values follow the prompt or reference voice more closely). Omit it to keep the upstream default */
   cfg?: number;
   /**
-   * 参考音频降噪增强（denoise）。仅在为 true 时下发 denoise=true；官方 demo 侧为独立预处理，
-   * 我方作为字段透传给上游，是否真正生效取决于 LIS 能力（M0 契约项）。
+   * Reference-audio denoise enhancement (denoise). Send denoise=true only when this is true. The official demo treats it as a separate preprocess;
+   * we pass the field through to upstream, and whether it actually takes effect depends on LIS capability (M0 contract item).
    */
   denoise?: boolean;
   /**
-   * 文本规范化（do_normalize）。仅在为 true 时下发 do_normalize=true；同为透传字段，
-   * 生效与否取决于上游（M0 契约项）。
+   * Text normalization (do_normalize). Send do_normalize=true only when this is true. This is also a pass-through field,
+   * and whether it takes effect depends on upstream (M0 contract item).
    */
   normalize?: boolean;
-  /** 体验中心关联 ID；未传时自动生成 */
+  /** Experience-center correlation ID; generated automatically when omitted */
   clientRequestID?: string;
   signal?: AbortSignal;
 }
 
 /**
- * 文本转语音（TTS）。走 L2 `/v1/audio/speech`；平台强制 SSE，并在浏览器内聚合为完整音频。
- * @returns 可播放/下载的 Object URL 与实际格式（调用方用完须 URL.revokeObjectURL）
- * @throws Error 上游非 2xx 或未返回音频（含可读文案）
+ * Text to speech (TTS). Uses L2 `/v1/audio/speech`; the platform forces SSE, and the browser aggregates it into a complete audio file.
+ * @returns A playable/downloadable object URL and the actual format (the caller must URL.revokeObjectURL when finished)
+ * @throws Error when upstream is not 2xx or returns no audio (includes readable copy)
  */
 export async function synthesizeSpeech(params: SynthesizeParams): Promise<TtsResult> {
-  // 声音描述以 `(描述)文本` 前缀注入 input（对齐 VoxCPM `f"({control}){text}"` 约定）
+  // Inject the voice description into input as a `(description)text` prefix (aligned with the VoxCPM `f"({control}){text}"` convention)
   const control = params.control?.trim();
   const input = control ? `(${control})${params.text}` : params.text;
   const format: TtsFormat = 'wav';
   const body: Record<string, unknown> = {
     model: params.model,
     input,
-    // 私有 voice_xxx 由 MAP 解析；临时上传/预置音色仍使用 default + ref_audio。
+    // Private voice_xxx is resolved by MAP; temporary uploads and preset voices still use default + ref_audio.
     voice: params.voice?.trim() || 'default',
     response_format: format,
   };
-  // 语音复刻：带参考音频时透传 ref_audio，上游 VoxCPM 据此克隆音色
+  // Voice cloning: when reference audio is present, pass ref_audio through and upstream VoxCPM clones the voice from it
   if (params.refAudio) body.ref_audio = params.refAudio;
-  // 引导强度：仅在调用方明确传入时下发（默认路径不带，保护既有可用合成不受上游字段兼容性影响）
+  // Guidance strength: send it only when the caller passes it explicitly (the default path omits it, so existing synthesis is not affected by upstream field compatibility)
   if (typeof params.cfg === 'number') body.cfg_value = params.cfg;
-  // 降噪 / 文本规范化：仅在开启时下发（官方为 demo 侧预处理，我方作透传字段，生效取决于上游能力）
+  // Denoise / text normalization: send only when enabled (officially a demo-side preprocess; we pass the fields through, and effect depends on upstream capability)
   if (params.denoise) body.denoise = true;
   if (params.normalize) body.do_normalize = true;
   const clientRequestID = params.clientRequestID?.trim() || createPlaygroundClientRequestID();
@@ -112,7 +112,7 @@ export async function synthesizeSpeech(params: SynthesizeParams): Promise<TtsRes
     body: JSON.stringify(body),
     signal: params.signal,
   });
-  // 成功契约：2xx + text/event-stream；否则读 JSON 错误正文映射为可读文案。
+  // Success contract: 2xx + text/event-stream; otherwise read the JSON error body and map it to readable copy.
   const contentType = res.headers.get('Content-Type') ?? '';
   if (!res.ok || !contentType.toLowerCase().startsWith('text/event-stream')) {
     const text = await res.text().catch(() => '');
@@ -122,7 +122,7 @@ export async function synthesizeSpeech(params: SynthesizeParams): Promise<TtsRes
   return { objectUrl: URL.createObjectURL(blob), format };
 }
 
-/** 从 LIS `speech.audio.delta` 事件聚合 WAV 字节；`audio` 为现网字段，兼容历史 `delta`。 */
+/** Aggregate WAV bytes from LIS `speech.audio.delta` events; `audio` is the live field, and historical `delta` is still accepted. */
 async function collectSpeechSSE(response: Response): Promise<Blob> {
   if (!response.body) throw new Error('语音服务未返回可读取的流');
 
@@ -226,7 +226,7 @@ function decodeBase64Audio(value: string): Uint8Array {
   }
 }
 
-/** 把上游错误响应映射为用户可读文案（优先按 OpenAI error.code，再回退到状态码）。 */
+/** Map an upstream error response to user-readable copy (prefer OpenAI error.code, then fall back to the status code). */
 function mapAudioError(status: number, rawText: string): string {
   let detail: string;
   let errorCode = '';
@@ -245,9 +245,9 @@ function mapAudioError(status: number, rawText: string): string {
   }
   if (status === 401) return 'API Key 无效或已失效，请重试';
   if (status === 404) return '模型不可用或不支持该能力';
-  // 409：目标服务与语音合成 profile 不匹配（契约 §4.6）
+  // 409: the target service does not match the speech-synthesis profile (contract §4.6)
   if (status === 409) return '所选模型不是语音合成服务，请在模型管理中确认其能力配置';
-  // 413：请求体或参考音频超过限制（契约 §4.5：body 8 MiB / ref_audio 解码后 5 MiB）
+  // 413: the request body or reference audio exceeds the limit (contract §4.5: body 8 MiB / ref_audio 5 MiB after decoding)
   if (status === 413) return detail || '参考音频或合成文本过大，请缩短后重试';
   if (status === 429) return '请求过于频繁，请稍后再试';
   if (status === 502) return detail || '上游返回的语音流不符合预期，请稍后重试';

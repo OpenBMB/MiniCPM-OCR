@@ -16,7 +16,7 @@ type PendingResultScroll = {
   source: 'origin' | 'focus';
 };
 
-/** 原图栏接收的进度请求与用户滚动反馈。进度取值为 [0, 1]。 */
+/** Progress requests and user-scroll feedback received by the original-image column. Progress is in [0, 1]. */
 export interface ImageParseOriginScrollProps {
   scrollProgress?: number;
   onScrollProgress: (progress: number, programmatic?: boolean) => void;
@@ -28,12 +28,12 @@ function boundedProgress(value: number): number {
 }
 
 /**
- * 双栏滚动接线；禁用联动时不读写另一栏，新结果清除旧请求。
- * @param linked 是否启用联动
- * @param resultKey 当前结果身份；更换文件、页码或结果时应更新
- * @returns 原图 props、结果栏 viewport ref 与 scroll handler
+ * Two-column scroll wiring; when linking is disabled, do not read or write the other column, and a new result clears the old request.
+ * @param linked whether linking is enabled
+ * @param resultKey current result identity; update it when the file, page number, or result changes
+ * @returns original-image props, the result-column viewport ref, and the scroll handler
  *
- * 有版面块时按真实渲染锚点插值；无对应节点时不执行不可靠的跨栏跳转。
+ * When there are layout blocks, interpolate by real rendered anchors; when there is no matching node, do not perform an unreliable cross-column jump.
  */
 export function useImageParseScrollSync(
   linked: boolean,
@@ -76,7 +76,7 @@ export function useImageParseScrollSync(
       const expected = pendingOrigin.current;
       pendingOrigin.current = undefined;
       setRequest(undefined);
-      // 原图确认结果栏发出的请求时，不再将同一位置写回结果栏。
+      // When the original image confirms a request sent by the result column, do not write the same position back to the result column.
       if (programmatic || (expected !== undefined && Math.abs(progress - expected) < 0.001)) return;
       const node = resultNode.current;
       if (!node) return;
@@ -114,12 +114,12 @@ export function useImageParseScrollSync(
       const node = event.currentTarget;
       const expected = pendingResult.current;
       pendingResult.current = undefined;
-      // 块定位允许浏览器因布局变化落在邻近位置，不能把确认误判为用户滚动并反向改写原图。
+      // Block positioning allows the browser to land nearby because of a layout change, and that confirmation must not be mistaken for a user scroll that rewrites the original image the other way.
       if (expected !== undefined) {
         if (Math.abs(node.scrollTop - expected.top) < 1 || expected.source === 'focus') return;
       }
       const range = Math.max(0, node.scrollHeight - node.clientHeight);
-      // 换页重建或短结果产生的零偏移不是用户要求原文回到首页。
+      // A zero offset from rebuilding on a page change, or from a short result, is not the user asking the original text to return to the first page.
       if (!range) return;
       const progress = boundedProgress(node.scrollTop / range);
       const anchors = imageParseScrollAnchors(

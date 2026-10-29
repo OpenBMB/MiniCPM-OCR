@@ -6,14 +6,14 @@ export interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement
 }
 
 /**
- * 复选框原语。
+ * Checkbox primitive.
  *
- * 用途：提供平台统一的 checkbox 外观与可访问状态。保留原生 input 语义，便于表单、
- * 键盘操作和屏幕阅读器直接识别；原生 accent-color 无法定制未选中态，视觉层隐藏
- * 外观后按语义 token 自绘：默认描边、hover 主色边、选中主色底加白勾。
+ * Purpose: the platform’s unified checkbox look and accessible state. Native input semantics stay, so forms,
+ * keyboard use, and screen readers can recognize it directly. Native accent-color cannot style the unchecked state, so the visual layer hides
+ * that appearance and paints from semantic tokens: a default stroke, a primary border on hover, and a primary fill with a white check when selected.
  *
- * @param className 额外样式类，作用于外层容器（如对齐用的 margin）
- * @returns 语义化 checkbox 输入框
+ * @param className Extra classes, applied to the outer container (for example margin used for alignment).
+ * @returns A semantic checkbox input.
  */
 function Checkbox({ className, ref, ...props }: CheckboxProps) {
   return (

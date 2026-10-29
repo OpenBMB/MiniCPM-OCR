@@ -3,25 +3,25 @@ import * as ProgressPrimitive from '@radix-ui/react-progress';
 import { cn } from '../../utils';
 
 /**
- * 进度条。
+ * Progress bar.
  *
- * 用途：表示一个 0–100 的完成度（如评测任务进度、调度序列完成率）。
- * 轨道用 `bg-muted`，已完成段默认 `bg-primary`；可通过 `indicatorClassName`
- * 换成语义色（如 `bg-success`/`bg-destructive`）以表达不同状态，颜色全走 token。
+ * Purpose: a 0–100 completion level (for example an evaluation task or a schedule sequence).
+ * The track uses `bg-muted`, and the filled part defaults to `bg-primary`; `indicatorClassName`
+ * can switch it to a semantic color (such as `bg-success` or `bg-destructive`) for a different state. Colors all come from tokens.
  *
- * @param value 当前进度值（0–100），传入 undefined/null 视为 0
- * @param indicatorClassName 覆盖已完成段的样式（用于换语义色）
+ * @param value Current progress (0–100); undefined or null is treated as 0.
+ * @param indicatorClassName Styles that override the filled part (used to change the semantic color).
  */
 interface ProgressProps extends React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> {
   value?: number | null;
   indicatorClassName?: string;
-  /** 没有真实百分比时展示持续运动的处理中状态。 */
+  /** When there is no real percentage, show a continuously moving in-progress state. */
   indeterminate?: boolean;
 }
 
 const Progress = React.forwardRef<React.ElementRef<typeof ProgressPrimitive.Root>, ProgressProps>(
   ({ className, value, indicatorClassName, indeterminate = false, ...props }, ref) => {
-    // 约束到 [0,100]，避免越界值把指示条推出轨道
+    // Clamp to [0, 100] so an out-of-range value cannot push the indicator out of the track.
     const clamped = Math.max(0, Math.min(100, value ?? 0));
     return (
       <ProgressPrimitive.Root

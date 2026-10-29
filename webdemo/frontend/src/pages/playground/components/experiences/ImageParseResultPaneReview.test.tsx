@@ -37,7 +37,7 @@ const props = {
     setValue: vi.fn(),
     reset: vi.fn(),
   },
-  // 保留待复核实现的单测开关；生产默认隐藏。
+  // Keep the unit-test switch for the pending-review implementation; hidden by default in production.
   reviewEnabled: true,
 };
 

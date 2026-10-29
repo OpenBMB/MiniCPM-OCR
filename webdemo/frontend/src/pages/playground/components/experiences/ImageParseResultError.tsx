@@ -9,9 +9,9 @@ interface ImageParseResultErrorProps {
 }
 
 /**
- * 识别错误与唯一重试入口；PDF 单页错误仍由相应结果页负责。
- * @param props 可见错误、重试状态及回调
- * @returns 可恢复的内联错误条
+ * Recognition error and the only retry entry; a single-page PDF error is still owned by the matching result page.
+ * @param props Visible error, retry state, and callbacks
+ * @returns A recoverable inline error bar
  */
 export function ImageParseResultError({ message, disabled, onRetry }: ImageParseResultErrorProps) {
   const { t } = useTranslation('playground');

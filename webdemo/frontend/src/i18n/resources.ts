@@ -11,10 +11,10 @@ import { docsMessages } from './messages/docs';
 import { voicesMessages } from './messages/voices';
 
 /**
- * 门户全部本地化资源的纯数据导出。
+ * Pure-data export of every portal localization resource.
  *
- * 用途：供 i18next 初始化与仓库根目录的文案审核脚本直接导入。
- * 该模块刻意不依赖 React、Zustand 或浏览器 API，以确保 Node 环境可稳定读取。
+ * Purpose: imported by i18next initialization and by the copy-review script at the repo root.
+ * This module deliberately avoids React, Zustand, and browser APIs so Node can read it reliably.
  */
 export const i18nResources = {
   'zh-CN': {

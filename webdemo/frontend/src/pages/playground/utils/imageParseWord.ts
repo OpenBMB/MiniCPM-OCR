@@ -106,7 +106,7 @@ function wordBlocks(
       case 'code':
         return [new Paragraph({ children: textRuns(node.value, { font: 'Courier New' }) })];
       case 'math':
-        // 保留 LaTeX 原文，避免把不支持的公式转换成错误的数学表达式。
+        // Keep the original LaTeX, so an unsupported formula is not converted into a wrong math expression.
         return [new Paragraph({ children: textRuns(node.value) })];
       case 'html':
         return imageParseHtmlToWord(node.value, context.numbering);
@@ -168,9 +168,9 @@ function wordBlocks(
 }
 
 /**
- * 将当前 Markdown 草稿导出为真实 DOCX，保留标题、正文格式、列表和可编辑表格。
- * @param markdown 点击下载时的当前正文；公式保留 LaTeX，远程图片不自动请求
- * @returns 可直接交给浏览器下载的 Word 文件
+ * Export the current Markdown draft as a real DOCX, keeping headings, body formatting, lists, and editable tables.
+ * @param markdown current body at the moment of download; formulas keep LaTeX, and remote images are not requested automatically
+ * @returns a Word file that can be handed straight to the browser to download
  */
 export async function createImageParseWordBlob(markdown: string): Promise<Blob> {
   const tree = PARSER.parse(normalizeMathDelimiters(markdown, { detectBareMath: false })) as Root;

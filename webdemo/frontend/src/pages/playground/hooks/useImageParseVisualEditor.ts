@@ -2,14 +2,14 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 
 import type { ImageParseTextRange } from '../utils/imageParseBlocks';
 
-/** 当前块提供同步导出和销毁；切块必须先销毁旧实例。 */
+/** The current block provides synchronous export and destroy; switching blocks must destroy the old instance first. */
 export interface ImageParseBlockController {
   save: () => boolean;
   destroy: () => void;
   composing: () => boolean;
 }
 
-/** 管理唯一活动块；外部点击或键盘移出时保存，结果更新时丢弃过期会话。 */
+/** Manage the single active block; save when an outside click or the keyboard moves away, and discard an expired session when the result updates. */
 export function useImageParseVisualEditor(
   source: string,
   onSave: (value: string, editedRange?: ImageParseTextRange) => void,
@@ -95,7 +95,7 @@ export function useImageParseVisualEditor(
         event.target instanceof Element &&
         event.target.closest('[data-edit-block]')
       ) {
-        // 首击保存后暂保留旧块高度，第二击仍命中同一预览块；切换后立即释放。
+        // After the first click saves, keep the old block height for a moment, so the second click still hits the same preview block; release it immediately after the switch.
         releaseFootprint();
         editorRoot.style.minHeight = `${editorRoot.getBoundingClientRect().height}px`;
         footprint.current = { element: editorRoot, timer: setTimeout(releaseFootprint, 400) };
@@ -108,7 +108,7 @@ export function useImageParseVisualEditor(
         finish();
     }
     function compositionend() {
-      // ProseMirror 完成输入法事务后再导出，避免丢失最后一个中文字符。
+      // Export only after ProseMirror finishes the IME transaction, so the last CJK character is not lost.
       const current = controller.current;
       if (pendingBlur.current)
         setTimeout(() => {

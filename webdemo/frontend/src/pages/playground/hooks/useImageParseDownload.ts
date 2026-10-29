@@ -18,9 +18,9 @@ interface ImageParseDownloadInput extends ImageParseExportInput {
 }
 
 /**
- * 当前 OCR 结果下载：保留点击时的快照，禁止并发生成，失败时恢复入口。
- * @param input 草稿、版面信息、文件名与工作台禁用状态
- * @returns 下载状态与格式选择回调
+ * Download of the current OCR result: keep the snapshot from the click, forbid concurrent generation, and restore the entry on failure.
+ * @param input draft, layout info, file name, and workspace disabled state
+ * @returns download state and the format-selection callback
  */
 export function useImageParseDownload(input: ImageParseDownloadInput) {
   const { t } = useTranslation('playground');

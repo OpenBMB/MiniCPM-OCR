@@ -1,4 +1,4 @@
-/** 模型控制台已不在这个演示里。这里只留下游乐场还在用的能力判断。 */
+/** The model console is not part of this demo. Only the capability checks the playground still uses remain here. */
 
 export const PLAYGROUND_TOGGLE_KEYS = {
   showReasoning: 'show_reasoning',

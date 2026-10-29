@@ -20,7 +20,7 @@ interface ImageParseSidebarHistoryOptions {
   onChange?: (history: PlaygroundSidebarHistory | undefined) => void;
 }
 
-/** 固定共享案例与个人云端历史分组；打开记录时按需加载，并隔离过期选择响应。 */
+/** Group fixed shared examples and personal cloud history; load on demand when a record is opened, and isolate a stale selection response. */
 export function useImageParseSidebarHistory(options: ImageParseSidebarHistoryOptions) {
   const { t } = useTranslation('playground');
   const { scope, attachmentId, history, onChange } = options;

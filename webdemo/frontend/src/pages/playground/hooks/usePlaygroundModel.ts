@@ -1,8 +1,8 @@
 /**
- * 模型 + API Key 选择与明文密钥编排 hook。
+ * Hook that selects the model and API Key and orchestrates the plaintext secret.
  *
- * 用途：把「可调用模型列表」与「Playground 有效凭据」收敛为一个选择器状态机。
- * 明文密钥仅存 TanStack Query 缓存（staleTime/gcTime=0），不落盘。
+ * Purpose: collapse "the list of callable models" and "the effective Playground credential" into one selector state machine.
+ * The plaintext secret lives only in the TanStack Query cache (staleTime/gcTime=0) and is not persisted to disk.
  */
 
 import { useCallback, useMemo, useState } from 'react';
@@ -15,67 +15,67 @@ import {
 } from './usePlaygroundCredential';
 import { languageModels, modelsByExperience } from '@/utils/modelExperience';
 
-/** usePlaygroundModel 返回 */
+/** usePlaygroundModel return value */
 interface UsePlaygroundModelReturn {
-  /** 当前登录用户 ID，供会话草稿按账号隔离。 */
+  /** Currently logged-in user ID, so conversation drafts are isolated by account. */
   userId?: string;
-  /** 当前默认项目，供上传与识别生命周期隔离。 */
+  /** Current default project, used to isolate upload and recognition lifecycles. */
   defaultProjectId?: string;
-  /** 当前用户信息是否仍在加载。 */
+  /** Whether the current user info is still loading. */
   userLoading: boolean;
-  /** 语言对话可选模型（已排除语音合成 / 实时语音） */
+  /** Models available for language chat (speech synthesis and realtime voice are already excluded) */
   models: MapModel[];
   modelsLoading: boolean;
-  /** 当前语言对话选中模型 id */
+  /** Model id currently selected for language chat */
   modelId: string;
   selectModel: (id: string) => void;
-  /** 语音合成可选模型（管理端勾了「语音合成」的全部模型） */
+  /** Models available for speech synthesis (every model the admin console checked as "speech synthesis") */
   ttsModels: MapModel[];
-  /** 当前选中的语音合成模型，无可用模型时 undefined */
+  /** Speech-synthesis model currently selected; undefined when no model is available */
   ttsModel?: MapModel;
   selectTtsModel: (id: string) => void;
-  /** 实时对话可选模型（管理端勾了「实时对话」的全部模型） */
+  /** Models available for realtime conversation (every model the admin console checked as "realtime conversation") */
   realtimeModels: MapModel[];
-  /** 当前选中的实时对话模型，无可用模型时 undefined */
+  /** Realtime-conversation model currently selected; undefined when no model is available */
   realtimeModel?: MapModel;
   selectRealtimeModel: (id: string) => void;
-  /** 图像解析可选模型（管理端勾了「图像解析」且支持图像输入） */
+  /** Models available for image parsing (checked as "image parsing" in the admin console and supporting image input) */
   imageParseModels: MapModel[];
-  /** 当前选中的图像解析模型，无可用模型时 undefined */
+  /** Image-parsing model currently selected; undefined when no model is available */
   imageParseModel?: MapModel;
   selectImageParseModel: (id: string) => void;
-  /** 密钥列表是否加载中（用于区分「加载中」与「确无可用 Key」） */
+  /** Whether the secret list is loading (used to tell "loading" from "there really is no usable key") */
   keysLoading: boolean;
-  /** 是否存在可用 API Key（无则上层引导去创建） */
+  /** Whether a usable API Key exists (if not, the caller guides the user to create one) */
   hasKeys: boolean;
-  /** 自动选定的 Key id（默认项目优先，对用户不可见、不可切换） */
+  /** Auto-selected key id (the default project is preferred; invisible to the user and not switchable) */
   keyId: string;
-  /** 实际模型 Key 所属项目，用于核对文档上传的默认项目边界。 */
+  /** Project the actual model key belongs to, used to check the default-project boundary of a document upload. */
   keyProjectId?: string;
-  /** 明文密钥就绪态 */
+  /** Plaintext-secret readiness */
   secretReady: boolean;
   secretLoading: boolean;
   secretError: boolean;
-  /** 四类体验剩余免费次数 */
+  /** Remaining free counts for the four experiences */
   trialRemaining: ReturnType<typeof usePlaygroundCredential>['trialRemaining'];
-  /** 免费体验状态加载中 */
+  /** Free-trial state is loading */
   trialLoading: boolean;
-  /** 免费体验状态获取失败 */
+  /** Fetching free-trial state failed */
   trialError: boolean;
-  /** 是否正在使用隐藏免费体验 Key */
+  /** Whether the hidden free-trial key is in use */
   trialAvailable: boolean;
-  /** 懒取明文密钥（供 useChat 在 send 时调用） */
+  /** Lazily read the plaintext secret (for useChat to call at send time) */
   getSecret: () => string | undefined;
-  /** 请求终态后刷新免费体验状态。 */
+  /** Refresh free-trial state after a request reaches a terminal state. */
   refreshTrial: () => void;
 }
 
 /**
- * 模型选择与密钥编排。
+ * Model selection and secret orchestration.
  *
- * 四类体验各自记忆选中模型（语言 / TTS / 实时 / 图像解析），互不干扰。
- * API Key 不暴露选择器：免费额度未用完时自动使用隐藏体验 Key；用完后回退默认项目下
- * 的 active key。两者都不可用时由上层显示「去创建 API Key」引导。
+ * Each of the four experiences remembers its own selected model (language / TTS / realtime / image parsing), and they do not interfere.
+ * The API Key exposes no selector: while free quota remains, the hidden trial key is used automatically; after it is used up, fall back to the
+ * active key under the default project. When neither is available, the caller shows the "go create an API Key" guide.
  */
 export function usePlaygroundModel(
   credentialExperience: PlaygroundTrialExperience = 'language',
@@ -84,13 +84,13 @@ export function usePlaygroundModel(
   const setPrefs = useAppStore((s) => s.setPlaygroundPrefs);
   const modelsQuery = useModelsQuery();
 
-  // 按能力筛选四类体验；支持文本输入的图像解析模型也可用于语言对话。
+  // Filter the four experiences by capability; an image-parsing model that supports text input can also be used for language chat.
   const allModels = useMemo(() => modelsQuery.data?.list ?? [], [modelsQuery.data]);
   const models = useMemo(() => languageModels(allModels), [allModels]);
   const ttsModels = useMemo(() => modelsByExperience(allModels, 'tts'), [allModels]);
   const realtimeModels = useMemo(() => modelsByExperience(allModels, 'realtime'), [allModels]);
   const imageParseModels = useMemo(() => modelsByExperience(allModels, 'image-parse'), [allModels]);
-  // URL 体验在无对应模型时会回退语言页面；凭据类型必须同步回退，避免误扣其它体验额度。
+  // A URL experience falls back to the language page when it has no matching model; the credential type must fall back in sync, so another experience's quota is not charged by mistake.
   const effectiveCredentialExperience = resolvePlaygroundCredentialExperience(
     credentialExperience,
     {
@@ -106,7 +106,7 @@ export function usePlaygroundModel(
   const [realtimeModelIdState, setRealtimeModelIdState] = useState<string>('');
   const [imageParseModelIdState, setImageParseModelIdState] = useState<string>('');
 
-  // 渲染期条件 seeding：列表就绪且未选时，落定初值（优先持久化偏好），避免 effect+setState。
+  // Conditional seeding during render: when the list is ready and nothing is selected, settle the initial value (persisted preference first), avoiding effect plus setState.
   const modelId = resolveSelection(
     modelIdState,
     prefs.lastModelId,
@@ -130,7 +130,7 @@ export function usePlaygroundModel(
   const ttsModel = ttsModels.find((m) => m.id === ttsModelId);
   const realtimeModel = realtimeModels.find((m) => m.id === realtimeModelId);
   const imageParseModel = imageParseModels.find((m) => m.id === imageParseModelId);
-  // 草稿隔离直接使用当前 JWT 的 sub，避免账号切换时 TanStack Query 短暂返回上一账号 /me 缓存。
+  // Draft isolation uses the current JWT sub directly, so an account switch does not briefly get the previous account's /me cache from TanStack Query.
   const userId = getTokenSubject();
 
   const selectModel = useCallback(
@@ -181,7 +181,7 @@ export function usePlaygroundModel(
   };
 }
 
-/** 模型选择落定：已手动选 → 用之；否则用持久化偏好（若在列表内）；再否则列表首项 */
+/** Settle model selection: if one was chosen manually, use it; otherwise the persisted preference if it is in the list; otherwise the first item in the list */
 function resolveSelection(manual: string, preferred: string, ids: string[]): string {
   if (manual && ids.includes(manual)) return manual;
   if (preferred && ids.includes(preferred)) return preferred;

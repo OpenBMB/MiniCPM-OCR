@@ -21,7 +21,7 @@ interface ImageParsePdfPreviewProps {
   recognizeChart: boolean;
 }
 
-/** PDF 全页连续预览；未返回页保留等待锚点，离屏结果仅按虚拟列表挂载。 */
+/** Continuous full-page PDF preview; pages not yet returned keep a waiting anchor, and off-screen results mount only through the virtual list. */
 export function ImageParsePdfPreview({
   parse,
   draft,

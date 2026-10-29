@@ -62,10 +62,10 @@ interface ImageParseExecutionOptions {
 }
 
 /**
- * 执行单张图片或 PDF 的识别请求，并隔离取消、超时和过期响应。
- * 所有任务只调用 MAP 同源算法代理，识别前必须取得文件服务 fileId。
- * @param options 当前附件、档位、凭据、状态写入器与裁图编排
- * @returns parse 与 stop 入口；并发请求由 generation 和 AbortSignal 淘汰
+ * Run the recognition request for a single image or a PDF, and isolate cancellation, timeout, and stale responses.
+ * Every task calls only the same-origin MAP algorithm proxy, and a file-service fileId must be obtained before recognition.
+ * @param options current attachment, tier, credentials, state writer, and crop orchestration
+ * @returns parse and stop entries; concurrent requests are retired by generation and AbortSignal
  */
 export function useImageParseExecution(options: ImageParseExecutionOptions) {
   const queryClient = useContext(QueryClientContext);

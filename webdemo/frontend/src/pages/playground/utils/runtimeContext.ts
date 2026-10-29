@@ -3,11 +3,11 @@ import type { AppLocale } from '@map/store';
 import type { PlaygroundRuntimeContext } from '@/api/map/chat';
 
 /**
- * 采集 Playground 请求所需的浏览器上下文提示。
- * @param locale Portal 当前应用语言
- * @param userLocation 用户手动设置的当前位置（用于 datetime 工具回答地点相关问题）
- * @param now 当前浏览器时间，仅用于读取 UTC offset
- * @returns 不包含浏览器当前时刻的时区与语言提示
+ * Collect the browser-context hints a Playground request needs.
+ * @param locale current Portal application language
+ * @param userLocation current location the user set manually (used by the datetime tool to answer location questions)
+ * @param now current browser time, used only to read the UTC offset
+ * @returns timezone and language hints that do not include the browser's current instant
  */
 export function collectPlaygroundRuntimeContext(
   locale: AppLocale,

@@ -2,7 +2,7 @@ import type * as React from 'react';
 
 import type { imageRasterView } from '../utils/imageZoom';
 
-/** 视图状态与交互接线。 */
+/** View state and interaction wiring. */
 export interface ImageZoom {
   scale: number;
   rotation: number;

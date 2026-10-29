@@ -1,4 +1,4 @@
-/** 原始 PDF 只提交一个 MAP 任务；本地渲染仅用于预览和按需裁图。 */
+/** A raw PDF submits only one MAP task; local rendering is only for preview and on-demand crops. */
 import type { QueryClient } from '@tanstack/react-query';
 
 import { runImageParseJob, type ImageParseJob } from '@/api/map/imageParseJobs';
@@ -20,28 +20,28 @@ export interface PdfPageResult {
   error?: string;
 }
 
-/** PDF 执行上下文；查询复用门户 QueryClient，KIE 字段原样交给任务客户端校验。 */
+/** PDF execution context; queries reuse the portal QueryClient, and KIE fields are handed to the task client for validation as-is. */
 export interface PdfImageParseJobOptions {
   queryClient?: QueryClient;
   fields?: readonly string[];
 }
 
 /**
- * 用原 PDF fileId 创建整份任务，增量结果按零起始 metadata.page_index 归档。
- * @param source 本地 PDF 预览地址，仅在原件缺少 fileId 时用于补传
- * @param mode 识别任务，历史档位映射为 standard；seal 不支持 PDF
- * @param model 当前可用的 OCR 模型
- * @param projectId 原件补传所需项目
- * @param signal 任务生命周期；取消由任务客户端 DELETE
- * @param onOpen 整份文档页数，不用单页重试的任务页数覆盖原件页数
- * @param onPage 一起始页面结果；裁图由既有 hooks 按需生成
- * @param onlyPage 可选的一起始原件重试页
- * @param _getPriorityPage 兼容旧调用签名；页调度由 MAP 持有
- * @param skipPages 本地已完成页，仅跳过展示，不改变后端原件任务
- * @param upright 摆正开关
- * @param _recognizeSeal 兼容旧调用方；后端始终开启印章识别
- * @param attachment 原 PDF 附件，优先复用已上传的 fileId
- * @param options 查询客户端及可选 KIE 字段
+ * Create one task for the whole document from the original PDF fileId; incremental results are filed by zero-based metadata.page_index.
+ * @param source local PDF preview URL, used to re-upload only when the original lacks a fileId
+ * @param mode recognition task; a historical tier maps to standard; seal does not support PDF
+ * @param model OCR model currently available
+ * @param projectId project required to re-upload the original
+ * @param signal task lifecycle; cancellation is a DELETE by the task client
+ * @param onOpen page count of the whole document; do not overwrite the original page count with the task page count from a single-page retry
+ * @param onPage a one-based page result; crops are generated on demand by the existing hooks
+ * @param onlyPage optional one-based original page to retry
+ * @param _getPriorityPage compatible with the old call signature; page scheduling is owned by MAP
+ * @param skipPages pages already finished locally; skip display only, and do not change the backend original task
+ * @param upright rotation-adaptation switch
+ * @param _recognizeSeal compatible with old callers; the backend always turns seal recognition on
+ * @param attachment original PDF attachment; prefer an already uploaded fileId
+ * @param options query client and optional KIE fields
  */
 export async function parsePdfPages(
   source: string,

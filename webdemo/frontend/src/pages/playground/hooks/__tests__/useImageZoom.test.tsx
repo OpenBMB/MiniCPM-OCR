@@ -1,9 +1,9 @@
 /**
- * 图片缩放接线单测：滚轮改倍数、合帧、阻止页面滚动、按钮与拖拽。
+ * Unit tests for image-zoom wiring: the wheel changes scale, frames are coalesced, page scroll is prevented, and buttons and dragging work.
  *
- * 这里测的是「事件真的到得了 hook」这一层，而不是几何算式（那在 utils/imageZoom 的单测里）。
- * 滚轮监听是 useWheelGesture 以非 passive 方式挂在 setViewport 给到的节点上的，
- * 一旦调用方没把 ref 接上，滚轮缩放会整个静默失效——这组测试就是为了让那种回归立刻可见。
+ * What is tested here is the layer "the event really reaches the hook", not the geometry formulas (those are in the utils/imageZoom unit tests).
+ * The wheel listener is attached by useWheelGesture, non-passive, on the node setViewport provides.
+ * If the caller never connects the ref, wheel zoom fails silently — this set of tests exists so that regression is visible immediately.
  */
 
 import { useCallback } from 'react';
@@ -12,7 +12,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useImageZoom } from '../useImageZoom';
 import { MAX_SCALE, MIN_SCALE } from '../../utils/imageZoom';
 
-/** 按 hook 约定接线的最小看图器：视口挂 setViewport，内容挂 setContent。 */
+/** Minimal image viewer wired the way the hook expects: the viewport takes setViewport, and the content takes setContent. */
 function Viewer({ document = false }: { document?: boolean }) {
   const zoom = useImageZoom({ fitWidth: document });
   const { setViewport, setContent } = zoom;
@@ -63,7 +63,7 @@ function Viewer({ document = false }: { document?: boolean }) {
   );
 }
 
-/** 滚轮按 requestAnimationFrame 合帧，所以断言前要把这一帧放过去。 */
+/** The wheel coalesces frames on requestAnimationFrame, so that frame has to be flushed before an assertion. */
 async function flushFrame() {
   await act(async () => {
     await new Promise<void>((resolve) => {
@@ -73,8 +73,8 @@ async function flushFrame() {
 }
 
 /**
- * 在视口上派发一个原生 wheel（React 的合成 wheel 是 passive 的，测不到真实路径）。
- * @returns 事件是否被 preventDefault
+ * Dispatch a native wheel on the viewport (React's synthetic wheel is passive and cannot exercise the real path).
+ * @returns whether the event was preventDefault'd
  */
 function wheel(
   node: HTMLElement,
@@ -111,13 +111,13 @@ describe('useImageZoom 滚轮', () => {
     render(<Viewer />);
     const viewport = screen.getByTestId('viewport');
 
-    // WHEEL_STEP=0.0015：一格 100px 对应 15%
+    // WHEEL_STEP=0.0015: one notch of 100px corresponds to 15%
     wheel(viewport, -100, 0, { ctrlKey: true });
     await flushFrame();
     expect(scale()).toBeCloseTo(1.15, 6);
 
-    // 缩放按比例乘，所以反向滚同样格数不会精确回到 1（1.15 × 0.85 = 0.9775）。
-    // 这是刻意的：等比缩放在任何倍数下手感一致，回到贴合走「还原」而不是数格数。
+    // Zoom multiplies by a ratio, so rolling the same number of notches the other way does not land exactly on 1 (1.15 × 0.85 = 0.9775).
+    // This is deliberate: proportional zoom feels the same at any scale, and returning to the fit uses "reset" rather than counting notches.
     wheel(viewport, 100, 0, { ctrlKey: true });
     await flushFrame();
     expect(scale()).toBeCloseTo(0.9775, 6);
@@ -127,8 +127,8 @@ describe('useImageZoom 滚轮', () => {
     render(<Viewer />);
     const viewport = screen.getByTestId('viewport');
 
-    // 一次滚动能打出上百个事件。合帧后按累计增量 -200 算一次（1.3），
-    // 而不是逐个复利（1.15² ≈ 1.3225）——差值就是合帧生效的证据。
+    // One scroll can fire hundreds of events. After coalescing, the accumulated delta of -200 is applied once (1.3),
+    // rather than compounded one by one (1.15² ≈ 1.3225) — the difference is the evidence that coalescing took effect.
     wheel(viewport, -100, 0, { ctrlKey: true });
     wheel(viewport, -100, 0, { ctrlKey: true });
     await flushFrame();
@@ -143,7 +143,7 @@ describe('useImageZoom 滚轮', () => {
 
   it('converts line-mode deltas so Firefox has the same feel', async () => {
     render(<Viewer />);
-    // 行模式一格 deltaY 只有 ±3，按 LINE_HEIGHT=16 折算成 48px。
+    // In line mode one notch of deltaY is only ±3, converted at LINE_HEIGHT=16 into 48px.
     wheel(screen.getByTestId('viewport'), -3, 1, { ctrlKey: true });
     await flushFrame();
     expect(scale()).toBeCloseTo(1.072, 6);
@@ -259,10 +259,10 @@ describe('useImageZoom 按钮与拖拽', () => {
 
     fireEvent.pointerDown(viewport, { button: 0, clientX: 100, clientY: 100, pointerId: 1 });
     fireEvent.pointerMove(viewport, { clientX: 130, clientY: 60, pointerId: 1 });
-    // translate 在最外层，拖多少走多少。
+    // translate is outermost, so it moves by however much it is dragged.
     expect(screen.getByTestId('transform').textContent).toContain('translate(30px, -40px)');
 
-    // 松手不归位：拖到哪停哪。
+    // Releasing does not snap back: it stops where it was dragged.
     fireEvent.pointerUp(viewport, { clientX: 130, clientY: 60, pointerId: 1 });
     expect(screen.getByTestId('transform').textContent).toContain('translate(30px, -40px)');
   });

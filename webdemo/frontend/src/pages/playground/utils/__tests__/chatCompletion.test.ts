@@ -1,6 +1,6 @@
 /**
- * chatCompletion 纯函数单测：auth 校验与 finish/abort/fail 收尾策略，
- * 以及同属一次补全生命周期的流式 SSE 回调（chatStreamCallbacks）。
+ * Unit tests for chatCompletion pure functions: auth checks and finish/abort/fail finalization,
+ * plus the streaming SSE callbacks that belong to the same completion lifecycle (chatStreamCallbacks).
  */
 
 import type { SetStateAction } from 'react';
@@ -99,7 +99,7 @@ describe('createStreamCallbacks', () => {
     vi.useRealTimers();
   });
 
-  /** 测试用翻译桩：回显 key，避免断言依赖具体译文。 */
+  /** Test translation stub: echo the key so assertions do not depend on a specific translation. */
   const translate = (key: string) => key;
 
   it('保留联网搜索真实查询词供过程区展示', () => {
@@ -156,7 +156,7 @@ describe('createStreamCallbacks', () => {
 
   it('开了联网但模型没调工具时，正文一到就收掉 searching', () => {
     vi.useFakeTimers();
-    // useChat 的占位消息在开启联网时就是 searching: true，这里复现那一帧
+    // useChat's placeholder message is searching: true when web search is on; reproduce that frame here
     let messages = [assistant('assistant-1', { searching: true })];
     const setMessages = vi.fn((update: SetStateAction<ChatMessage[]>) => {
       messages = typeof update === 'function' ? update(messages) : update;

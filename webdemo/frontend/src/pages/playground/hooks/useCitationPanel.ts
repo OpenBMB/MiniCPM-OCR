@@ -1,43 +1,43 @@
 /**
- * 引用来源面板的开合与定位编排 hook。
+ * Hook that orchestrates opening, closing, and positioning of the citation-source panel.
  *
- * 用途：把「正在展示哪条消息的来源 / 面板是否展开 / 面板内高亮哪一条」这三份状态，连同
- * Esc 关闭、来源消失时自动收起、卸载清理延时器，从页面入口收敛到一处。不含 JSX。
+ * Purpose: pull the three pieces of state "which message's sources are showing / whether the panel is open / which item is highlighted inside the panel", together with
+ * close on Esc, auto-collapse when a source disappears, and clearing the delay timer on unmount, into one place at the page entry. No JSX.
  *
- * 为什么 panel 与 open 要分成两份状态：关闭需要走退出动画，面板内容必须等动画跑完才能卸载，
- * 所以 open 先转 false 放动画，panel 延后清空。
+ * Why panel and open are two pieces of state: closing has to play an exit animation, and the panel content must not unmount until the animation finishes,
+ * so open turns false first to run the animation, and panel is cleared later.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { ChatMessage, Citation } from '../types';
 
-/** 与 PlaygroundLayout 的 PANEL_MOTION（duration-300）对齐：动画跑完再卸载面板内容。 */
+/** Aligned with PlaygroundLayout's PANEL_MOTION (duration-300): unmount the panel content only after the animation finishes. */
 const PANEL_EXIT_MS = 300;
 
-/** 面板当前展示的来源及其归属消息。 */
+/** Sources the panel is currently showing, and the message they belong to. */
 interface CitationPanelState {
   messageId: string;
   citations: Citation[];
 }
 
 interface UseCitationPanelResult {
-  /** 当前展示的来源；null 表示面板内容已卸载。 */
+  /** Sources currently shown; null means the panel content has unmounted. */
   panel: CitationPanelState | null;
-  /** 面板是否展开（驱动动画，早于 panel 清空）。 */
+  /** Whether the panel is expanded (drives the animation, and happens before panel is cleared). */
   open: boolean;
-  /** 面板内高亮定位的来源 URL；未指定时不高亮任何一条。 */
+  /** Source URL highlighted inside the panel; when unset, no item is highlighted. */
   activeUrl?: string;
-  /** 打开某条消息的来源面板；带 activeUrl 时同时定位并高亮该来源。 */
+  /** Open the source panel for one message; when activeUrl is set, also locate and highlight that source. */
   openPanel: (messageId: string, citations: Citation[], activeUrl?: string) => void;
-  /** 关闭面板（走退出动画）。 */
+  /** Close the panel (plays the exit animation). */
   closePanel: () => void;
 }
 
 /**
- * 编排引用来源面板的开合与高亮定位。
- * @param messages 当前对话的全部消息，用于在来源消失时自动收起面板
- * @returns 面板状态与开关方法
+ * Orchestrate opening, closing, and highlight positioning of the citation-source panel.
+ * @param messages every message in the current conversation, used to collapse the panel automatically when a source disappears
+ * @returns panel state and open/close methods
  */
 export function useCitationPanel(messages: ChatMessage[]): UseCitationPanelResult {
   const [panel, setPanel] = useState<CitationPanelState | null>(null);
@@ -51,7 +51,7 @@ export function useCitationPanel(messages: ChatMessage[]): UseCitationPanelResul
       window.clearTimeout(exitTimer.current);
       setPanel({ messageId, citations });
       setOpen(true);
-      // 不带 url 的入口（底部「查看全部」）顺带清掉上一次的高亮，避免停在无关的一条上。
+      // An entry with no url (the "view all" at the bottom) also clears the previous highlight, so it does not stay on an unrelated item.
       setActiveUrl(nextActiveUrl);
     },
     [],
@@ -73,7 +73,7 @@ export function useCitationPanel(messages: ChatMessage[]): UseCitationPanelResul
     [],
   );
 
-  // Esc 关闭：桌面端是非模态并排，没有遮罩可点，键盘是除面板自带 X 之外唯一的关闭入口。
+  // Close on Esc: on desktop it is a non-modal side-by-side panel with no mask to click, so the keyboard is the only close entry besides the panel's own X.
   useEffect(() => {
     if (!panel) return;
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -83,12 +83,12 @@ export function useCitationPanel(messages: ChatMessage[]): UseCitationPanelResul
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [panel, closePanel]);
 
-  // 来源随消息消失（重新生成、切换版本、清空会话）时自动收起，不让面板停在空数据上。
+  // When a source disappears with the message (regenerate, switching versions, clearing the conversation), collapse automatically, so the panel does not sit on empty data.
   useEffect(() => {
     if (panel && !messages.some((m) => m.id === panel.messageId && m.citations?.length)) {
-      // 这里必须走 setState 而非 render 期推导：closePanel 要放完 300ms 退出动画再卸载内容，
-      // 纯推导会让面板瞬间消失；且推导态在消息被换回来时会把面板又弹开。
-      // 只在归属消息真的消失时触发一次，不是每渲染都跑。
+      // This must go through setState rather than being derived during render: closePanel has to finish the 300ms exit animation before unmounting the content,
+      // and a pure derivation would make the panel vanish instantly; a derived state would also pop the panel open again when the message is swapped back.
+      // Fire once only when the owning message really disappears, not on every render.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       closePanel();
     }

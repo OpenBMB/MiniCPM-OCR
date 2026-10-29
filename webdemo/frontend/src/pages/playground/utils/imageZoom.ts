@@ -1,9 +1,9 @@
 /**
- * 图片视图（缩放 / 平移 / 旋转）的纯几何换算。
+ * Pure geometry for the image view (zoom / pan / rotation).
  *
- * 文档阅读使用严格边界与顶部对齐；clampView 保留全屏预览的旧几何契约。
- * transform 约定为 translate → scale → rotate：translate 写在最外层，
- * 平移量落在屏幕坐标系里，任意倍数、任意角度下都是「拖一像素走一像素」。
+ * Document reading uses a strict boundary and top alignment; clampView keeps the old geometry contract of fullscreen preview.
+ * The transform is translate → scale → rotate: translate is written outermost,
+ * so pan is in screen coordinates and is "drag one pixel, move one pixel" at any scale and any angle.
  */
 
 import type { ImageZoomView, Point, Size } from './imageZoomTypes';
@@ -11,19 +11,19 @@ import type { ImageZoomView, Point, Size } from './imageZoomTypes';
 export type { ImageZoomView, Point, Size } from './imageZoomTypes';
 
 /**
- * 缩放区间与步进。
- * FIT_SCALE=1 是布局基准；MIN_SCALE 允许缩小查看全貌，上限 6 倍用于核对小字。
+ * Zoom range and step.
+ * FIT_SCALE=1 is the layout baseline; MIN_SCALE allows zooming out to see the whole image, and the 6x cap is for checking small text.
  */
 export const FIT_SCALE = 1;
 export const MIN_SCALE = 0.25;
 export const MAX_SCALE = 6;
-/** 按钮每次缩放的步长。25% 一档，缩到下限后仍能逐档回到 100%。 */
+/** Step for each button zoom. 25% per step, so after zooming to the floor it can still return to 100% step by step. */
 export const BUTTON_STEP = 0.25;
-/** 滚轮像素 → 缩放比例的系数。 */
+/** Coefficient from wheel pixels to zoom ratio. */
 export const WHEEL_STEP = 0.0015;
-/** 双击放大到的倍数。 */
+/** Scale a double-click zooms to. */
 export const DOUBLE_CLICK_SCALE = 2.5;
-/** 无论怎么拖，图至少要留这么多像素在视口里，否则就真找不回来了。 */
+/** No matter how it is dragged, the image must leave at least this many pixels inside the viewport, or it really cannot be found again. */
 const KEEP_VISIBLE = 48;
 
 export const INITIAL_VIEW: ImageZoomView = {
@@ -32,7 +32,7 @@ export const INITIAL_VIEW: ImageZoomView = {
   rotation: 0,
 };
 
-/** 是否为 90° / 270°，此时内容的宽高在屏幕上互换。 */
+/** Whether the angle is 90° / 270°, when content width and height are swapped on screen. */
 export function isQuarterTurn(rotation: number): boolean {
   return rotation % 180 !== 0;
 }
@@ -41,7 +41,7 @@ export function clampScale(value: number): number {
   return Math.min(MAX_SCALE, Math.max(MIN_SCALE, value));
 }
 
-/** 按钮缩放对齐到 25% 网格，避免缩到 25% 后再放大时跳过 100%。 */
+/** Button zoom snaps to a 25% grid, so zooming back in after 25% does not skip 100%. */
 export function buttonScale(current: number, direction: 1 | -1): number {
   const steps = current / BUTTON_STEP;
   const nearest = Math.round(steps);
@@ -59,17 +59,17 @@ function clampAbs(value: number, max: number): number {
 }
 
 /**
- * 旋转贴合系数；避免包围盒超出视口，未测量到尺寸时返回 1。
- * @param rotation 当前角度
- * @param viewport 视口尺寸
- * @param content 内容未变换时的布局尺寸
+ * Rotation fit factor; keeps the bounding box from exceeding the viewport, and returns 1 when size has not been measured.
+ * @param rotation current angle
+ * @param viewport viewport size
+ * @param content layout size of the content before transform
  */
 export function fitFactor(rotation: number, viewport: Size, content: Size): number {
   if (!isQuarterTurn(rotation) || !viewport.width || !content.width || !content.height) return 1;
   return Math.min(1, viewport.width / content.height, viewport.height / content.width);
 }
 
-/** 变换后内容在屏幕上的包围盒。旋转 90° 时宽高互换。 */
+/** Bounding box of the transformed content on screen. Width and height swap at 90°. */
 function contentBox(view: ImageZoomView, viewport: Size, content: Size): Size {
   const effective = view.scale * fitFactor(view.rotation, viewport, content);
   const quarter = isQuarterTurn(view.rotation);
@@ -79,7 +79,7 @@ function contentBox(view: ImageZoomView, viewport: Size, content: Size): Size {
   };
 }
 
-/** 阅读模式禁止拖出图片边界；短图固定顶部对齐，横向不足视口时居中。 */
+/** Reading mode forbids dragging past the image edge; a short image stays top-aligned, and is centered when it is narrower than the viewport. */
 export function clampDocumentView(
   view: ImageZoomView,
   viewport: Size,
@@ -96,14 +96,14 @@ export function clampDocumentView(
   return { ...view, offset: { x, y } };
 }
 
-/** 文档纵向位置在可滚动范围内的比例，用于双栏联动。 */
+/** Fraction of the document's vertical position within the scrollable range, used to link the two columns. */
 export function documentScrollProgress(view: ImageZoomView, viewport: Size, content: Size): number {
   if (!viewport.height || !content.height) return 0;
   const max = Math.max(0, (contentBox(view, viewport, content).height - viewport.height) / 2);
   return max ? Math.max(0, Math.min(1, (max - view.offset.y) / (max * 2))) : 0;
 }
 
-/** 把结果栏的滚动比例映射到图片的竖向平移。 */
+/** Map the result column's scroll fraction to the image's vertical pan. */
 export function viewAtDocumentProgress(
   view: ImageZoomView,
   viewport: Size,
@@ -121,17 +121,17 @@ export function viewAtDocumentProgress(
     content,
   );
 }
-/** 任何时候都要留在视口里的内容像素；内容或视口本身很小时退让到一半。 */
+/** Content pixels that must stay inside the viewport at all times; when the content or the viewport itself is very small, yield to half. */
 function keepVisible(contentSpan: number, viewportSpan: number): number {
   return Math.min(KEEP_VISIBLE, contentSpan / 2, viewportSpan / 2);
 }
 
 /**
- * 全屏预览旧平移上限：至少保留 KEEP_VISIBLE 像素；未测量时不设限。
- * @param view 当前视图
- * @param viewport 视口尺寸
- * @param content 内容未变换时的布局尺寸
- * @returns 两轴平移量的绝对值上限
+ * Old pan limit for fullscreen preview: keep at least KEEP_VISIBLE pixels; when unmeasured, set no limit.
+ * @param view current view
+ * @param viewport viewport size
+ * @param content layout size of the content before transform
+ * @returns absolute upper bound of pan on both axes
  */
 export function viewBounds(view: ImageZoomView, viewport: Size, content: Size): Point {
   if (!viewport.width || !content.width) return { x: Infinity, y: Infinity };
@@ -142,7 +142,7 @@ export function viewBounds(view: ImageZoomView, viewport: Size, content: Size): 
   };
 }
 
-/** 把平移量夹回上限内，图就不会被拖出视口再也找不回来。 */
+/** Clamp pan back inside the limit, so the image cannot be dragged out of the viewport and lost. */
 export function clampView(view: ImageZoomView, viewport: Size, content: Size): ImageZoomView {
   const bounds = viewBounds(view, viewport, content);
   const x = clampAbs(view.offset.x, bounds.x);
@@ -152,17 +152,17 @@ export function clampView(view: ImageZoomView, viewport: Size, content: Size): I
 }
 
 /**
- * 换算缩放后的视图。
- * anchor 给定时保持该点在屏幕上不动——滚轮锚在光标上，放大后要看的字不会被挤出视口；
- * 按钮缩放传 null，锚在视口中心。
- * @param view 当前视图
- * @param next 目标倍数，会夹进 [MIN_SCALE, MAX_SCALE]
- * @param anchor 锚点相对视口中心的偏移，null 表示锚在中心
+ * Compute the view after a zoom.
+ * When anchor is given, that point stays still on screen — the wheel anchors on the cursor, so the text you zoomed in to read is not pushed out of the viewport;
+ * button zoom passes null and anchors on the viewport center.
+ * @param view current view
+ * @param next target scale, clamped to [MIN_SCALE, MAX_SCALE]
+ * @param anchor anchor offset relative to the viewport center; null means the anchor is the center
  */
 export function scaleTo(view: ImageZoomView, next: number, anchor: Point | null): ImageZoomView {
   const scale = clampScale(next);
   if (scale === view.scale) return view;
-  // 锚在中心时平移量不用动：中心点本来就不随缩放移动。
+  // When the anchor is the center, pan does not need to move: the center point does not move with zoom anyway.
   if (!anchor) return { ...view, scale };
   const ratio = 1 - scale / view.scale;
   return {
@@ -176,9 +176,9 @@ export function scaleTo(view: ImageZoomView, next: number, anchor: Point | null)
 }
 
 /**
- * 锚点换算：把屏幕坐标换成「相对视口中心的偏移」，即 scaleTo 要的 anchor。
- * @param point 屏幕坐标（WheelEvent / MouseEvent 都满足）
- * @param rect 视口矩形，拿不到时返回 null 表示锚在中心
+ * Anchor conversion: turn screen coordinates into "offset relative to the viewport center", the anchor scaleTo wants.
+ * @param point screen coordinates (WheelEvent and MouseEvent both qualify)
+ * @param rect viewport rectangle; when unavailable, return null to mean the anchor is the center
  */
 export function anchorFromCenter(
   point: { clientX: number; clientY: number },
@@ -191,17 +191,17 @@ export function anchorFromCenter(
   };
 }
 
-/** 平移。dx/dy 是屏幕位移，直接相加即 1:1 跟手。 */
+/** Pan. dx/dy are screen deltas and are added directly, so it follows the hand 1:1. */
 export function panBy(view: ImageZoomView, dx: number, dy: number): ImageZoomView {
   return { ...view, offset: { x: view.offset.x + dx, y: view.offset.y + dy } };
 }
 
 /**
- * 将原图归一化坐标中的识别块居中；旋转后按屏幕坐标换算平移量。
- * @param block 识别块坐标
- * @param view 当前缩放与旋转
- * @param viewport 视口尺寸
- * @param content 图片的布局尺寸
+ * Center the recognition block in normalized original-image coordinates; after rotation, convert pan in screen coordinates.
+ * @param block recognition-block coordinates
+ * @param view current zoom and rotation
+ * @param viewport viewport size
+ * @param content layout size of the image
  */
 export function focusBlockView(
   block: { x: number; y: number; w: number; h: number },
@@ -230,10 +230,10 @@ export function focusBlockView(
 }
 
 /**
- * 按最终布局尺寸绘制原图；变换只处理平移和旋转，框线与编号保持固定尺寸。
- * @param view 当前视图
- * @param viewport 视口尺寸
- * @param content 图片未缩放的布局尺寸
+ * Draw the original image at the final layout size; the transform handles only pan and rotation, and box strokes and numbers keep a fixed size.
+ * @param view current view
+ * @param viewport viewport size
+ * @param content unscaled layout size of the image
  */
 export function imageRasterView(view: ImageZoomView, viewport: Size, content: Size) {
   const factor = view.scale * fitFactor(view.rotation, viewport, content);
@@ -245,10 +245,10 @@ export function imageRasterView(view: ImageZoomView, viewport: Size, content: Si
 }
 
 /**
- * 将图片旋转后的宽度贴合视口；长图从顶部开始，后续可拖动核对。
- * @param view 当前视图
- * @param viewport 视口尺寸
- * @param content 图片未缩放的布局尺寸
+ * Fit the image's width to the viewport after rotation; a long image starts at the top, and can be dragged later to check it.
+ * @param view current view
+ * @param viewport viewport size
+ * @param content unscaled layout size of the image
  */
 export function fitWidthView(view: ImageZoomView, viewport: Size, content: Size): ImageZoomView {
   if (!viewport.width || !content.width || !content.height) return view;
@@ -268,20 +268,20 @@ export function fitWidthView(view: ImageZoomView, viewport: Size, content: Size)
 }
 
 /**
- * @param view 当前视图
- * @param direction 1 顺时针，-1 逆时针
+ * @param view current view
+ * @param direction 1 clockwise, -1 counterclockwise
  */
 export function rotateView(view: ImageZoomView, direction: 1 | -1 = 1): ImageZoomView {
-  // 先加 360 再取模，避免逆时针在 0° 时算出 -90。
+  // Add 360 before the modulo, so counterclockwise does not compute -90 at 0°.
   return { ...view, rotation: (view.rotation + 360 + 90 * direction) % 360 };
 }
 
-/** 只还原缩放与平移，保留角度——双击用，纠正过方向的图不该被一并转回去。 */
+/** Restore only zoom and pan, and keep the angle — used by double-click, so an image whose orientation was corrected is not rotated back as well. */
 export function resetZoom(view: ImageZoomView): ImageZoomView {
   return { ...view, scale: FIT_SCALE, offset: { x: 0, y: 0 } };
 }
 
-/** 是否偏离初始视图，用于决定是否显示「还原」。 */
+/** Whether the view has left the initial view, used to decide whether to show "Reset". */
 export function isTransformed(view: ImageZoomView): boolean {
   return (
     view.scale !== FIT_SCALE || view.rotation !== 0 || view.offset.x !== 0 || view.offset.y !== 0
@@ -289,17 +289,17 @@ export function isTransformed(view: ImageZoomView): boolean {
 }
 
 /**
- * 生成 CSS transform。顺序见文件头说明，改动顺序会同时破坏平移方向与锚点换算。
- * @param view 当前视图
- * @param viewport 视口尺寸
- * @param content 内容未变换时的布局尺寸
+ * Build the CSS transform. The order is explained at the top of the file; changing the order breaks both pan direction and anchor conversion.
+ * @param view current view
+ * @param viewport viewport size
+ * @param content layout size of the content before transform
  */
 export function viewTransform(view: ImageZoomView, viewport: Size, content: Size): string {
   const scale = view.scale * fitFactor(view.rotation, viewport, content);
   return `translate(${round(view.offset.x)}px, ${round(view.offset.y)}px) scale(${round(scale, 4)}) rotate(${view.rotation}deg)`;
 }
 
-/** 收掉浮点噪声，避免 style 字符串每帧都长得不一样。 */
+/** Drop floating-point noise, so the style string does not look different every frame. */
 function round(value: number, digits = 2): number {
   const factor = 10 ** digits;
   return Math.round(value * factor) / factor;

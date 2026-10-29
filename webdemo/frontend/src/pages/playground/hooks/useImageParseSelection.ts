@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 
 type Source = 'origin' | 'result';
 
-/** 按结果身份隔离点击定位与临时悬停，移出悬停区域不清除已选中的块。 */
+/** Isolate click positioning and temporary hover by result identity; leaving the hover area does not clear the block already selected. */
 export function useImageParseSelection(key: string, enabled: boolean, linked: boolean) {
   const [selection, setSelection] = useState<{
     key: string;

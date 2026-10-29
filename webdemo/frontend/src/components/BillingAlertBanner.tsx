@@ -4,7 +4,7 @@ import { useAlertConfigsQuery, useBillingAccountQuery, type MapAlertConfig } fro
 import { formatPoints } from '@/utils/money';
 import { useAppStore } from '@map/store';
 
-/** NullDecimal → number（未设置时返回 null 表示「不限」） */
+/** NullDecimal → number (returns null when unset, meaning "unlimited"). */
 function quotaNum(q?: { Decimal: string; Valid: boolean } | null): number | null {
   if (!q || !q.Valid) return null;
   const n = Number(q.Decimal);
@@ -16,7 +16,7 @@ interface Alert {
   text: string;
 }
 
-/** 依据账户状态与预警配置，计算需要展示的最高优先级提醒 */
+/** From account status and alert settings, pick the highest-priority notice to show. */
 function evaluate(
   account: ReturnType<typeof useBillingAccountQuery>['data'],
   configs: MapAlertConfig[],
@@ -26,7 +26,7 @@ function evaluate(
   if (!account?.billing_enabled) return null;
 
   const balance = Number(account.balance ?? 0);
-  // 关键级：欠费或余额耗尽。
+  // Critical: overdue or balance exhausted.
   if (account.financial_status === 'ARREARS') {
     return { level: 'error', text: t('billingAlert.inArrears') };
   }
@@ -37,7 +37,7 @@ function evaluate(
   const cfg = (scope: MapAlertConfig['scope']) =>
     configs.find((c) => c.scope === scope && c.enabled);
 
-  // 余额预警（金额阈值）。阈值存储为元，对外统一以积分展示。
+  // Balance alert (amount threshold). The threshold is stored in yuan and shown to users as points.
   const bal = cfg('BALANCE');
   if (bal?.threshold_amount?.Valid) {
     const threshold = Number(bal.threshold_amount.Decimal);
@@ -51,7 +51,7 @@ function evaluate(
     }
   }
 
-  // 月额度用量百分比预警。
+  // Monthly quota usage-percentage alert.
   const monthQuota = quotaNum(account.monthly_quota);
   const month = cfg('MONTHLY');
   if (month?.threshold_percent != null && monthQuota && monthQuota > 0) {
@@ -64,7 +64,7 @@ function evaluate(
     }
   }
 
-  // 日额度用量百分比预警。
+  // Daily quota usage-percentage alert.
   const dayQuota = quotaNum(account.daily_quota);
   const day = cfg('DAILY');
   if (day?.threshold_percent != null && dayQuota && dayQuota > 0) {
@@ -81,10 +81,10 @@ function evaluate(
 }
 
 /**
- * 顶部计费预警横幅（全局）。
+ * Global billing alert banner at the top.
  *
- * 触发：账户已开通计费且处于欠费/余额耗尽（error）或命中用户配置的余额/额度预警阈值（warning）。
- * 视觉：error 用 destructive 色、warning 用 warning 色；附「前往总览」入口。
+ * Trigger: billing is enabled and the account is overdue or out of balance (error), or a user-configured balance or quota alert threshold is hit (warning).
+ * Visual: error uses the destructive color, warning uses the warning color, with a "Go to overview" entry.
  */
 export function BillingAlertBanner() {
   const { t } = useTranslation('shell');

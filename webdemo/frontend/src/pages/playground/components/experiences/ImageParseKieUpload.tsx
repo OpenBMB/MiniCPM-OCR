@@ -20,9 +20,9 @@ interface ImageParseKieUploadProps {
 }
 
 /**
- * 信息抽取上传入口，布局与文档解析空态一致，并允许选择真实票据案例。
- * @param props 文件、案例选择回调与任务禁用状态
- * @returns 上传区域和可选择的内置案例
+ * Upload entry for key information extraction. The layout matches the document-parse empty state, and real receipt examples can be selected.
+ * @param props File and example selection callbacks, and the task disabled state
+ * @returns Upload area and selectable built-in examples
  */
 export function ImageParseKieUpload({
   onPick,

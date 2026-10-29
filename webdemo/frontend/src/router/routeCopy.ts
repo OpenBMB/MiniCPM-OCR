@@ -27,10 +27,10 @@ const ROUTE_COPY: Record<PortalLocale, Record<string, string>> = {
 };
 
 /**
- * 根据当前语言返回门户路由显示名称。
- * @param path 路由路径。
- * @param locale 当前界面语言。
- * @param fallback 路由元数据中的默认名称。
+ * Return the portal route display name for the current language.
+ * @param path Route path.
+ * @param locale Current UI language.
+ * @param fallback Default name from route metadata.
  */
 export function getPortalRouteTitle(path: string, locale: PortalLocale, fallback: string): string {
   return ROUTE_COPY[locale][path] ?? fallback;

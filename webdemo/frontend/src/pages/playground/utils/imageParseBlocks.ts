@@ -1,17 +1,17 @@
 import type { ImageParseLayoutBlock } from './imageParseSample';
 
-/** Markdown 中一个块对应的原始字符范围。 */
+/** Original character range in Markdown that corresponds to one block. */
 export interface ImageParseTextRange {
   start: number;
   end: number;
 }
 
-/** 优先使用服务标识；本地样例与无标识响应使用坐标及阅读顺序保证唯一。 */
+/** Prefer the service id; local samples and responses with no id use coordinates plus reading order to stay unique. */
 export function imageParseBlockId(block: ImageParseLayoutBlock, order: number): string {
   return block.id ?? `${order}:${block.x}:${block.y}:${block.w}:${block.h}`;
 }
 
-/** 合并块优先返回全部 regions；旧结果回落到主 bbox。 */
+/** A merged block prefers to return every region; an old result falls back to the primary bbox. */
 export function imageParseBlockRegions(block: ImageParseLayoutBlock) {
   return block.regions?.length
     ? block.regions
@@ -19,8 +19,8 @@ export function imageParseBlockRegions(block: ImageParseLayoutBlock) {
 }
 
 /**
- * 按阅读顺序定位片段，重复文字不一律指向第一次出现的位置。
- * 原始范围由草稿的替换记录继续维护；不重新猜测修改后文字的位置。
+ * Locate a fragment in reading order; repeated text does not always point at the first occurrence.
+ * The original range continues to be maintained by the draft's replacement record; do not guess the position of edited text again.
  */
 export function imageParseBlockRanges(
   markdown: string,
@@ -40,7 +40,7 @@ export function imageParseBlockRanges(
   return ranges;
 }
 
-/** 把 0–1 分数显示为整数百分比并向下取整；仅格式化显示，不修改用于复核判断的原始值。 */
+/** Show a 0–1 score as an integer percentage, rounded down; display formatting only, and do not modify the raw value used for review decisions. */
 export function imageParseConfidence(value: number | null): string | null {
   if (value === null || !Number.isFinite(value) || value < 0 || value > 1) return null;
   const percent = Math.floor((value + Number.EPSILON) * 100);

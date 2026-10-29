@@ -16,11 +16,11 @@ interface PdfLoaded {
 }
 
 /**
- * 管理 PDF 文档与连续滚动页面骨架。
- * @param source PDF 地址或 data URL
- * @param selectedPage 外部要求定位的页码
- * @param onPageChange 当前页变化回调
- * @returns 文档、页面尺寸、页码、可见页与滚动操作
+ * Manage the PDF document and the continuously scrolling page skeletons.
+ * @param source PDF URL or data URL
+ * @param selectedPage page number an external caller asked to position
+ * @param onPageChange callback when the current page changes
+ * @returns the document, page sizes, page number, visible pages, and scroll actions
  */
 export function usePdfPreviewPages(
   source: string,

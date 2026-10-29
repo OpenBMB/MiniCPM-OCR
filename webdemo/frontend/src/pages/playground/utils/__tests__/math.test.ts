@@ -1,5 +1,5 @@
 /**
- * normalizeMathDelimiters 单测：LaTeX 定界符转换 + 代码区保护。
+ * Unit tests for normalizeMathDelimiters: LaTeX delimiter conversion + code-region protection.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -291,7 +291,7 @@ describe('normalizeMathDelimiters', () => {
     'mode = production',
     '2026-08-13',
     '20:30:15',
-    // 模型把工具调用当正文输出的残片：曾被 `=`/`>`/`_` 误判成公式并渲染成衬线数学体。
+    // A fragment of the model emitting a tool call as body text: it used to be misread as a formula by `=` / `>` / `_` and rendered as serif math.
     ' name="weather_search"> name="location">Beijing',
     'name="location"',
     "name='location'",
@@ -300,7 +300,7 @@ describe('normalizeMathDelimiters', () => {
     expect(normalizeMathDelimiters(content)).toBe(content);
   });
 
-  // 这些行里的 `-`/`*`/`=` 曾被当成运算符，KaTeX 又能解析成功，分割线于是渲染成一串衬线减号。
+  // The `-` / `*` / `=` in these lines used to be treated as operators, and KaTeX could parse them, so a thematic break was rendered as a string of serif minus signs.
   it.each(['---', '----', '***', '___', '- - -', '* * *', '===', '**', '+', '>'])(
     'Markdown 标记行保持原样：%s',
     (line) => {
@@ -315,9 +315,9 @@ describe('normalizeMathDelimiters', () => {
   });
 
   /*
-    联网搜索的引用角标曾被整类渲染成公式：`_` 命中下标特征，`ref` 只有三个字母、过得了
-    「标识符都很短」这道判据，KaTeX 又能把 ref_1 解析成功，于是 wrapBracketedMath 把方括号
-    当成公式定界符吃掉——正文里角标消失，只剩一串斜体下标。
+    Web-search citation markers used to be rendered as formulas as a class: `_` hits the subscript feature, `ref` is only three letters and passes
+    the "identifiers are all short" check, and KaTeX can parse ref_1, so wrapBracketedMath eats the brackets
+    as formula delimiters — the marker disappears from the body and only a run of italic subscripts remains.
   */
   it.each(['[ref_1]', '[ref_12]', '[ref_3, ref_5]', '[ref_3，ref_5]', '[ref_1; ref_2]'])(
     '联网搜索引用角标不被当成公式：%s',

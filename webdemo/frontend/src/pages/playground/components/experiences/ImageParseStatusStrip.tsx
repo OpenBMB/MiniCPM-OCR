@@ -12,9 +12,9 @@ interface ImageParseStatusStripProps {
 }
 
 /**
- * 工作台顶部的上传状态条；识别错误由结果区域承接。
- * @param props 模型凭据、解析状态、上传生命周期与流水线档位
- * @returns 与当前状态匹配的状态条组合
+ * Upload status bar at the top of the workspace; recognition errors are carried by the result area.
+ * @param props Model credentials, parse state, upload lifecycle, and pipeline tier
+ * @returns The status-bar combination that matches the current state
  */
 export function ImageParseStatusStrip({
   parse,

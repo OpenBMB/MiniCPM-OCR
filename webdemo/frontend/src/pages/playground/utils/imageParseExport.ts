@@ -3,10 +3,10 @@ import { imageParseBlockId } from './imageParseBlocks';
 import type { ImageParseLayoutBlock } from './imageParseSample';
 import type { ImageParseRotationInfo } from './imageParseSample';
 
-/** OCR 当前结果支持的下载格式。 */
+/** Download formats supported for the current OCR result. */
 export type ImageParseDownloadFormat = 'markdown' | 'json' | 'word';
 
-/** 下载快照不接收来源 token、API Key 或原始请求，避免凭据进入导出文件。 */
+/** A download snapshot does not accept a source token, API Key, or the raw request, so credentials do not enter the exported file. */
 export interface ImageParseExportInput {
   markdown: string;
   blocks: readonly ImageParseLayoutBlock[];
@@ -22,11 +22,11 @@ const EXTENSIONS: Record<ImageParseDownloadFormat, string> = {
 };
 
 /**
- * 根据原始文档命名当前结果；PDF 明确标记当前页，避免误以为导出全部页。
- * @param name 原始文件名
- * @param format 下载格式
- * @param page 可选 PDF 页码，从 1 开始
- * @returns 带正确扩展名的下载文件名
+ * Name the current result from the original document; a PDF is explicitly marked with the current page so it is not mistaken for an export of every page.
+ * @param name original file name
+ * @param format download format
+ * @param page optional PDF page number, starting at 1
+ * @returns download file name with the correct extension
  */
 export function imageParseExportFileName(
   name: string | undefined,
@@ -38,10 +38,10 @@ export function imageParseExportFileName(
 }
 
 /**
- * 创建下载内容；Word 按需加载，JSON 只重建允许导出的版面字段。
- * @param format 用户选择的格式
- * @param input 当前可编辑正文与识别块快照
- * @returns 文件 Blob，不修改草稿或服务返回值
+ * Create download content; Word is loaded on demand, and JSON rebuilds only the layout fields that are allowed to be exported.
+ * @param format format the user selected
+ * @param input current editable body and recognition-block snapshot
+ * @returns a file Blob, without modifying the draft or the service return value
  */
 export async function createImageParseExport(
   format: ImageParseDownloadFormat,
@@ -68,7 +68,7 @@ export async function createImageParseExport(
       h: block.h,
       regions: block.regions,
       ttsInvalid: block.ttsInvalid,
-      // text 与 confidence 是原始识别证据；只有可定位的 Markdown 随人工编辑更新。
+      // text and confidence are the original recognition evidence; only positionable Markdown is updated with a manual edit.
       text: block.text,
       markdown: range ? input.markdown.slice(range.start, range.end) : block.markdown,
       confidence: block.confidence,
@@ -90,9 +90,9 @@ export async function createImageParseExport(
 }
 
 /**
- * 启动本地下载并延迟释放对象 URL，给浏览器留出消费文件的时间。
- * @param blob 文件内容
- * @param fileName 下载文件名
+ * Start a local download and release the object URL after a delay, leaving the browser time to consume the file.
+ * @param blob file content
+ * @param fileName download file name
  */
 export function saveImageParseExport(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob);

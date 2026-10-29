@@ -37,10 +37,6 @@ function App() {
                     element={<Navigate to="/playground/document-parse" replace />}
                   />
                   <Route
-                    path="/playground/field-extract"
-                    element={<Navigate to="/playground/document-parse" replace />}
-                  />
-                  <Route
                     path="/playground/tts"
                     element={<Navigate to="/playground/document-parse" replace />}
                   />

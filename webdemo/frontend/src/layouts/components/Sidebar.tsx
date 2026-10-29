@@ -22,12 +22,12 @@ interface SidebarProps {
 }
 
 /**
- * 主侧边栏：渲染导航树（叶子项 / 可折叠父级 / 收起态飞出菜单），并管理父级菜单展开态。
+ * Main sidebar: renders the nav tree (leaf items, collapsible parents, and a collapsed flyout) and manages which parent menus are open.
  *
- * @param collapsed 是否收起（收起时父级用 hover 飞出菜单）
- * @param onNavigate 导航后的回调（移动端关闭抽屉）
- * @param onToggle 折叠/展开切换回调
- * @param routes 自定义路由（默认取 staticRoutes 中未隐藏项）
+ * @param collapsed Whether it is collapsed (collapsed parents use a hover flyout).
+ * @param onNavigate Callback after navigation (closes the drawer on mobile).
+ * @param onToggle Collapse or expand toggle callback.
+ * @param routes Custom routes (defaults to non-hidden items in staticRoutes).
  */
 export function Sidebar({ collapsed, onNavigate, onToggle, routes }: SidebarProps) {
   const { t } = useTranslation('shell');
@@ -50,8 +50,8 @@ export function Sidebar({ collapsed, onNavigate, onToggle, routes }: SidebarProp
   const [openMenus, setOpenMenus] = useState<string[]>(getActiveParents);
   const [manualClosed, setManualClosed] = useState<string[]>([]);
 
-  // 切换父级菜单：已开则收起并记入 manualClosed；展开则只保留当前父级，
-  // 且若父级当前未激活，顺带跳转到首个子路由。
+  // Toggle a parent menu: if it is open, collapse it and record it in manualClosed; if expanding, keep only the current parent,
+  // and if that parent is not currently active, also navigate to its first child route.
   function toggleMenu(route: AppRoute) {
     const path = route.path;
     const isCurrentlyOpen = openMenus.includes(path) && !manualClosed.includes(path);
@@ -174,7 +174,7 @@ export function Sidebar({ collapsed, onNavigate, onToggle, routes }: SidebarProp
             onNavigate={onNavigate}
           />
         )}
-        {/* 个人设置：侧栏与顶栏用户菜单提供一致的入口 */}
+        {/* Personal settings: the sidebar and the top-bar user menu share the same entry. */}
         <button
           type="button"
           onClick={() => {

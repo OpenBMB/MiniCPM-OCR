@@ -1,6 +1,6 @@
 /**
- * 把新选的图片或一份 PDF 接在当前文档后面，合成一份新 PDF。
- * 已有 PDF 页按识别时的 2 倍画下来再嵌回去，归一化识别框仍能对上预览。
+ * Append newly selected images or one PDF after the current document and compose a new PDF.
+ * Existing PDF pages are drawn at the same 2x used for recognition and embedded again, so normalized recognition boxes still line up with the preview.
  */
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 
@@ -24,7 +24,7 @@ export interface AppendedPdf {
   totalPages: number;
 }
 
-/** 将 PDF 单页按 2 倍缩放编码为 JPEG，保持与逐页识别相同的坐标基准。 */
+/** Encode one PDF page as JPEG at 2x scale, keeping the same coordinate basis as per-page recognition. */
 async function renderPdfPageJpeg(
   pdf: PDFDocumentProxy,
   pageNumber: number,
@@ -78,10 +78,10 @@ async function renderPdfPageJpeg(
   }
 }
 
-/** 读取 PDF 全部页面；页数上限与工作台原有预览、识别链路一致。 */
+/** Read every page of a PDF; the page limit matches the workspace preview and recognition path. */
 async function pdfSourceToPages(source: string, signal: AbortSignal): Promise<JpegPage[]> {
   signal.throwIfAborted();
-  // 按需加载 PDF.js：日常单图上传不需要提前初始化画布依赖。
+  // Load PDF.js on demand: an ordinary single-image upload should not initialize the canvas dependency up front.
   const { loadPdfPreview } = await import('./pdfPreview');
   signal.throwIfAborted();
   const task = loadPdfPreview(source);
@@ -111,7 +111,7 @@ async function pdfSourceToPages(source: string, signal: AbortSignal): Promise<Jp
   }
 }
 
-/** 将单个新文件转成 JPEG 页；PDF 保持原页序，图片只产生一页。 */
+/** Turn one new file into JPEG pages; a PDF keeps its original page order, and an image produces one page. */
 async function fileToPages(
   file: File,
   signal: AbortSignal,
@@ -129,7 +129,7 @@ async function fileToPages(
   return [await imageFileToJpegPage(file, maxEdge)];
 }
 
-/** 读取当前附件；已有图片不缩小，避免识别框与新页图尺寸错位。 */
+/** Read the current attachment; an existing image is not downscaled, so recognition boxes stay aligned with the new page image. */
 async function currentToPages(
   current: Pick<Attachment, 'dataUrl' | 'mime' | 'kind' | 'name'>,
   signal: AbortSignal,
@@ -144,11 +144,11 @@ async function currentToPages(
 }
 
 /**
- * 当前文档在前，新选文件按选择顺序接在后面。
- * @param current 当前图片或 PDF 附件
- * @param incoming 通过选择校验的新文件
- * @param signal 取消追加与页面渲染的信号
- * @returns 合成后的 PDF 字节与页数信息
+ * The current document comes first; newly selected files are appended in selection order.
+ * @param current current image or PDF attachment
+ * @param incoming new files that passed selection checks
+ * @param signal signal that cancels append and page rendering
+ * @returns composed PDF bytes and page-count info
  */
 export async function buildAppendedPdf(
   current: Pick<Attachment, 'dataUrl' | 'mime' | 'kind' | 'name'>,
@@ -169,10 +169,10 @@ export async function buildAppendedPdf(
 }
 
 /**
- * 把合成后的 PDF 转成 data URL；复制为独立 ArrayBuffer，避免视图类型影响 Blob。
- * @param bytes PDF 文件字节
- * @param mime 输出 MIME，默认 application/pdf
- * @returns 可直接交给附件状态的 data URL
+ * Turn the composed PDF into a data URL; copy it into an independent ArrayBuffer so the view's typed array does not affect the Blob.
+ * @param bytes PDF file bytes
+ * @param mime output MIME, default application/pdf
+ * @returns a data URL that can be handed straight to attachment state
  */
 export function bytesToDataUrl(bytes: Uint8Array, mime = 'application/pdf'): Promise<string> {
   return new Promise((resolve, reject) => {

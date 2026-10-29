@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 
 /**
- * 为进入页带可见区域的 PDF 页面绘制低分辨率缩略图，复用阅读器文档。
- * @param pdf 当前 PDF.js 文档
- * @param pageNumber 页码
- * @returns 画布引用与就绪状态
+ * Draw a low-resolution thumbnail for a PDF page once it enters the visible band, reusing the reader document.
+ * @param pdf current PDF.js document
+ * @param pageNumber page number
+ * @returns the canvas ref and the ready state
  */
 export function usePdfThumbnail(pdf: PDFDocumentProxy | undefined, pageNumber: number) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -42,7 +42,7 @@ export function usePdfThumbnail(pdf: PDFDocumentProxy | undefined, pageNumber: n
         context.drawImage(buffer, 0, 0);
         setReadyPage({ document: pdf, pageNumber });
       } catch {
-        // 缩略图失败保留文件占位，不影响正文阅读或触发额外的文档加载。
+        // A failed thumbnail keeps the file placeholder, and does not affect body reading or trigger an extra document load.
       } finally {
         buffer.width = buffer.height = 0;
       }

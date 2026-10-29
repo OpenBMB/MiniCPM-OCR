@@ -17,20 +17,20 @@ export interface MultiSelectProps {
 }
 
 /**
- * 下拉多选组件。
+ * Dropdown multi-select.
  *
- * 用途：以下拉浮层 + 可勾选列表的形式选择多个选项，trigger 内以小标签回显已选项（可单独移除）。
- * 相比平铺的 {@link ChipMultiSelect}，更适合候选项较多、不宜全部铺开的场景（如模型多选）。
- * 组件受控，选中值由调用方持有；内部只负责切换并返回下一组选中值，并处理浮层开合与外部点击关闭。
+ * Purpose: pick several options from a popover with a checkable list, and echo the selection as small tags inside the trigger (each tag can be removed on its own).
+ * Compared with the flat {@link ChipMultiSelect}, it fits a longer option list that should not all be laid out (for example multi-selecting models).
+ * The component is controlled; the caller owns the selected values. Internally it only toggles and returns the next selection, and it handles opening, closing, and outside clicks.
  *
- * @param options 可选项列表
- * @param value 当前选中的 value 列表
- * @param onChange 选中变更回调
- * @param placeholder 未选中时的占位文案
- * @param emptyText 无可选项时的文案
- * @param ariaLabel trigger 的无障碍名称
- * @param className 外层容器样式类
- * @returns 下拉多选控件
+ * @param options Option list.
+ * @param value Currently selected values.
+ * @param onChange Selection change callback.
+ * @param placeholder Placeholder when nothing is selected.
+ * @param emptyText Copy when there are no options.
+ * @param ariaLabel Accessible name for the trigger.
+ * @param className Outer container classes.
+ * @returns The dropdown multi-select control.
  */
 function MultiSelect({
   options,
@@ -44,7 +44,7 @@ function MultiSelect({
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // 浮层展开期间监听外部点击与 Esc 关闭；@map/ui 暂无 Popover/click-outside 原语，内联实现即可。
+  // While the popover is open, listen for outside clicks and Esc to close it; @map/ui has no Popover or click-outside primitive yet, so this is inline.
   useEffect(() => {
     if (!open) return;
     function handlePointerDown(event: PointerEvent) {
@@ -75,7 +75,7 @@ function MultiSelect({
     onChange(value.filter((item) => item !== next));
   }
 
-  // 仅回显仍存在于 options 中的已选项，避免过滤后残留无效标签。
+  // Echo only selected items that are still in options, so a filter does not leave stale tags behind.
   const selected = value
     .map((item) => options.find((option) => option.value === item))
     .filter((option): option is MultiSelectOption => Boolean(option));

@@ -5,14 +5,14 @@ import { imageParseKieRows, imageParseKieValues } from '../../utils/imageParseKi
 
 interface ImageParseKieSummaryProps {
   content: string;
-  /** 请求时提交的字段顺序；模型漏掉的字段也会以“未找到”展示。 */
+  /** Field order submitted with the request; fields the model missed are still shown as "not found." */
   fields?: readonly string[];
 }
 
 /**
- * 将模型返回的 JSON 对象按字段展开为结果表；非 JSON 时不渲染摘要，仅保留原文展示。
- * @param content 模型返回的原始文本或 Markdown 草稿
- * @param fields 用户请求的字段列表
+ * Expand the JSON object returned by the model into a result table by field; when it is not JSON, do not render a summary and keep only the original text.
+ * @param content Raw text or Markdown draft returned by the model
+ * @param fields Field list the user requested
  */
 export function ImageParseKieSummary({ content, fields = [] }: ImageParseKieSummaryProps) {
   const { t } = useTranslation('playground');

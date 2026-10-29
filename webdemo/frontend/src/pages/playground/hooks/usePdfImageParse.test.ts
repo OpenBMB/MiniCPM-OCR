@@ -55,7 +55,7 @@ function block(
   };
 }
 
-/** 每页：页眉 + 正文，正文里带页码，便于断言过滤和合并。 */
+/** Each page: header + body, with a page number in the body, so filtering and merging are easy to assert. */
 function page(index: number, body = `正文${index}`): ImageParseSdkResult {
   const header = '页眉';
   return {
@@ -108,7 +108,7 @@ describe('usePdfImageParse 跨页表格合并', () => {
     expect(result.current.tableMerge.pages).toEqual([2]);
     expect(result.current.results[2]!.result).toBe(mergedPage);
     expect(result.current.results[2]!.crops).toEqual(['crop2']);
-    // 合并改动过的页换身份，草稿编辑各自保留
+    // Pages changed by a merge get a new identity; draft edits are kept separately
     expect(result.current.resultIdentityForPage(2)).toContain(':merged');
     expect(result.current.resultIdentityForPage(1)).toBe(untouched);
 
@@ -116,7 +116,7 @@ describe('usePdfImageParse 跨页表格合并', () => {
     expect(result.current.tableMerge.status).toBe('idle');
     expect(result.current.results[2]!.result!.markdown).toBe('页眉\n\n正文1');
     expect(result.current.resultIdentityForPage(2)).not.toContain(':merged');
-    // 用户主动撤销后，效果不能再次自动合并。
+    // After the user undoes on purpose, the effect must not merge automatically again.
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(result.current.tableMerge.status).toBe('idle');
   });

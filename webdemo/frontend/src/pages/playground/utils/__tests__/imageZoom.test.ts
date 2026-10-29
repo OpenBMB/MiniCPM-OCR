@@ -1,5 +1,5 @@
 /**
- * 图片视图几何单测：光标锚点缩放、平移夹紧、旋转贴合、transform 拼装顺序。
+ * Unit tests for image-view geometry: cursor-anchored zoom, pan clamping, rotation fit, and transform composition order.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -28,7 +28,7 @@ import {
   type ImageZoomView,
 } from '../imageZoom';
 
-/** 800×600 视口里放一张 800×600 的图，scale=1 正好铺满。 */
+/** An 800×600 image in an 800×600 viewport; scale=1 fills it exactly. */
 const VIEWPORT = { width: 800, height: 600 };
 const CONTENT = { width: 800, height: 600 };
 
@@ -127,10 +127,10 @@ describe('bounded document reading', () => {
 
 describe('scaleTo', () => {
   it('keeps the cursor anchor fixed while zooming', () => {
-    // 锚点相对视口中心 (100, 50)，放大到 2 倍后该点在屏幕上不该移动。
+    // The anchor is (100, 50) relative to the viewport center; after zooming to 2x that point should not move on screen.
     const anchor = { x: 100, y: 50 };
     const next = scaleTo(INITIAL_VIEW, 2, anchor);
-    // 锚点的屏幕位置 = offset + scale * 内容坐标；内容坐标在缩放前后相同。
+    // Screen position of the anchor = offset + scale * content coordinates; content coordinates stay the same across the zoom.
     const before = (anchor.x - INITIAL_VIEW.offset.x) / INITIAL_VIEW.scale;
     const after = (anchor.x - next.offset.x) / next.scale;
     expect(after).toBeCloseTo(before, 6);
@@ -143,7 +143,7 @@ describe('scaleTo', () => {
     const anchor = { x: 10, y: 10 };
     const back = scaleTo(zoomed, 0.1, anchor);
     expect(back.scale).toBe(MIN_SCALE);
-    // 缩小时不把平移归零：拖到一边的图应停在原处，只是锚点跟着换算。
+    // Do not zero the pan when zooming out: an image dragged to one side should stay there, with only the anchor recomputed.
     expect(back.offset.x).toBeCloseTo(12.5, 6);
     expect((anchor.x - back.offset.x) / back.scale).toBeCloseTo(
       (anchor.x - zoomed.offset.x) / zoomed.scale,
@@ -180,7 +180,7 @@ describe('buttonScale', () => {
 
 describe('viewBounds / clampView', () => {
   it('lets a fitting image be dragged aside, keeping 48px on screen', () => {
-    // 贴合状态下也有余量：(视口 + 包围盒) / 2 - 48，所以「按住拖不动」不会再发生。
+    // There is still slack in the fitted state: (viewport + bounding box) / 2 - 48, so holding and being unable to drag no longer happens.
     expect(viewBounds(INITIAL_VIEW, VIEWPORT, CONTENT)).toEqual({ x: 752, y: 552 });
     const dragged = clampView(panBy(INITIAL_VIEW, 120, -80), VIEWPORT, CONTENT);
     expect(dragged.offset).toEqual({ x: 120, y: -80 });
@@ -194,14 +194,14 @@ describe('viewBounds / clampView', () => {
   });
 
   it('keeps a dragged-aside image in place when zooming in', () => {
-    // 「拖到一边再放大盯着看」是核对常规动作，缩放不该把偏移吃掉。
+    // Drag aside, then zoom in to inspect, is a normal check; zoom must not eat the offset.
     const dragged = view({ offset: { x: 300, y: -200 } });
     const zoomed = clampView(scaleTo(dragged, 2, null), VIEWPORT, CONTENT);
     expect(zoomed.offset).toEqual({ x: 300, y: -200 });
   });
 
   it('swaps width and height on a quarter turn', () => {
-    // 竖图 600×800 转 90°，包围盒变 800×600，余量与横图贴合时一致。
+    // A portrait 600×800 image rotated 90° has an 800×600 bounding box, with the same slack as a landscape image when fitted.
     const bounds = viewBounds(view({ rotation: 90 }), VIEWPORT, { width: 600, height: 800 });
     expect(bounds).toEqual({ x: 752, y: 552 });
   });
@@ -219,7 +219,7 @@ describe('fitFactor', () => {
   });
 
   it('shrinks a landscape image so a quarter turn still fits', () => {
-    // 800×600 的图转 90° 后占 600×800，高度超出 600，需要缩到 0.75。
+    // An 800×600 image rotated 90° occupies 600×800; the height exceeds 600 and must scale to 0.75.
     expect(fitFactor(90, VIEWPORT, CONTENT)).toBeCloseTo(0.75, 6);
     expect(fitFactor(270, VIEWPORT, CONTENT)).toBeCloseTo(0.75, 6);
   });
@@ -270,7 +270,7 @@ describe('rotateView / resetZoom / isTransformed', () => {
     expect(isTransformed(INITIAL_VIEW)).toBe(false);
     expect(isTransformed(view({ rotation: 90 }))).toBe(true);
     expect(isTransformed(view({ offset: { x: 1, y: 0 } }))).toBe(true);
-    // 缩到贴合以下也算动过，否则「还原」按钮会在缩小状态下变灰。
+    // Scaling below the fit also counts as moved; otherwise the reset button would grey out while zoomed out.
     expect(isTransformed(view({ scale: MIN_SCALE }))).toBe(true);
   });
 });

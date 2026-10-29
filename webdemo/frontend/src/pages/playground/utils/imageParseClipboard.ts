@@ -6,15 +6,15 @@ import { splitJoinedDisplayFormulas } from './math-markdown';
 import { extractMarkdownTables, markdownTablesToHtml, markdownTablesToTsv } from './markdownTable';
 
 /**
- * 复制文档表格到剪贴板，同时写入 HTML 与纯文本两种格式。
+ * Copy a document table to the clipboard, writing both HTML and plain text.
  *
- * - `text/html`：飞书、Word 依赖它还原成真正的表格（纯文本粘过去只会退化成一行行文字）。
- * - `text/plain`：Excel 与各类表格软件依赖 TSV 分列。
+ * - `text/html`: Feishu and Word depend on it to restore a real table (plain text pastes as lines of text).
+ * - `text/plain`: Excel and other spreadsheet apps depend on TSV to split columns.
  *
- * 浏览器不支持多格式写入或写入被拒时退回纯 TSV，至少保证表格软件仍可用。
+ * When the browser cannot write multiple formats, or the write is rejected, fall back to plain TSV so spreadsheet apps still work.
  *
- * @param markdown 当前结果或草稿的 Markdown 正文
- * @returns 是否写入成功；正文里没有表格时返回 false
+ * @param markdown Markdown body of the current result or draft
+ * @returns whether the write succeeded; false when the body has no table
  */
 export async function copyImageParseTable(markdown: string): Promise<boolean> {
   if (!extractMarkdownTables(markdown).length) return false;
@@ -34,7 +34,7 @@ export async function copyImageParseTable(markdown: string): Promise<boolean> {
 }
 
 /**
- * 给一段落在行间公式内部的正文补回 `$$`。已经带定界符时只做拆段。
+ * Put `$$` back around body text that falls inside a display formula. If delimiters are already present, only split the segments.
  */
 function restoreDisplayFormulaMarkdown(slice: string): string {
   const trimmed = slice.trim();
@@ -43,8 +43,8 @@ function restoreDisplayFormulaMarkdown(slice: string): string {
 }
 
 /**
- * 复制范围两侧跳过空白后是否正好是一对 `$$`。
- * 多段粘在一起时，解析器会在第一处 `$$` 结束，整段范围不再落在同一个公式节点里。
+ * Whether skipping whitespace on both sides of the copy range lands exactly on a pair of `$$`.
+ * When several segments are stuck together, the parser ends at the first `$$`, and the whole range no longer falls inside the same formula node.
  */
 function surroundedByDisplayFence(source: string, start: number, end: number): boolean {
   let before = start;
@@ -62,8 +62,8 @@ function surroundedByDisplayFence(source: string, start: number, end: number): b
 }
 
 /**
- * 区块复制范围经常落在 `$$...$$` 内部，只含 LaTeX。
- * 先补回所在行间公式的定界符，粘在一起的多段再拆开。
+ * A block copy range often falls inside `$$...$$` and contains only LaTeX.
+ * Put the delimiters of that display formula back first, then split segments that are stuck together.
  */
 export function imageParseCopyRegionMarkdown(source: string, range: ImageParseTextRange): string {
   const slice = source.slice(range.start, range.end);
@@ -88,10 +88,10 @@ export function imageParseCopyRegionMarkdown(source: string, range: ImageParseTe
 }
 
 /**
- * 复制当前 OCR 区域：表格保留可粘贴的表格结构，普通内容去除 Markdown 标记。
+ * Copy the current OCR region: a table keeps a pasteable table structure, and ordinary content has Markdown markers removed.
  *
- * @param markdown 当前选中区域的 Markdown
- * @returns 是否写入成功；区域为空时返回 false
+ * @param markdown Markdown of the currently selected region
+ * @returns whether the write succeeded; false when the region is empty
  */
 export async function copyImageParseRegion(markdown: string): Promise<boolean> {
   if (!markdown.trim()) return false;

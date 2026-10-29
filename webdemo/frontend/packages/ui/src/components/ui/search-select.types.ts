@@ -1,11 +1,11 @@
-/** 可搜索选项使用稳定身份，允许展示名称相同或候选来自不同服务端分页。 */
+/** A searchable option has a stable identity, so display names may match or candidates may come from different server pages. */
 export interface SearchSelectOption {
   value: string;
   label: string;
   description?: string;
 }
 
-/** 搜索关键词与已选身份分开受控，单选和多选共享同一浮层交互。 */
+/** The search keyword and the selected identity are controlled separately; single and multi select share the same popover interaction. */
 export interface SearchSelectProps {
   options: readonly SearchSelectOption[];
   selectedOptions: readonly SearchSelectOption[];

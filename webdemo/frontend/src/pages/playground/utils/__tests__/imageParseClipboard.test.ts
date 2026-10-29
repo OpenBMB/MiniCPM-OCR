@@ -1,6 +1,6 @@
 /**
- * 表格复制单测：必须同时写入 HTML 与 TSV ——
- * 飞书、Word 靠 HTML 还原成表格，Excel 靠 TSV 分列；两者缺一都会退化成纯文本。
+ * Unit tests for table copy: HTML and TSV must both be written —
+ * Feishu and Word restore a table from HTML, Excel splits columns from TSV; missing either one degrades to plain text.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

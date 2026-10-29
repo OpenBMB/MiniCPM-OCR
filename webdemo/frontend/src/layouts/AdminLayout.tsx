@@ -49,7 +49,7 @@ export function AdminLayout() {
     }, ANIM_MS);
   }, []);
 
-  // 视口从移动端切回桌面端时,重置移动抽屉状态(同步外部视口条件,需在 effect 内 setState)
+  // When the viewport switches from mobile back to desktop, reset the mobile drawer state (syncing an external viewport condition; setState must run inside the effect).
   useEffect(() => {
     if (!isMobile && mounted) {
       /* eslint-disable react-hooks/set-state-in-effect */
@@ -157,7 +157,7 @@ export function AdminLayout() {
               {(effectiveMode === 'top' || effectiveMode === 'mixed') && (
                 <InlineBreadcrumb pathname={pathname} />
               )}
-              {/* 计费预警横幅：欠费/余额耗尽或命中用户配置的预警阈值时提醒 */}
+              {/* Billing alert banner: shown when the account is overdue, out of balance, or hits a user-configured alert threshold. */}
               <BillingAlertBanner />
               <PageTransition key={routeKey}>
                 <Outlet />
@@ -165,7 +165,7 @@ export function AdminLayout() {
             </div>
           </OverlayScrollArea>
         </div>
-        {/* 备案/版权：仅在总览页（/）展示，合规上首页可见即可，其余内页隐藏保持简洁 */}
+        {/* Filing and copyright: shown only on the overview page (/). Compliance only needs the home page; other inner pages stay hidden to keep them simple. */}
         {pathname === '/' && <SiteFooter variant="inline" className="shrink-0" />}
       </div>
     </div>

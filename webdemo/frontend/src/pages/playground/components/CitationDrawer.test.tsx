@@ -17,14 +17,14 @@ function renderDrawer(activeUrl?: string) {
   );
 }
 
-/** jsdom 不实现 scrollIntoView，逐例装桩并返回它便于断言定位行为。 */
+/** jsdom does not implement scrollIntoView; install a stub per case and return it so location behavior can be asserted. */
 function stubScrollIntoView() {
   const scrollIntoView = vi.fn();
   Element.prototype.scrollIntoView = scrollIntoView;
   return scrollIntoView;
 }
 
-/** 带后端编号的来源：编号刻意与数组下标错开。 */
+/** Source with a backend number: the number is deliberately offset from the array index. */
 const refCitations = [
   { ref: 2, url: 'https://www.openbmb.cn/news', title: 'MiniCPM 官方说明' },
   { ref: 5, url: 'https://example.com/a', title: '示例来源' },
@@ -41,14 +41,14 @@ describe('CitationDrawer', () => {
     const links = screen.getAllByRole('link');
     expect(links).toHaveLength(3);
     expect(links[0]).toHaveAccessibleName(/MiniCPM 官方说明/);
-    // 没有 activeUrl 时不该有任何一条被标为当前项
+    // Without activeUrl, no item should be marked current
     expect(document.querySelector('[aria-current="true"]')).toBeNull();
   });
 
   it('列表序号取后端下发的 ref，与正文角标同号', () => {
     render(<CitationDrawer citations={refCitations} onClose={() => undefined} />);
 
-    // 数组下标会给出 01、02；正文角标写的是 02、05，两处不同号就等于点不回去。
+    // Array indexes would yield 01 and 02; the body badges say 02 and 05. Different numbers in the two places means you cannot click back.
     expect(screen.getByText('02')).toBeInTheDocument();
     expect(screen.getByText('05')).toBeInTheDocument();
     expect(screen.queryByText('01')).toBeNull();
@@ -60,7 +60,7 @@ describe('CitationDrawer', () => {
     const active = screen.getByRole('link', { name: /第三个来源/ });
     expect(active).toHaveAttribute('aria-current', 'true');
     expect(active).toHaveClass('bg-primary/[0.12]', 'ring-1', 'ring-primary/30');
-    // 只有命中那条是当前项
+    // Only the matching item is current
     expect(document.querySelectorAll('[aria-current="true"]')).toHaveLength(1);
   });
 

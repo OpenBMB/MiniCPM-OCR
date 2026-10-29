@@ -6,7 +6,7 @@ const clientEnvSchema = z.object({
   VITE_APP_TITLE: z.string().optional(),
   VITE_API_TIMEOUT_MS: z.coerce.number().positive().optional(),
   VITE_API_DEBUG: z.enum(['true', 'false']).optional(),
-  // MAP 后端基路径（裸 JSON，独立于通用 /api），默认 /map-api 由 Vite/Nginx 代理
+  // MAP backend base path (raw JSON, separate from the generic /api). Defaults to /map-api, proxied by Vite or Nginx.
   VITE_MAP_API_BASE_URL: z.string().default('/map-api'),
   VITE_DEFAULT_LOCALE: z.enum(['zh-CN', 'en-US']).default('zh-CN'),
   VITE_AUTH_PROFILE: z.enum(['legacy', 'gcp']).default('legacy'),
@@ -16,8 +16,8 @@ const clientEnvSchema = z.object({
 export type ClientEnv = z.infer<typeof clientEnvSchema>;
 
 /**
- * 启动时校验与 import.meta.env 同步的 VITE_* 变量，避免部署后才发现配置错误。
- * 校验失败会抛出带可读信息的 Error。
+ * Validate VITE_* variables against import.meta.env at startup, so misconfiguration is not discovered only after deploy.
+ * A failed check throws an Error with a readable message.
  */
 export function validateClientEnv(): ClientEnv {
   return clientEnvSchema.parse({

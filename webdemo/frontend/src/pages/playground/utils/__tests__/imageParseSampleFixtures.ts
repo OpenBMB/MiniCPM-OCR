@@ -1,18 +1,18 @@
 import type { ImageParseLayoutBlock } from '../imageParseSample';
 /**
- * 图像解析单元测试固定数据。
+ * Fixed data for image-parsing unit tests.
  *
- * 用途：仅给单元测试提供稳定版面块与 Markdown，Playground 运行时不得引用。
+ * Purpose: provide stable layout blocks and Markdown for unit tests only. The Playground runtime must not import this.
  *
- * 固定数据不经过模型，也不代表线上识别结果。
+ * The fixed data does not go through a model and does not represent online recognition results.
  *
  */
 
-/** 样例图原始像素尺寸，版面框按此归一化。 */
+/** Original pixel size of the sample image; layout boxes are normalized against it. */
 export const IMAGE_PARSE_SAMPLE_SIZE = { width: 2640, height: 3720 } as const;
 
 /**
- * 样例图的 16 个版面块，按阅读顺序排列——检出动画依赖这个顺序自上而下推进。
+ * The sample image's 16 layout blocks, in reading order — the detection animation advances top to bottom in this order.
  */
 export const IMAGE_PARSE_SAMPLE_BLOCKS: readonly ImageParseLayoutBlock[] = [
   {
@@ -193,11 +193,11 @@ export const IMAGE_PARSE_SAMPLE_BLOCKS: readonly ImageParseLayoutBlock[] = [
 ];
 
 /**
- * 把块的 Markdown 片段拼成整篇结果。
+ * Join block Markdown fragments into a full result.
  *
- * 连续的列表项之间只留一个换行，其余块之间留空行：判据取 Markdown 自身的 `- ` 前缀，
- * 而不是块的 kind——会议纪要四条在版面上是 text 块，在文档里却是同一个列表。
- * @param blocks 按阅读顺序排列的版面块
+ * Consecutive list items are separated by a single newline; other blocks get a blank line. The criterion is the Markdown `- ` prefix itself,
+ * not the block's kind — the four meeting-notes items are text blocks on the layout, but one list in the document.
+ * @param blocks layout blocks in reading order
  */
 function joinBlockMarkdown(blocks: readonly ImageParseLayoutBlock[]): string {
   const body = blocks
@@ -211,5 +211,5 @@ function joinBlockMarkdown(blocks: readonly ImageParseLayoutBlock[]): string {
   return `${body}\n`;
 }
 
-/** 与样例图内容对齐的 Markdown，用来预览结果栏而不是空白空态。 */
+/** Markdown aligned with the sample image, used to preview the result column instead of a blank empty state. */
 export const IMAGE_PARSE_SAMPLE_MARKDOWN = joinBlockMarkdown(IMAGE_PARSE_SAMPLE_BLOCKS);

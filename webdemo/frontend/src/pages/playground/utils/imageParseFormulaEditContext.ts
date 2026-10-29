@@ -1,18 +1,18 @@
 import { createContext } from 'react';
 
-/** 双击命中的公式及其在当前块内的同文出现序号，避免选择相邻的相同公式。 */
+/** The formula hit by a double-click and its occurrence index among identical text in the current block, so an adjacent identical formula is not selected. */
 export interface ImageParseFormulaTarget {
   latex: string;
   occurrence: number;
 }
 
-/** 公式节点共享会话入口与输入法状态，不将编辑状态写入文档。 */
+/** Formula nodes share the session entry and IME state; edit state is not written into the document. */
 export const ImageParseFormulaEditContext = createContext<{
   initial: ImageParseFormulaTarget | null;
   onComposing: (value: boolean) => void;
 } | null>(null);
 
-/** 从 KaTeX 的源码注解定位双击对象；正文双击不自动打开任何公式。 */
+/** Locate the double-click target from KaTeX's source annotation; a double-click on the body does not open any formula automatically. */
 export function imageParseFormulaTarget(
   target: EventTarget,
   block: HTMLElement,

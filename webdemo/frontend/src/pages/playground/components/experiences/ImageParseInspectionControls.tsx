@@ -12,7 +12,7 @@ interface ImageParseInspectionControlsProps {
   compact?: boolean;
 }
 
-/** 工作台识别框开关；只根据区块坐标提供原文定位。 */
+/** Workspace recognition-box switch; provide original-text location only from block coordinates. */
 export function ImageParseInspectionControls({
   parse,
   uploading,

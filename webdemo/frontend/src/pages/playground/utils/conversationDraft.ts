@@ -1,8 +1,8 @@
 /**
- * Playground 当前会话的同标签页临时草稿。
+ * Same-tab temporary draft of the current Playground conversation.
  *
- * 用途：在服务端自动保存尚未完成时为刷新提供兜底。仅保存对话保存请求体，
- * 不包含 API Key、Authorization 或附件 Base64；关闭标签页后由 sessionStorage 自动清理。
+ * Purpose: a refresh fallback while server autosave has not finished. Only the conversation save request body is stored,
+ * with no API Key, Authorization, or attachment Base64; sessionStorage clears it when the tab closes.
  */
 
 import type { MapSaveConversationInput } from '@/api/map';
@@ -23,7 +23,7 @@ export interface ConversationDraft {
   payload: MapSaveConversationInput;
 }
 
-/** 读取仍在有效期内的当前会话草稿；损坏或过期数据会被清理。 */
+/** Read the current conversation draft if it is still within its lifetime; corrupt or expired data is cleared. */
 export function readConversationDraft(
   ownerId: string,
   storage: Storage = window.sessionStorage,
@@ -62,7 +62,7 @@ export function readConversationDraft(
   }
 }
 
-/** 覆盖保存最新待持久化快照；浏览器容量不足时静默降级为仅服务端自动保存。 */
+/** Overwrite with the latest snapshot waiting to be persisted; if the browser is out of space, silently fall back to server autosave only. */
 export function writeConversationDraft(
   ownerId: string,
   draft: Omit<ConversationDraft, 'version' | 'updatedAt'>,
@@ -78,11 +78,11 @@ export function writeConversationDraft(
       } satisfies ConversationDraft),
     );
   } catch {
-    // sessionStorage 是刷新兜底，不得因容量或隐私模式限制阻断正常对话。
+    // sessionStorage is a refresh fallback and must not block a normal conversation because of quota or private-mode limits.
   }
 }
 
-/** 清理当前标签页的会话草稿。 */
+/** Clear the conversation draft for the current tab. */
 export function clearConversationDraft(
   ownerId: string,
   storage: Storage = window.sessionStorage,
@@ -90,21 +90,21 @@ export function clearConversationDraft(
   removeDraft(draftKey(ownerId), storage);
 }
 
-/** 安全删除草稿；部分隐私模式下 Storage 的读取和删除都可能抛错。 */
+/** Delete the draft safely; in some private modes both reading and deleting Storage can throw. */
 function removeDraft(key: string, storage: Storage): void {
   try {
     storage.removeItem(key);
   } catch {
-    // 清理失败不影响服务端已完成的持久化结果。
+    // A failed clear does not affect a persist that the server has already finished.
   }
 }
 
-/** 按用户隔离同标签页草稿，避免同一浏览器切换账号时恢复前一账号内容。 */
+/** Isolate same-tab drafts by user, so switching accounts in the same browser does not restore the previous account. */
 function draftKey(ownerId: string): string {
   return `${DRAFT_KEY_PREFIX}:${ownerId}`;
 }
 
-/** 校验草稿请求体的最小结构，避免损坏的 sessionStorage 数据进入消息恢复流程。 */
+/** Check the minimum shape of a draft request body, so corrupt sessionStorage data does not enter message restore. */
 function isSavePayload(value: unknown): value is MapSaveConversationInput {
   if (!isRecord(value) || !Array.isArray(value.messages)) return false;
   if (value.title !== undefined && typeof value.title !== 'string') return false;
@@ -112,7 +112,7 @@ function isSavePayload(value: unknown): value is MapSaveConversationInput {
   return value.messages.every(isSaveMessage);
 }
 
-/** 校验单条保存消息及恢复流程会遍历的数组字段。 */
+/** Check one saved message and the array fields the restore flow walks. */
 function isSaveMessage(value: unknown): boolean {
   if (!isRecord(value) || !MESSAGE_ROLES.has(String(value.role))) return false;
   if (typeof value.content !== 'string') return false;
@@ -125,7 +125,7 @@ function isSaveMessage(value: unknown): boolean {
   return true;
 }
 
-/** 草稿附件只允许远端元数据，明确拒绝本地 dataUrl/Base64。 */
+/** A draft attachment may contain only remote metadata; a local dataUrl/Base64 is explicitly rejected. */
 function isAttachment(value: unknown): boolean {
   if (!isRecord(value)) return false;
   return (
@@ -138,12 +138,12 @@ function isAttachment(value: unknown): boolean {
   );
 }
 
-/** 判断值是否为对象数组；具体可选字段继续由消息转换函数防御性读取。 */
+/** Whether the value is an array of objects; optional fields continue to be read defensively by the message conversion functions. */
 function isObjectArray(value: unknown): boolean {
   return Array.isArray(value) && value.every(isRecord);
 }
 
-/** unknown 对象收窄。 */
+/** Narrow an unknown object. */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

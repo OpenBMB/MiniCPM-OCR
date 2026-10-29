@@ -21,9 +21,9 @@ interface ImageParseTaskPaneProps {
 }
 
 /**
- * 按任务阶段显示待执行、字段配置或识别结果，同一时刻仅提供一个开始入口。
- * @param props 当前任务、操作状态及结果面板参数
- * @returns 工作台右侧任务内容
+ * By task phase, show pending, field configuration, or the recognition result, and offer only one start entry at a time.
+ * @param props Current task, action state, and result-panel parameters
+ * @returns Task content on the right of the workspace
  */
 export function ImageParseTaskPane({
   parse,

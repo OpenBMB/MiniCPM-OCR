@@ -67,7 +67,7 @@ describe('PlaygroundLayout', () => {
     callbacks.forEach((callback) => callback(0));
   }
 
-  /** 双帧入场：提交收起态后跨两帧才进入终态，跑完这两帧面板才算完全展开。 */
+  /** Two-frame entrance: after committing the collapsed state, the final state is entered across two frames; the panel counts as fully expanded only after those two frames. */
   function enterPanel() {
     act(flushAnimationFrame);
     act(flushAnimationFrame);
@@ -83,14 +83,14 @@ describe('PlaygroundLayout', () => {
       await user.click(screen.getByRole('button', { name: '打开引用' }));
 
       const panel = screen.getByTestId('playground-right-panel');
-      // 在文档流里占位（主区让出宽度），而不是脱离文档流盖在正文上
+      // Occupy space in document flow (the main area gives up width) rather than leaving document flow and covering the body
       expect(panel).toHaveClass('relative', 'shrink-0');
       expect(panel).not.toHaveClass('fixed');
       expect(panel).toHaveAttribute('aria-hidden', 'true');
       expect(panel).toHaveAttribute('data-state', 'opening');
       expect(panel).toHaveClass('w-0');
 
-      // 外层管宽度、内层管位移，滑入的是内层
+      // The outer layer owns width and the inner layer owns translation; what slides in is the inner layer
       const surface = panel.firstElementChild as HTMLElement;
       expect(surface).toHaveClass('translate-x-6');
 
@@ -121,10 +121,10 @@ describe('PlaygroundLayout', () => {
       await user.click(screen.getByRole('button', { name: '打开引用' }));
       enterPanel();
 
-      // 全屏遮罩会把并排面板变成事实上的模态，压暗并锁死正文——桌面端必须没有它
+      // A full-screen mask would turn the side-by-side panel into a modal in practice, dimming and locking the body — desktop must not have it
       expect(container.querySelector('.fixed.inset-0')).toBeNull();
 
-      // 正文按钮仍能点到：userEvent 会因 pointer-events: none 而报错，等于替我们守住了可交互性
+      // Body buttons can still be clicked: userEvent errors on pointer-events: none, which guards interactivity for us
       await user.click(screen.getByRole('button', { name: /正文按钮/ }));
       expect(screen.getByRole('button', { name: '正文按钮 1' })).toBeInTheDocument();
     });
@@ -155,7 +155,7 @@ describe('PlaygroundLayout', () => {
       enterPanel();
       expect(panel).toHaveAttribute('data-state', 'open');
       expect(panel).toHaveClass('translate-x-0');
-      // 窄屏没有并排空间，面板脱离文档流，主区宽度从头到尾不变
+      // A narrow screen has no side-by-side space; the panel leaves document flow, and the main-area width never changes
       expect(screen.getByRole('main').className).toBe(mainClass);
     });
 
@@ -168,7 +168,7 @@ describe('PlaygroundLayout', () => {
       enterPanel();
 
       const panel = screen.getByTestId('playground-right-panel');
-      // 按 testid 取，别按 .fixed.inset-0.z-40 取：移动端侧栏遮罩同形，会先被选中
+      // Query by testid, not by .fixed.inset-0.z-40: the mobile sidebar mask has the same shape and would be selected first
       await user.click(screen.getByTestId('playground-right-panel-overlay'));
 
       expect(onClose).toHaveBeenCalledTimes(1);

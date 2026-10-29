@@ -1,7 +1,7 @@
 /**
- * Markdown 数学规范化的保护性切片。
+ * Protective slices for Markdown math normalization.
  *
- * 用途：识别已有美元符公式、围栏代码、缩进代码和行内代码，供数学规范化器跳过这些区域。
+ * Purpose: recognize existing dollar-sign formulas, fenced code, indented code, and inline code, so the math normalizer skips those regions.
  */
 
 export interface ProtectedTextSegment {
@@ -11,8 +11,8 @@ export interface ProtectedTextSegment {
 }
 
 /**
- * KaTeX 不接受 `\bigg{[}` 这种把定界符再包一层花括号的写法，
- * 等价形式是 `\bigg[`。只改尺寸命令后面的定界符，代码区保持原样。
+ * KaTeX does not accept a form such as `\bigg{[}` that wraps the delimiter in another pair of braces;
+ * the equivalent form is `\bigg[`. Only change the delimiter after a sizing command, and leave code regions as-is.
  */
 export function unwrapSizedDelimiters(text: string): string {
   return splitMarkdownCode(text)
@@ -20,7 +20,7 @@ export function unwrapSizedDelimiters(text: string): string {
     .join('');
 }
 
-/** 去掉 `\big`、`\left` 等命令后多余的定界符花括号。 */
+/** Remove extra delimiter braces after commands such as `\big` and `\left`. */
 function unwrapSizedDelimiterRun(text: string): string {
   return text.replace(
     /\\(Biggl|Biggr|biggl|biggr|Bigl|Bigr|bigl|bigr|Bigg|bigg|Big|big|left|right|middle)\{\s*(\\[{}|]|\\(?:lVert|rVert|lvert|rvert|langle|rangle|lfloor|rfloor|lceil|rceil|vert|Vert|uparrow|downarrow|updownarrow|Uparrow|Downarrow|Updownarrow|backslash)|[()[\]|./])\s*\}/g,
@@ -29,8 +29,8 @@ function unwrapSizedDelimiterRun(text: string): string {
 }
 
 /**
- * 把粘在同一处的多段 `$$...$$` 拆成各自独立的显示公式。
- * 单个公式保持原样；代码区不参与拆分。
+ * Split several `$$...$$` segments stuck together into independent display formulas.
+ * A single formula stays as-is; code regions do not take part in the split.
  */
 export function splitJoinedDisplayFormulas(text: string): string {
   return splitMarkdownCode(text)
@@ -40,7 +40,7 @@ export function splitJoinedDisplayFormulas(text: string): string {
     .join('');
 }
 
-/** 在一段不含代码的正文里拆开仅由空白相连的显示公式。 */
+/** Inside a stretch of body text that contains no code, split display formulas that are joined only by whitespace. */
 function splitJoinedDisplayFormulaRun(text: string): string {
   let output = '';
   let cursor = 0;
@@ -84,7 +84,7 @@ function splitJoinedDisplayFormulaRun(text: string): string {
   return output;
 }
 
-/** 让拆开后的第一段公式从行首开始，避免 ` $$` 仍被当成普通段落。 */
+/** Make the first formula after a split start at the beginning of the line, so ` $$` is not still treated as an ordinary paragraph. */
 function displayFormulaPrefix(prefix: string): string {
   if (prefix.endsWith('\n')) return prefix;
   const stripped = prefix.replace(/\s*$/, '');
@@ -92,7 +92,7 @@ function displayFormulaPrefix(prefix: string): string {
   return prefix;
 }
 
-/** 查找下一个未转义的双美元符。 */
+/** Find the next unescaped double dollar sign. */
 function indexOfUnescapedMarker(text: string, marker: string, from: number): number {
   for (let index = from; index <= text.length - marker.length; index += 1) {
     if (text.startsWith(marker, index) && !isEscaped(text, index)) return index;
@@ -100,7 +100,7 @@ function indexOfUnescapedMarker(text: string, marker: string, from: number): num
   return -1;
 }
 
-/** 把已有 `$...$` / `$$...$$` 切成保护片段，防止重复补定界符。 */
+/** Slice existing `$...$` / `$$...$$` into protected fragments, so delimiters are not added twice. */
 export function splitDollarMath(text: string): ProtectedTextSegment[] {
   const segments: ProtectedTextSegment[] = [];
   let plainStart = 0;
@@ -110,7 +110,7 @@ export function splitDollarMath(text: string): ProtectedTextSegment[] {
       cursor += 1;
       continue;
     }
-    // 单美元符必须自成一段，不能借用 `$$` 围栏里的某个字符充作闭合符。
+    // A single dollar sign must be its own segment, and must not borrow a character inside a `$$` fence as its closer.
     const marker = countRun(text, cursor, '$') === 1 ? '$' : '$$';
     const close = findDollarClose(text, cursor + marker.length, marker);
     if (close < 0) {
@@ -129,7 +129,7 @@ export function splitDollarMath(text: string): ProtectedTextSegment[] {
   return segments;
 }
 
-/** 将 Markdown 围栏代码块、缩进代码块与行内代码切成保护片段。 */
+/** Slice Markdown fenced code blocks, indented code blocks, and inline code into protected fragments. */
 export function splitMarkdownCode(text: string): ProtectedTextSegment[] {
   const segments: ProtectedTextSegment[] = [];
   let plainStart = 0;
@@ -180,10 +180,10 @@ export function splitMarkdownCode(text: string): ProtectedTextSegment[] {
 }
 
 /**
- * 把模型误用反引号包裹的明确数学表达式转换为行内公式。
+ * Turn an explicit math expression the model wrapped in backticks by mistake into an inline formula.
  *
- * 调用方负责完整数学语法校验；本层额外要求命令、Unicode 数学符号或至少两类数学结构，
- * 使普通路径、命令、单变量与代码仍保留 Markdown 代码语义。
+ * The caller is responsible for a full math-syntax check; this layer additionally requires a command, a Unicode math symbol, or at least two kinds of math structure,
+ * so an ordinary path, command, single variable, and code still keep Markdown code semantics.
  */
 export function normalizeInlineCodeMath(
   codeSpan: string,
@@ -197,10 +197,10 @@ export function normalizeInlineCodeMath(
 }
 
 /**
- * 把普通文本中 `[ LaTeX ]` 形式的模型输出转换为行内公式。
+ * Turn model output of the form `[ LaTeX ]` in ordinary text into an inline formula.
  *
- * 方括号可出现在列表或说明文字内部，不能依赖整行裸公式判断；仅当括号内容通过调用方
- * 的数学校验时转换，并排除 Markdown 链接、图片、任务列表和普通引用编号。
+ * Brackets can appear inside a list or explanatory text, so this cannot rely on a whole-line bare-formula check; convert only when the bracket contents pass the caller's
+ * math check, and exclude Markdown links, images, task lists, and ordinary citation numbers.
  */
 export function wrapBracketedMath(text: string, isMath: (value: string) => boolean): string {
   let cursor = 0;
@@ -222,8 +222,8 @@ export function wrapBracketedMath(text: string, isMath: (value: string) => boole
 }
 
 /**
- * 检测 Markdown 星号强调，避免把 `**标题**` / `*标签*` 的星号当成数学乘法。
- * 仅匹配符合 Markdown 边界的强调写法，不影响 `a*b*c` 等紧邻变量的乘法表达式。
+ * Detect Markdown asterisk emphasis, so the asterisks of `**title**` / `*label*` are not treated as math multiplication.
+ * Match only emphasis that fits Markdown boundaries, and do not affect multiplication such as `a*b*c` between adjacent variables.
  */
 export function hasMarkdownAsteriskEmphasis(value: string): boolean {
   return (
@@ -232,7 +232,7 @@ export function hasMarkdownAsteriskEmphasis(value: string): boolean {
   );
 }
 
-/** 对行内代码采用比独占行更严格的数学结构判定，降低代码误转公式的风险。 */
+/** Use a stricter math-structure check for inline code than for a line on its own, so code is less likely to be turned into a formula by mistake. */
 function isLikelyInlineCodeMath(value: string, isMath: (value: string) => boolean): boolean {
   if (!isMath(value)) return false;
   if (/\\[A-Za-z@]+/.test(value)) return true;
@@ -247,7 +247,7 @@ function isLikelyInlineCodeMath(value: string, isMath: (value: string) => boolea
   return structures.filter(Boolean).length >= 2;
 }
 
-/** 查找美元符数学片段的闭合定界符；行内公式不跨行。 */
+/** Find the closing delimiter of a dollar-sign math fragment; an inline formula does not cross lines. */
 function findDollarClose(text: string, from: number, marker: '$' | '$$'): number {
   for (let cursor = from; cursor < text.length; cursor += 1) {
     if (marker === '$' && text[cursor] === '\n') return -1;
@@ -258,7 +258,7 @@ function findDollarClose(text: string, from: number, marker: '$' | '$$'): number
   return -1;
 }
 
-/** 查找未被反斜杠转义的指定字符。 */
+/** Find the given character when it is not escaped by a backslash. */
 function findNextUnescaped(text: string, character: string, from: number): number {
   for (let index = from; index < text.length; index += 1) {
     if (text[index] === character && !isEscaped(text, index)) return index;
@@ -266,7 +266,7 @@ function findNextUnescaped(text: string, character: string, from: number): numbe
   return -1;
 }
 
-/** 查找支持嵌套的右方括号，兼容公式内的 `\left[...\right]` 与根式可选参数。 */
+/** Find a right bracket that supports nesting, compatible with `\left[...\right]` inside a formula and optional radical arguments. */
 function findClosingSquareBracket(text: string, open: number): number {
   let depth = 0;
   for (let index = open; index < text.length; index += 1) {
@@ -278,12 +278,12 @@ function findClosingSquareBracket(text: string, open: number): number {
   return -1;
 }
 
-/** 判断当前行是否为 Markdown 四空格或 Tab 缩进代码行。 */
+/** Whether the current line is a Markdown indented code line of four spaces or a tab. */
 function isIndentedCodeLine(text: string, lineStart: number): boolean {
   return text.startsWith('    ', lineStart) || text[lineStart] === '\t';
 }
 
-/** 保护连续的 Markdown 缩进代码块；块内空行一并保留。 */
+/** Protect a contiguous Markdown indented code block; blank lines inside the block are kept too. */
 function findIndentedCodeEnd(text: string, from: number): number {
   let lineStart = from;
   while (lineStart < text.length) {
@@ -296,7 +296,7 @@ function findIndentedCodeEnd(text: string, from: number): number {
   return text.length;
 }
 
-/** 读取 Markdown 围栏起始行。 */
+/** Read the opening line of a Markdown fence. */
 function readFenceStart(
   text: string,
   lineStart: number,
@@ -317,7 +317,7 @@ function readFenceStart(
   };
 }
 
-/** 查找 Markdown 围栏闭合行；未闭合时保护到文本结尾。 */
+/** Find the Markdown fence closing line; when it is unclosed, protect through the end of the text. */
 function findFenceEnd(
   text: string,
   from: number,
@@ -344,14 +344,14 @@ function findFenceEnd(
   return text.length;
 }
 
-/** 计算相同字符的连续长度。 */
+/** Count the run length of the same character. */
 function countRun(text: string, from: number, character: string): number {
   let cursor = from;
   while (text[cursor] === character) cursor += 1;
   return cursor - from;
 }
 
-/** 判断当前位置字符是否被奇数个反斜杠转义。 */
+/** Whether the character at the current position is escaped by an odd number of backslashes. */
 function isEscaped(value: string, index: number): boolean {
   let slashes = 0;
   for (let cursor = index - 1; cursor >= 0 && value[cursor] === '\\'; cursor -= 1) slashes += 1;

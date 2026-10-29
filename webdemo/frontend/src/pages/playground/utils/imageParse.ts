@@ -1,15 +1,15 @@
 /**
- * 图像解析体验的系统提示词与 Chat Completions 请求装配。
+ * System prompt and Chat Completions request assembly for the image-parsing experience.
  *
- * 用途：历史兼容的「图像 → Markdown」请求适配。当前 OCR Playground 走算法流水线。
- * 不在界面暴露评估场景：试卷/表格/多栏/手写的约束写进同一份提示词，由模型按画面自行适配。
+ * Purpose: the historical "image → Markdown" request adapter. The current OCR Playground uses the algorithm pipeline.
+ * Evaluation scenes are not exposed in the UI: exam, table, multi-column, and handwriting constraints live in the same prompt, and the model adapts from the image.
  */
 
 import type { ChatCompletionParams } from '@/api/map/chat';
 import type { Attachment } from '../types';
 import { attachmentToPart } from './attachments';
 
-/** 用户侧短指令。部分视觉模型要求 content 里至少有一段 text，不能只发 image_url。 */
+/** Short user-side instruction. Some vision models require at least one text part in content and cannot receive only image_url. */
 const USER_INSTRUCTION = '请将图像转为 Markdown。';
 
 const SYSTEM_PROMPT = [
@@ -24,21 +24,21 @@ const SYSTEM_PROMPT = [
 ].join('\n');
 
 /**
- * 图像解析系统提示词。产品层固定一份，避免用户先选场景再转换。
+ * Image-parsing system prompt. The product layer keeps a single fixed prompt, so the user does not pick a scene first and then convert.
  */
 export function imageParseSystemPrompt(): string {
   return SYSTEM_PROMPT;
 }
 
-/** 组装图像解析补全请求的入参 */
+/** Arguments for assembling an image-parsing completion request */
 export interface BuildImageParseRequestArgs {
   model: string;
   attachment: Attachment;
 }
 
 /**
- * 组装一次「图像 → Markdown」补全请求：系统提示 + 短指令 + 单张 image_url，不含聊天历史。
- * @param args 模型与图像附件
+ * Assemble one "image → Markdown" completion request: system prompt + short instruction + a single image_url, with no chat history.
+ * @param args model and image attachment
  */
 export function buildImageParseRequest(args: BuildImageParseRequestArgs): ChatCompletionParams {
   if (args.attachment.kind !== 'image') {
@@ -51,7 +51,7 @@ export function buildImageParseRequest(args: BuildImageParseRequestArgs): ChatCo
   return {
     model: args.model,
     stream: true,
-    // 图像转 Markdown 只要正文，显式关掉思考，避免 reasoning 污染结果。
+    // Image-to-Markdown wants only the body, so reasoning is explicitly turned off to keep it from contaminating the result.
     chat_template_kwargs: { enable_thinking: false },
     messages: [
       { role: 'system', content: imageParseSystemPrompt() },

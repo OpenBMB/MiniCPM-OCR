@@ -1,8 +1,7 @@
 /**
- * 消息流容器。
+ * Message-stream container.
  *
- * 用途：渲染消息气泡列表并自动吸底（流式增量时滚到底，用户上滚阅读时停止吸底）。
- * 用原生滚动容器（而非 OverlayScrollArea），以便 useAutoScroll 直接控制 scrollTop。
+ * Purpose: render the message-bubble list and stick to the bottom (scroll to the bottom on streaming increments; stop sticking when the user scrolls up to read). Use a native scroll container (rather than OverlayScrollArea) so useAutoScroll can control scrollTop directly.
  */
 
 import { useAutoScroll } from '../hooks/useAutoScroll';
@@ -12,30 +11,30 @@ import { MessageBubble } from './MessageBubble';
 
 interface MessageListProps {
   messages: ChatMessage[];
-  /** 重新生成某条 assistant 消息 */
+  /** Regenerate an assistant message */
   onRegenerate?: (assistantId: string) => void;
-  /** 切换某条 assistant 消息的反馈态 */
+  /** Toggle an assistant message's feedback state */
   onFeedback?: (assistantId: string, kind: MessageFeedback) => void;
-  /** 切换某条 assistant 消息显示的回答版本 */
+  /** Switch the answer version shown for an assistant message */
   onSwitchVersion?: (assistantId: string, index: number) => void;
-  /** 是否正在生成（透传给操作栏禁用重新生成） */
+  /** Whether generation is in progress (passed through to the action bar to disable regenerate) */
   loading?: boolean;
-  /** 当前模型是否允许展示思考（false 时不渲染任何消息的思考区，含历史会话） */
+  /** Whether the current model may show reasoning (when false, do not render any message's reasoning area, including historical sessions) */
   showReasoning?: boolean;
-  /** 打开布局级引用侧栏。 */
+  /** Open the layout-level citation sidebar. */
   onOpenCitations?: (messageId: string, citations: Citation[], activeUrl?: string) => void;
-  /** 当前正在展示引用侧栏的消息 ID。 */
+  /** ID of the message currently showing the citation sidebar. */
   openCitationsMessageId?: string;
 }
 
 /**
- * 滚动消息流。
- * @param messages 消息列表
- * @param onRegenerate 重新生成回调
- * @param onFeedback 反馈回调
- * @param onSwitchVersion 版本切换回调
- * @param loading 是否生成中
- * @param showReasoning 是否允许展示思考
+ * Scrolling message stream.
+ * @param messages Message list
+ * @param onRegenerate Regenerate callback
+ * @param onFeedback Feedback callback
+ * @param onSwitchVersion Version-switch callback
+ * @param loading Whether generation is in progress
+ * @param showReasoning Whether reasoning may be shown
  */
 export function MessageList({
   messages,
@@ -48,7 +47,7 @@ export function MessageList({
   openCitationsMessageId,
 }: MessageListProps) {
   const { t } = useTranslation('playground');
-  // 工具状态与引用也会改变消息高度；内容容器的 ResizeObserver 负责兜住异步排版变化。
+  // Tool status and citations also change message height; the content container's ResizeObserver covers async layout changes.
   const last = messages[messages.length - 1];
   const updateKey = [
     messages.length,
@@ -66,7 +65,7 @@ export function MessageList({
     last?.streaming ? 'streaming' : 'idle',
   ].join(':');
 
-  // 最后一条 assistant 消息用于操作栏；最后一条 user 消息作为“新一轮”滚动重置标识。
+  // The last assistant message is for the action bar; the last user message is the "new turn" marker that resets scrolling.
   let lastAssistantId: string | undefined;
   let lastUserId: string | undefined;
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -88,7 +87,7 @@ export function MessageList({
       onWheel={onWheel}
       onTouchMove={onTouchMove}
       onKeyDown={onKeyDown}
-      /* 点击引起的高度变化（展开思考过程、切换版本）不吸底，见 useAutoScroll 里的说明 */
+      /* Height changes caused by clicks (expanding reasoning, switching versions) do not stick to the bottom; see the note in useAutoScroll */
       onPointerDown={onPointerDown}
       className="h-full overflow-y-auto"
     >
@@ -116,7 +115,7 @@ export function MessageList({
   );
 }
 
-/** 上下文分隔线：一条带「上下文已清除」居中文案的横线，标记此后对话不再携带其上历史 */
+/** Context divider: a horizontal rule with centered "context cleared" copy, marking that conversation after this no longer carries the history above it */
 function ContextDivider({ label }: { label: string }) {
   return (
     <div

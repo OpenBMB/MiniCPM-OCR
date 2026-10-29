@@ -1,11 +1,11 @@
 interface ImageParseReadingCandidate {
   ids: readonly string[];
   page?: number;
-  /** 块顶部相对结果滚动视口顶部的偏移。 */
+  /** Offset of the block top relative to the top of the result scroll viewport. */
   offset: number;
 }
 
-/** 结果栏在内容重排前捕获的阅读定位点。 */
+/** Reading anchor captured in the result column before content is reflowed. */
 export interface ImageParseReadingAnchor {
   candidates: readonly ImageParseReadingCandidate[];
   page?: number;
@@ -32,8 +32,8 @@ function pageOf(node: HTMLElement): number | undefined {
 }
 
 /**
- * 记录当前结果视口里最靠上的可定位块。
- * 页眉页脚切换只改变块内容，块的稳定 id 不会变化，因此可用它把视线锚回同一段正文。
+ * Record the topmost positionable block in the current result viewport.
+ * Toggling header and footer only changes block content; a block's stable id does not change, so it can anchor the view back to the same body text.
  */
 export function captureImageParseReadingAnchor(
   viewport: HTMLElement,
@@ -75,7 +75,7 @@ export function captureImageParseReadingAnchor(
 
   const range = Math.max(0, viewport.scrollHeight - viewport.clientHeight);
   return {
-    // 顶部块被隐藏时继续尝试下一段可见正文，避免锚到一个已删除的页眉。
+    // When the top block is hidden, keep trying the next visible body text, so the anchor does not land on a header that was removed.
     candidates: candidates.slice(0, 12),
     page: Number.isFinite(page) ? page : undefined,
     pageOffset,
@@ -96,8 +96,8 @@ function findCandidateNode(
 }
 
 /**
- * 计算重排后的滚动位置：优先还原同一正文块，找不到时退到页首和整体进度。
- * @returns 需要写入结果视口的 scrollTop；视口不可用或没有可还原目标时返回 undefined
+ * Compute the scroll position after reflow: restore the same body block first, and fall back to the top of the page and overall progress when it cannot be found.
+ * @returns scrollTop to write into the result viewport; undefined when the viewport is unavailable or there is no target to restore
  */
 export function resolveImageParseReadingTop(
   viewport: HTMLElement,

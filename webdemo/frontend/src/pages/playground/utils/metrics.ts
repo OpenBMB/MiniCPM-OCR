@@ -1,38 +1,38 @@
 /**
- * 单轮生成性能指标的派生与格式化纯函数。
+ * Pure functions that derive and format performance metrics for one generation.
  *
- * 用途：把 useChat 埋点得到的原始计时（firstTokenMs/durationMs）与尾块 usage，
- * 换算为消息底部指标行所需的展示值（秒、tokens/s），无副作用便于单测与复用。
+ * Purpose: turn raw timings from useChat instrumentation (firstTokenMs/durationMs) and the tail usage
+ * into the display values the message-footer metrics row needs (seconds, tokens/s). No side effects, so they are easy to unit test and reuse.
  */
 
 import type { MessageMetrics } from '../types';
 import type { TokenUsage } from '@/api/map/chat';
 
-/** 单个指标项的展示结构 */
+/** Display structure of one metric item */
 export interface MetricItem {
-  /** 指标名（如「首 token」） */
+  /** Metric name (such as "time to first token") */
   label: string;
-  /** 主数值文本（如「0.32」「51」） */
+  /** Primary value text (such as "0.32" or "51") */
   value: string;
-  /** 数值单位（如「s」「tokens/s」；无单位时为空串） */
+  /** Value unit (such as "s" or "tokens/s"; an empty string when there is no unit) */
   unit: string;
-  /** 悬浮说明；无则不展示 info 图标 */
+  /** Hover explanation; when absent, do not show the info icon */
   hint?: string;
 }
 
-/** 毫秒转秒并保留两位小数（如 320 → "0.32"） */
+/** Convert milliseconds to seconds with two decimal places (for example 320 → "0.32") */
 export function formatSeconds(ms: number): string {
   return (ms / 1000).toFixed(2);
 }
 
 /**
- * 输出速率（tokens/s）：完成 token 数 ÷ 纯生成耗时。
- * 纯生成耗时 = 总耗时 − 首 token 延迟（扣除排队/首包网络往返，更贴近吐字速度）。
- * 缺少任一输入、或有效耗时 ≤ 0 时返回 null（不展示）。
+ * Output rate (tokens/s): completion token count ÷ pure generation time.
+ * Pure generation time = total elapsed − time to first token (queueing and the first-packet round trip are excluded, so it is closer to the token rate).
+ * Return null (do not display) when any input is missing, or the effective elapsed time is ≤ 0.
  *
- * @param completionTokens 本轮完成（输出）token 数
- * @param firstTokenMs 首 token 延迟（ms）
- * @param durationMs 总耗时（ms）
+ * @param completionTokens completion (output) token count for this turn
+ * @param firstTokenMs time to first token (ms)
+ * @param durationMs total elapsed time (ms)
  */
 export function outputRate(
   completionTokens: number | undefined,
@@ -46,11 +46,11 @@ export function outputRate(
 }
 
 /**
- * 组装消息底部要展示的指标项列表（按参考看板口径：首 token / 总耗时 / 输出速率 / 共调用）。
- * 仅纳入有数据的项；全无则返回空数组，交由调用方决定是否渲染。
+ * Assemble the metric items to show in the message footer (dashboard convention: time to first token / total elapsed / output rate / total calls).
+ * Include only items that have data; if none do, return an empty array and let the caller decide whether to render.
  *
- * @param metrics 前端计时指标（可能只有部分字段）
- * @param usage 尾块 token 用量
+ * @param metrics frontend timing metrics (only some fields may be present)
+ * @param usage tail-chunk token usage
  */
 export function buildMetricItems(
   metrics: MessageMetrics | undefined,

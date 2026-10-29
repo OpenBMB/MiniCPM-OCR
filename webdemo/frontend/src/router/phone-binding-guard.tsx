@@ -5,11 +5,11 @@ import { mapAuthApi, mapKeys } from '@/api/map';
 import { PageLoading } from '@/components/PageLoading';
 
 /**
- * Portal 强制绑定手机号守卫。
+ * Portal guard that requires a bound mobile number.
  *
- * 用途：邮箱认证且没有手机号的会话只能进入绑定页；后端中间件同时做接口级兜底。
- * @param children 已通过手机号绑定检查后渲染的页面
- * @returns 绑定检查中的加载态、绑定页跳转或业务页面
+ * Purpose: an email-authenticated session with no mobile number can only enter the binding page; backend middleware also enforces this on the API.
+ * @param children Pages rendered after the mobile-number check passes.
+ * @returns A loading state while checking, a redirect to the binding page, or the business page.
  */
 export function PhoneBindingGuard({ children }: PropsWithChildren) {
   const location = useLocation();

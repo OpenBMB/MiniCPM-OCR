@@ -1,10 +1,10 @@
 import type { ImageParseSnapshot } from './imageParseHistoryTypes';
 
 /**
- * 比较需要云端存档的内容；PDF 页结果是权威内容，当前页及本地裁图不触发整篇上传。
- * @param previous 上一次已观察的完整快照
- * @param next 当前完整快照
- * @returns 附件、模式及实际识别内容是否未变
+ * Compare content that needs a cloud archive; PDF page results are the authoritative content, and the current page and local crops do not trigger a full-document upload.
+ * @param previous last full snapshot that was observed
+ * @param next current full snapshot
+ * @returns whether the attachment, mode, and actual recognition content are unchanged
  */
 export function sameImageParseHistoryContent(
   previous: ImageParseSnapshot | null | undefined,
@@ -29,7 +29,7 @@ export function sameImageParseHistoryContent(
   const after = next.pdf.results;
   if (before === after) return true;
   const pages = Object.keys(before);
-  // 使用不可变结果的引用，避免滚动时序列化数百页正文或比较仅在客户端使用的裁图。
+  // Use the reference of the immutable result, so scrolling does not serialize hundreds of pages of body text or compare crops used only on the client.
   return (
     pages.length === Object.keys(after).length &&
     pages.every((page) => {

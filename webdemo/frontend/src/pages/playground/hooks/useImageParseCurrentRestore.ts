@@ -18,9 +18,9 @@ interface ImageParseCurrentRestoreOptions {
 }
 
 /**
- * 刷新恢复当前文档，侧栏主动进入则清空指针并跳过自动恢复；历史记录仍可手动打开。
- * @param options 当前范围、入口意图及历史恢复入口
- * @returns 用户主动选择、上传或清空时取消自动恢复的入口
+ * Restore the current document on refresh; entering on purpose from the sidebar clears the pointer and skips automatic restore. History records can still be opened manually.
+ * @param options current scope, entry intent, and the history-restore entry
+ * @returns the entry that cancels automatic restore when the user selects, uploads, or clears on purpose
  */
 export function useImageParseCurrentRestore({
   scope,
@@ -64,7 +64,7 @@ export function useImageParseCurrentRestore({
     const sequence = ++request.current;
     const record = (async () => {
       if (!candidates.length) return load(currentId!, true);
-      // 旧工作台允许同一附件保存不同任务；只在该附件的记录中寻找匹配结果。
+      // The old workspace allowed the same attachment to save different tasks; look for a matching result only among that attachment's records.
       for (const entry of candidates) {
         if (cancelled || sequence !== request.current) return null;
         const value = await load(entry.id);

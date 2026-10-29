@@ -335,12 +335,12 @@ describe('shouldDeferMarkdown', () => {
       </TooltipProvider>,
     );
 
-    // 角标数字 = 来源在 citations 中的下标 + 1，与底部参考资料、来源面板同号
+    // Badge number = the source's index in citations + 1, the same number as the references at the bottom and the source panel
     const badge = screen.getByRole('link', { name: '第 2 个来源' });
     expect(badge).toHaveTextContent('2');
     expect(badge).toHaveAttribute('href', 'https://www.openbmb.cn/news');
     expect(badge).toHaveAttribute('target', '_blank');
-    // 打上标记位，正文链接的下划线/主色基础样式才会跳过角标
+    // Set the marker bit, or the body link's underline/primary base styles will not skip the badge
     expect(badge).toHaveAttribute('data-citation-badge');
 
     await user.hover(badge);
@@ -375,7 +375,7 @@ describe('shouldDeferMarkdown', () => {
       </TooltipProvider>,
     );
 
-    // 数组下标 +1 会是 1；后端编号是 5，多轮搜索下只有后者指得对。
+    // Array index + 1 would be 1; the backend number is 5. Across multiple search rounds only the latter points at the right source.
     const badge = screen.getByRole('link', { name: '第 5 个来源' });
     expect(badge).toHaveTextContent('5');
     expect(badge).toHaveAttribute('href', 'https://www.openbmb.cn/news');
@@ -394,12 +394,12 @@ describe('shouldDeferMarkdown', () => {
       </TooltipProvider>,
     );
 
-    // 角标仍在（与来源面板同号），但标题不能被吞掉——否则整行只剩一个灰色数字
+    // The badge stays (same number as the source panel), but the title must not be swallowed — otherwise the whole line is only a gray number
     expect(screen.getByRole('link', { name: '第 1 个来源' })).toHaveTextContent('1');
     const title = screen.getByRole('link', { name: '百度百科 - 一元三次方程求根公式' });
     expect(title).toHaveAttribute('href', 'https://baike.baidu.com/item/x');
     expect(title).toHaveAttribute('target', '_blank');
-    // 标记位让正文链接的主色下划线样式跳过来源行，行内配色仍跟随引用块
+    // The marker bit makes the body link's primary underline style skip the source row; inline color still follows the quote block
     expect(title).toHaveAttribute('data-citation-source');
   });
 
@@ -436,7 +436,7 @@ describe('shouldDeferMarkdown', () => {
 
     await user.click(screen.getByRole('link', { name: '第 2 个来源' }));
 
-    // 回传的是从 1 起的展示序号，与角标数字、来源面板同号
+    // What is passed back is the display index starting at 1, the same number as the badge and the source panel
     expect(onCitationActivate).toHaveBeenCalledWith(citations[1], 2);
   });
 
@@ -449,9 +449,7 @@ describe('shouldDeferMarkdown', () => {
     const classes = root.className.split(/\s+/);
 
     /*
-      react-markdown 会在相邻块级元素之间输出一个换行文本节点。容器级 pre-wrap 会把它当成
-      硬换行，于是每个段落间凭空多出一整行高的空白；pre-wrap 必须只作用在段落内部，
-      那里才是模型单换行分行需要保留的地方。
+      react-markdown emits a newline text node between adjacent block elements. Container-level pre-wrap treats it as a hard break, so each paragraph gains a full line of blank space from nowhere; pre-wrap must apply only inside paragraphs, which is where the model's single-newline breaks need to be kept.
     */
     expect(classes).not.toContain('whitespace-pre-wrap');
     expect(classes).toContain('[&_p]:whitespace-pre-wrap');

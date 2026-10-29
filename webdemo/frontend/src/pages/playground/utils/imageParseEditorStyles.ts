@@ -1,6 +1,6 @@
 /**
- * OCR 编辑器样式：正文和表格沿用主题色，宽表仅在自身容器内滚动。
- * 首尾节点使用更具体的选择器清除预览排版的外边距，单块编辑不重复增加段间留白。
+ * OCR editor styles: body and tables follow the theme color, and a wide table scrolls only inside its own container.
+ * The first and last nodes use a more specific selector to clear preview-layout margins, so editing a single block does not add extra space between paragraphs.
  */
 export const IMAGE_PARSE_RICH_EDITOR_CLASS = `
   px-4 py-3 text-sm leading-[1.85] text-foreground

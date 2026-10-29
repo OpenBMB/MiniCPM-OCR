@@ -55,23 +55,23 @@ interface ImageParseResultToolbarProps {
   regeneration?: ReturnType<typeof useImageParseRegeneration>;
   downloading?: boolean;
   onDownload?: (format: ImageParseDownloadFormat) => void;
-  /** 当前视图；待复核页展示筛选与重生成，不展示联动与导出。 */
+  /** Current view; the pending-review page shows filters and regeneration, and does not show linkage or export. */
   activeTab?: string;
-  /** 信息抽取等非 Markdown 结果的自定义页签文案。 */
+  /** Custom tab copy for non-Markdown results such as key information extraction. */
   previewLabel?: string;
   sourceLabel?: string;
-  /** 文档类结果才展示表格合并、页眉页脚和双栏联动。 */
+  /** Table merge, header/footer, and two-column linkage are shown only for document results. */
   documentCommands?: boolean;
-  /** 只有已有且稳定的识别结果才展示统一设置入口。 */
+  /** Show the unified settings entry only when there is already a stable recognition result. */
   settingsVisible?: boolean;
-  /** 当前任务的统计和操作，与视图切换共用一条工具栏。 */
+  /** Stats and actions for the current task, sharing one toolbar with the view switch. */
   resultCommands?: ReactNode;
-  /** 临时开关：是否展示待复核页。 */
+  /** Temporary switch: whether to show the pending-review page. */
   reviewEnabled?: boolean;
   hasScoredBlocks?: boolean;
   reviewAll?: boolean;
   onToggleReviewAll?: () => void;
-  /** 多页 PDF 或多页示例才有：跨页表格合并 */
+  /** Only a multi-page PDF or a multi-page example has this: cross-page table merge */
   tableMerge?:
     | ReturnType<typeof usePdfImageParse>['tableMerge']
     | ReturnType<typeof useImageParseExampleMerge>
@@ -79,8 +79,7 @@ interface ImageParseResultToolbarProps {
 }
 
 /**
- * 结果栏工具区：左侧切换视图，当前视图的操作集中在右侧。
- * 待复核显示筛选与批量重生成；窄栏自动换行，不挤压标签和操作。
+ * Result-column tool area: switch views on the left, and gather the current view's actions on the right. Pending review shows filters and batch regeneration; a narrow column wraps automatically and does not squeeze labels and actions.
  */
 export function ImageParseResultToolbar({
   loading,
@@ -128,7 +127,7 @@ export function ImageParseResultToolbar({
           <TabsTrigger value="source" className={TRIGGER_CLASS}>
             {sourceLabel ?? t('imageParseSource')}
           </TabsTrigger>
-          {/* 编辑说明跟随源码标签，悬停图标展示，不再占用右侧操作区。 */}
+          {/* The edit note follows the source tab and is shown on icon hover, so it no longer takes the action area on the right. */}
           {documentCommands && !reviewOnly ? (
             <ImageParseOptionInfo
               label={t('imageParseInlineEditor')}
@@ -269,7 +268,7 @@ export function ImageParseResultToolbar({
   );
 }
 
-/** 跨页表格合并：带文字的按钮，合并中显示进度，完成后可撤销，结果用 toast 告知。 */
+/** Cross-page table merge: a button with text, progress while merging, undo after it finishes, and the result reported with a toast. */
 function ImageParseTableMergeButton({
   tableMerge,
 }: {
@@ -345,7 +344,7 @@ function ImageParseTableMergeButton({
       <Tooltip>
         <TooltipTrigger asChild>
           {disabled ? (
-            // 原生禁用按钮不接收指针与焦点，用外层承接提示，按钮仍保持不可执行。
+            // A natively disabled button does not receive pointer or focus. The outer layer carries the hint, and the button stays non-executable.
             <span
               tabIndex={0}
               className="inline-flex rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/30"

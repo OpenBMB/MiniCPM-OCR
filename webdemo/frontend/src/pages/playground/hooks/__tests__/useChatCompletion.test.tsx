@@ -59,7 +59,7 @@ describe('useChatCompletion', () => {
       result.current.startCompletion(history, 'assistant-1');
     });
 
-    // 该 mock 只透传 locale，第二个参数（userLocation）由实现自行携带。
+    // This mock only forwards locale; the second argument (userLocation) is carried by the implementation itself.
     expect(collectPlaygroundRuntimeContext).toHaveBeenCalledWith('zh-CN');
     expect(streamChat.mock.calls[0]?.[5]).toEqual(runtimeContext);
   });

@@ -2,26 +2,26 @@ import { ChevronDown, LoaderCircle, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button, cn, Tooltip, TooltipContent, TooltipTrigger } from '@map/ui';
 
-/** 历史列表只消费轻量标题与身份，不持有文档或对话正文。 */
+/** The history list consumes only a lightweight title and identity; it does not hold document or conversation body text. */
 export interface SidebarSession {
   id: string;
   title: string;
-  /** 内置 OCR 案例与用户上传历史分开展示，不改变本地记录身份。 */
+  /** Built-in OCR examples and user-upload history are shown separately, without changing the local record identity. */
   category?: 'example';
 }
 
-/** 各体验提供自己的数据与行为，历史展示共用同一组件。 */
+/** Each experience supplies its own data and behavior; history display shares one component. */
 export interface PlaygroundSidebarHistory {
   sessions: readonly SidebarSession[];
   activeSessionId?: string;
-  /** 正在恢复的云端记录；仅当前行显示状态，不禁止用户切换其他记录。 */
+  /** Cloud record being restored; only the current row shows status, and the user is not blocked from switching to other records. */
   pendingSessionId?: string;
   onSelectSession: (id: string) => void;
   onDeleteSession: (id: string) => void;
   onNewChat: () => void;
   loading?: boolean;
   storageError?: string;
-  /** 临时保存等非阻断提示，与真正的数据错误区分。 */
+  /** Non-blocking hints such as a temporary save, distinguished from a real data error. */
   storageNotice?: string;
   hasMore?: boolean;
   loadingMore?: boolean;
@@ -30,9 +30,9 @@ export interface PlaygroundSidebarHistory {
 
 interface PlaygroundHistoryListProps extends PlaygroundSidebarHistory {
   kind: 'language' | 'image-parse' | 'image-parse-cases';
-  /** 分组后仍按完整缓存判断首次加载，避免空分组在后台刷新时改变高度。 */
+  /** After grouping, still judge the first load from the full cache, so an empty group does not change height during a background refresh. */
   hasCachedSessions?: boolean;
-  /** 多个分组共用父级滚动容器时，内部不创建会阻断滚动链的滚动区域。 */
+  /** When several groups share the parent scroll container, do not create an inner scroll region that would break the scroll chain. */
   scrollMode?: 'self' | 'parent';
 }
 
@@ -42,7 +42,7 @@ const LIST_LABELS = {
   'image-parse-cases': { title: 'imageParseCases', region: 'imageParseCasesList' },
 } as const;
 
-/** 语言对话与 OCR 共用的左侧历史：独立或随父级滚动、当前条目、新建、删除和分页。 */
+/** Left history shared by language chat and OCR: scroll on its own or with the parent, current item, new, delete, and paging. */
 export function PlaygroundHistoryList({
   kind,
   sessions,
@@ -119,7 +119,7 @@ export function PlaygroundHistoryList({
             {t(storageNotice)}
           </p>
         ) : null}
-        {/* 已有条目时后台刷新不插入占位行，避免切换历史引发整列位移。 */}
+        {/* When entries already exist, a background refresh does not insert a placeholder row, so switching history does not shift the whole column. */}
         {initialLoading && !sessions.length ? (
           <p
             role="status"

@@ -1,29 +1,29 @@
 /**
- * 消息流自动吸底 hook。
+ * Hook that sticks the message stream to the bottom automatically.
  *
- * 用途：流式增量到来时把滚动容器自动滚到底部；但用户主动上滚阅读历史时停止吸底，
- * 直到用户重新滚回底部。避免高频 setState 下打断阅读。
+ * Purpose: when a streaming increment arrives, scroll the container to the bottom; but when the user scrolls up to read history, stop sticking,
+ * until the user scrolls back to the bottom. Avoid interrupting reading under high-frequency setState.
  */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, type KeyboardEvent } from 'react';
 
-/** 距底部多少像素内视为「贴底」 */
+/** Within how many pixels of the bottom counts as "stuck to the bottom" */
 const STICK_THRESHOLD = 48;
-/** 一次滚轮/触摸手势会连发多帧 scroll，这段时间内都算同一次用户滚动 */
+/** One wheel or touch gesture fires several frames of scroll; that whole interval counts as one user scroll */
 const USER_SCROLL_INTENT_MS = 180;
 /**
- * 用户点击后多久内不因内容高度变化吸底。
+ * How long after a user click a content-height change must not stick to the bottom.
  *
- * 要盖住「点开思考过程」这一下的全部形变：折叠面板的 grid 过渡 220ms，里面的过程滚动区
- * 还有一段 max-height 300ms，两者不同时起止。取 600ms 留余量。
+ * It has to cover the whole deformation of "opening the reasoning process": the disclosure's grid transition is 220ms, and the process scroll area inside
+ * has another max-height of 300ms, and the two do not start and end together. 600ms leaves a margin.
  */
 const INTERACTION_HOLD_MS = 600;
 const SCROLL_KEYS = new Set(['ArrowDown', 'ArrowUp', 'End', 'Home', 'PageDown', 'PageUp', ' ']);
 
 /**
- * @param updateKey 触发吸底的内容更新标识
- * @param turnKey 新一轮对话标识；变化时恢复自动跟随并立即滚到底部
- * @returns 滚动容器 ref、内容 ref 与滚动事件处理器
+ * @param updateKey content-update id that triggers sticking to the bottom
+ * @param turnKey id of a new conversation turn; when it changes, restore automatic follow and scroll to the bottom immediately
+ * @returns scroll-container ref, content ref, and the scroll event handler
  */
 export function useAutoScroll(updateKey: unknown, turnKey: unknown) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -38,7 +38,7 @@ export function useAutoScroll(updateKey: unknown, turnKey: unknown) {
     element.scrollTop = element.scrollHeight;
   }, []);
 
-  // 只有明确的滚轮、触摸或键盘输入才改变跟随状态，忽略布局变化引发的 scroll。
+  // Only an explicit wheel, touch, or keyboard input changes follow state; ignore scroll caused by a layout change.
   const onScroll = useCallback(() => {
     if (!userScrollPendingRef.current) return;
     const el = scrollRef.current;
@@ -54,19 +54,19 @@ export function useAutoScroll(updateKey: unknown, turnKey: unknown) {
     [markUserScrollIntent],
   );
 
-  // 用户发起新一轮对话时，无论此前是否上滚，都应立即回到最新消息。
+  // When the user starts a new turn, return to the latest message immediately, whether or not they had scrolled up.
   useLayoutEffect(() => {
     stickRef.current = true;
     scrollToBottom();
   }, [scrollToBottom, turnKey]);
 
-  // 流式增量或工具状态更新后，在浏览器绘制前保持吸底。
+  // After a streaming increment or a tool-status update, stay stuck to the bottom before the browser paints.
   useLayoutEffect(() => {
     if (!stickRef.current) return;
     scrollToBottom();
   }, [scrollToBottom, updateKey]);
 
-  // Markdown、表格、引用和折叠内容可能在提交后继续改变高度，需监听真实内容尺寸。
+  // Markdown, tables, citations, and disclosure content may keep changing height after commit, so the real content size has to be observed.
   useEffect(() => {
     const content = contentRef.current;
     if (!content || typeof ResizeObserver === 'undefined') return;
@@ -74,10 +74,10 @@ export function useAutoScroll(updateKey: unknown, turnKey: unknown) {
     const observer = new ResizeObserver(() => {
       if (!stickRef.current) return;
       /*
-        用户刚点过：这一次高度变化是他自己按出来的（展开思考过程、切换回答版本、展开长表格），
-        吸底会把刚点的那一行连同它上方的内容一起顶出视口顶部——「点开」的预期是内容向下长
-        出来，而不是页面往上蹿。流式增量不走这条路（由 updateKey 的 layout effect 吸底），
-        所以押住这里不会让跟随输出变迟钝。
+        The user just clicked: this height change is one they pressed themselves (expanding reasoning, switching an answer version, expanding a long table).
+        Sticking to the bottom would push the row just clicked, together with the content above it, off the top of the viewport — the expectation of "opening" is that content grows
+        downward, not that the page jumps upward. Streaming increments do not take this path (updateKey's layout effect sticks to the bottom),
+        so holding here does not make following the output feel sluggish.
       */
       if (interactionHoldRef.current) return;
       scrollToBottom();
@@ -98,14 +98,14 @@ export function useAutoScroll(updateKey: unknown, turnKey: unknown) {
 }
 
 /**
- * 一个到点自动失效的布尔标记。
+ * A boolean flag that clears itself when its time is up.
  *
- * 两处用途（识别用户滚动手势、押住点击引发的重排）都要「标一下、过一会儿自己清掉」，
- * 且都必须存 ref 不能存 state：它们在 layout effect 与 ResizeObserver 回调里读，
- * 改成 state 会因重渲染把 observer 整个重建。
+ * Both uses (recognizing a user scroll gesture, and holding back a reflow caused by a click) need "mark it, then clear it after a while",
+ * and both must live in a ref rather than state: they are read inside a layout effect and a ResizeObserver callback,
+ * and turning them into state would rebuild the whole observer on re-render.
  *
- * @param durationMs 标记有效时长
- * @returns [标记 ref, 打标记函数]
+ * @param durationMs how long the flag stays valid
+ * @returns [flag ref, function that sets the flag]
  */
 function useExpiringFlag(durationMs: number) {
   const activeRef = useRef(false);

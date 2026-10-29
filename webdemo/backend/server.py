@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""MiniCPM-V-OCR 解析后端 — 对外唯一入口。
+"""MiniCPM-V-OCR parse backend. The only public entry.
 
-工作台接口见同目录 SERVICE.md。纯内部服务，无鉴权。
-用 FastAPI + uvicorn。pipeline 是阻塞的，一律丢进线程池跑，事件循环只做收发；
-摆正、版面、分块识别各走各的队列。版面池的大小是 model_manager.LAYOUT_WORKERS，检测器只在切这一页时占着。
+Deployment and the API are in docs/webdemo_deploy_zh.md. Internal service, no auth.
+FastAPI and uvicorn. The pipeline blocks, so it always runs in a thread pool and
+the event loop only receives and sends. Rotation adaptation, layout, and crop
+recognition each have their own queue. The layout pool size is
+model_manager.LAYOUT_WORKERS. A detector is held only while this page is being cut.
 """
 from __future__ import annotations
 
@@ -38,14 +40,14 @@ import urllib.request
 import uvicorn
 
 PORT = int(os.environ.get("PORT", "8966"))
-# source_token 就是整页请求的 job id（32 位小写 hex），据此定位原 job 目录
+# source_token is the full-page job id (32 lowercase hex characters). It locates the original job directory.
 SOURCE_TOKEN = re.compile(r"^[a-f\d]{32}$")
 
-# 上传图原样落盘，不解码重编码；只认这些格式（PIL format → 后缀）
+# Store the uploaded image as-is, without decoding and re-encoding. Only these formats are accepted (PIL format → suffix).
 IMAGE_SUFFIX = {"PNG": ".png", "JPEG": ".jpg", "BMP": ".bmp", "WEBP": ".webp", "TIFF": ".tif"}
 
 # -------------------------------------------------------------------
-# 全局单例 — 在 lifespan 里初始化
+# Process-wide singletons, created in the lifespan.
 # -------------------------------------------------------------------
 RUNNER:  Runner     = None   # type: ignore[assignment]
 OCR_SVC: OcrService = None   # type: ignore[assignment]
@@ -54,7 +56,7 @@ app = FastAPI(title="minicpmvocr-webdemo", version="1.0")
 
 
 def _proxy_to_worker(request: Request):
-    """用户进程不跑模型。页面解析转到本机工人。"""
+    """The user process does not run models. Page parsing is forwarded to the local worker."""
     base = os.environ.get("OCR_LOCAL_WORKER_URL", "http://127.0.0.1:8966").rstrip("/")
     url = base + request.url.path
     if request.url.query:
@@ -96,7 +98,7 @@ async def _gateway_split(request: Request, call_next):
 
 
 # ===================================================================
-# 工具函数（与旧版完全一致，保持逻辑不变）
+# Helpers. Same behavior as the previous version.
 # ===================================================================
 
 def _make_request_id() -> str:
@@ -153,7 +155,7 @@ def _best_score(block: Dict) -> Optional[float]:
 
 
 def _block_to_api(lb: Dict, rb: Dict) -> Dict:
-    """layout 块 + 识别结果块 → API 块对象。"""
+    """A layout block plus a recognition block becomes one API block."""
     regions = lb.get("regions") or [lb.get("bbox", [0, 0, 0, 0])]
     tts = rb.get("tts") or {}
     score = _best_score(rb)
@@ -171,7 +173,7 @@ def _block_to_api(lb: Dict, rb: Dict) -> Dict:
         block["rounds_used"] = tts["rounds_used"]
         block["stop_reason"] = tts.get("stop_reason")
         block["exhausted"] = bool(tts.get("exhausted"))
-    # 跨页合并（见 /api/image-parse/merge）：分数只代表合并前的半张表
+    # Cross-page merge (see /api/image-parse/merge): a score only covers the half table from before the merge.
     if rb.get("tts_invalid"):
         block["tts_invalid"] = True
     if rb.get("merged_into_previous_page"):
@@ -192,8 +194,8 @@ def _build_page_response(image_id, layout, result, request_id, mode,
 
     mode_str = {"standard": "ocr_only", "scored": "stp",
                 "high-precision": "tts"}.get(mode, mode)
-    # page_index 原样回填请求值：前端按它校验响应属于哪一页。
-    # （单图输入时版面结果里的 source.page_index 恒为空，不能用。）
+    # Echo the request's page_index. The frontend uses it to check which page a response belongs to.
+    # A single-image layout always leaves source.page_index empty, so that field cannot be used.
 
     resp: Dict = {
         "metadata": {"page_index": page_index},
@@ -206,7 +208,7 @@ def _build_page_response(image_id, layout, result, request_id, mode,
             "blocks": blocks,
         },
     }
-    # 没开摆正就不带 rotation（前端按字段缺失处理为未摆正）
+    # Omit rotation when rotation adaptation is off. The frontend treats a missing field as not adapted.
     if upright_enabled:
         resp["minicpm_ocr"]["rotation"] = rotation
 
@@ -234,7 +236,7 @@ def _build_page_response(image_id, layout, result, request_id, mode,
 
 JOB_META = "webdemo_meta.json"
 
-# 同一个 job 的单块重算会原地改 results_json，按 job 串行
+# A single-block rerun rewrites results_json in place, so reruns of one job run one at a time.
 _JOB_LOCKS: Dict[str, threading.Lock] = {}
 _JOB_LOCKS_GUARD = threading.Lock()
 
@@ -245,7 +247,7 @@ def _job_lock(job_id: str) -> threading.Lock:
 
 
 def _decode_upload(image_b64: str):
-    """base64 → (原始字节, 后缀)。只读文件头判断格式，不做整图解码。"""
+    """base64 → (raw bytes, suffix). The format comes from the file header, without decoding the whole image."""
     from PIL import Image
     _, _, b64data = image_b64.partition(",")
     raw = base64.b64decode(b64data or image_b64)
@@ -261,7 +263,7 @@ def _err(code: int, msg: str) -> JSONResponse:
 
 
 # ===================================================================
-# 路由
+# Routes
 # ===================================================================
 
 @app.get("/health")
@@ -298,7 +300,7 @@ def capabilities():
 
 @app.get("/metrics")
 def metrics():
-    """转发 OCR vLLM 的 Prometheus 指标：LIS 每 15s 抓一次（没有它就是 404）。"""
+    """Forward the OCR vLLM Prometheus metrics. LIS scrapes them every 15s, and a missing endpoint is a 404."""
     import urllib.request
     try:
         with urllib.request.urlopen(VLLM_URL + "/metrics", timeout=5) as r:
@@ -308,12 +310,13 @@ def metrics():
 
 
 # ===================================================================
-# LIS 入口：OpenAI Chat Completions 形状
+# LIS entry: OpenAI Chat Completions shape.
 # ===================================================================
-# LIS 网关按 `model`＝服务名（--served-model-name）路由到 /v1/chat/completions，
-# 所以经 LIS 调用时档位不能再放在 `model` 里，改从 `minicpm_ocr.mode` 读。
-# 四个档位名直接当 `model` 也照旧可用。业务字段既可放在 `minicpm_ocr` 里，也可以按
-# /api/image-parse 的写法放在顶层（image / page_index / order / source_token / pages）。
+# The LIS gateway routes by `model` equal to the service name (--served-model-name)
+# to /v1/chat/completions, so a call through LIS cannot put the tier in `model`.
+# Read it from `minicpm_ocr.mode` instead. The four tier names still work as `model`.
+# Business fields can sit inside `minicpm_ocr`, or at the top level the same way as
+# /api/image-parse (image / page_index / order / source_token / pages).
 LIS_SERVED_MODEL_NAME = os.environ.get("LIS_SERVED_MODEL_NAME", "").strip()
 PAGE_MODELS = ("minicpm-ocr", "minicpm-ocr-stp", "minicpm-ocr-tts")
 BLOCK_MODEL = "minicpm-ocr-tts-block"
@@ -346,7 +349,7 @@ def _image_from_messages(messages) -> str:
 
 
 def _chat_envelope(content: Dict, model: str) -> Dict:
-    """在业务响应外补齐 OpenAI chat.completion 的必需字段（业务字段原样保留）。"""
+    """Add the OpenAI chat.completion fields around the business response. Business fields stay as they are."""
     choices = content.get("choices") or [{"message": {"content": ""}}]
     for i, choice in enumerate(choices):
         choice.setdefault("index", i)
@@ -363,7 +366,7 @@ def _chat_response(resp: JSONResponse, model: str, stream: bool):
     body = _chat_envelope(json.loads(resp.body), model)
     if not stream:
         return JSONResponse(content=body)
-    # 流式只是把整份结果作为一个 chunk 发出去：识别是整页一次完成的
+    # Streaming sends the whole result as one chunk. Recognition finishes a page in one pass.
     chunk = dict(body, object="chat.completion.chunk",
                  choices=[{"index": 0, "finish_reason": "stop",
                            "delta": {"role": "assistant",
@@ -399,7 +402,7 @@ async def chat_completions(request: Request):
         if target is None:
             return _err(400, f"未知 minicpm_ocr.mode: {mode!r}，可选 {' / '.join(LIS_MODES)}")
 
-    # 顶层字段 < minicpm_ocr 里的字段
+    # A top-level field loses to the same field inside minicpm_ocr.
     merged = {k: body[k] for k in ("image", "page_index", "order", "source_token", "pages") if k in body}
     merged.update({k: v for k, v in params.items() if k != "mode"})
     if "source_token" not in merged and merged.get("request_id"):
@@ -412,7 +415,7 @@ async def chat_completions(request: Request):
 
     merged["image"] = merged.get("image") or _image_from_messages(body.get("messages"))
     if not merged["image"]:
-        # LIS 的「Chat Completions 自测」发纯文本；回 4xx 服务就过不了自测
+        # LIS's Chat Completions self-test sends plain text. A 4xx response fails that check.
         return _chat_response(JSONResponse(content={"choices": [{"message": {"content": LIS_USAGE_TEXT}}]}),
                               model, stream)
     return _chat_response(await run_in_threadpool(_handle_full_page, merged, target), model, stream)
@@ -426,7 +429,7 @@ async def image_parse_merge(request: Request):
 
 @app.post("/api/page-parse")
 async def page_parse(request: Request):
-    """摆正和版面做完就返回票据。切片在这台机器的队列里继续解码。"""
+    """Return a ticket once rotation adaptation and layout finish. Crops keep decoding on this machine's queue."""
     raw = await request.body()
     if not raw:
         return _err(400, "缺少页面图片")
@@ -454,7 +457,7 @@ async def page_parse(request: Request):
 
 @app.get("/api/page-markdown/{ticket}")
 def page_markdown(ticket: str):
-    """票据对应的页还在解码时 ready 为 false。"""
+    """ready is false while the page for this ticket is still decoding."""
     import page_fleet
     try:
         page = page_fleet.take_markdown(ticket)
@@ -465,6 +468,12 @@ def page_markdown(ticket: str):
     if page is None:
         return {"ready": False}
     return {"ready": True, **page}
+
+
+@app.post("/api/kie")
+async def kie(request: Request):
+    body = await request.json()
+    return await run_in_threadpool(_handle_kie, body)
 
 
 @app.post("/api/image-parse")
@@ -524,7 +533,7 @@ def _handle_full_page(body: Dict, model: str) -> JSONResponse:
 
     try:
         upright_on = page_fleet.resolve_upright(upright_choice)
-        # 有分数的两档要支持单块重算，而重算从磁盘读 crop，所以落 crop
+        # The two scored tiers must support a single-block rerun, and a rerun reads the crop from disk, so those crops are saved.
         cfg = RUNNER.build_cfg(job_id, upright=upright_on,
                                mode=_mode_to_recipe(mode),
                                save_crops=mode != "standard")
@@ -537,13 +546,13 @@ def _handle_full_page(body: Dict, model: str) -> JSONResponse:
     layout = _read_json(inter / "layouts" / f"{img_stem}.json")
     result = _read_json(job_dir / "results_json" / f"{img_stem}.json")
 
-    # request_id 即 job id：单块重算 / 跨页合并凭它找回这次的结果
+    # request_id is the job id. A single-block rerun and a cross-page merge find this result with it.
     request_id = job_id
     created_at = int(time.time())
     source_token = request_id
 
     upright_enabled = bool(cfg.get("upright", {}).get("enabled", True))
-    # 跨页合并时要按原样重建这一页的响应
+    # A cross-page merge rebuilds this page's response from the saved fields.
     (job_dir / JOB_META).write_text(json.dumps({
         "mode": mode, "page_index": page_index, "created_at": created_at,
         "upright_enabled": upright_enabled, "image_id": img_stem,
@@ -559,7 +568,7 @@ def _handle_full_page(body: Dict, model: str) -> JSONResponse:
 
 
 def _handle_seal(body: Dict) -> JSONResponse:
-    """整张图当作印章，直接送给识别模型。不摆正，不检测版面，不落 job。"""
+    """Treat the whole image as a seal and send it straight to the recognition model. No rotation adaptation, no layout, and no job on disk."""
     image_b64 = body.get("image", "")
     if not image_b64:
         return _err(400, "缺少 image 字段")
@@ -614,7 +623,7 @@ _KIE_FENCE = re.compile(r"^```(?:json)?\s*([\s\S]*?)\s*```$", re.IGNORECASE)
 
 
 def kie_prompt(fields: List[str]) -> str:
-    """按训练里的英文抽字段句式拼提示。字段名原样放进引号。"""
+    """Build the prompt with the English extract-fields sentence used in training. Field names go inside quotes unchanged."""
     quoted = ", ".join(f'"{name}"' for name in fields)
     return (
         f'Extract the {quoted}. Format the output as a JSON object with keys: {quoted}. '
@@ -623,7 +632,7 @@ def kie_prompt(fields: List[str]) -> str:
 
 
 def normalize_kie_fields(value) -> List[str]:
-    """校验字段名。空串、引号、换行、重名和超长列表都拒绝。"""
+    """Check field names. Empty strings, quotes, newlines, duplicates, and lists that are too long are rejected."""
     if not isinstance(value, list) or not value:
         raise ValueError("缺少 fields")
     if len(value) > KIE_MAX_FIELDS:
@@ -644,14 +653,14 @@ def normalize_kie_fields(value) -> List[str]:
 
 
 def strip_kie_fence(text: str) -> str:
-    """去掉首尾空白和包住整段的 json 围栏，不改字段内容。"""
+    """Strip surrounding whitespace and a json fence around the whole text. Field contents stay unchanged."""
     stripped = (text or "").strip()
     fenced = _KIE_FENCE.match(stripped)
     return fenced.group(1).strip() if fenced else stripped
 
 
 def _handle_kie(body: Dict) -> JSONResponse:
-    """整图按字段抽取。不摆正，不检测版面，不落 job。"""
+    """Extract fields from the whole image. No rotation adaptation, no layout, and no job on disk."""
     image_b64 = body.get("image", "")
     if not image_b64:
         return _err(400, "缺少 image 字段")
@@ -703,10 +712,10 @@ def _handle_kie(body: Dict) -> JSONResponse:
 
 
 def _handle_merge(body: Dict) -> JSONResponse:
-    """跨页表格合并：一份 PDF 的各页都识别完后调用一次。
+    """Cross-page table merge. Call it once after every page of a PDF has been recognized.
 
-    只读不写——逐页结果保持原样（单块重算仍基于原页），合并结果只在响应里。
-    页码不连续处（中间有失败页）断开，不跨缺口合并。只返回有变化的页。
+    Read only. Each page's result stays as it was, so a single-block rerun still uses the original page. The merge exists only in the response.
+    A gap in page numbers, such as a failed page in the middle, breaks the run. Nothing merges across that gap. Only changed pages are returned.
     """
     from minicpmvocr import load_prompt_map
     from minicpmvocr.postprocess.crosspage import apply_cross_page_merge
@@ -730,13 +739,13 @@ def _handle_merge(body: Dict) -> JSONResponse:
         layout = _read_json(job_dir / "runtime" / "intermediate" / "layouts" / f"{image_id}.json")
         if not result or not layout:
             return _err(404, f"识别结果已过期：{rid}")
-        # image_id 在每个 job 里都是 page_xxxx，用 request_id 做键才不会撞
+        # image_id is page_xxxx inside every job. Key by request_id so they do not collide.
         pages.append({"image_id": rid, "page_index": int(meta["page_index"]),
                       "markdown": result.get("markdown", ""),
                       "blocks": result.get("crop_blocks") or []})
         ctx[rid] = {"meta": meta, "result": result, "layout": layout}
 
-    # 页码连续的一段算一个 document，缺口处断开
+    # A run of consecutive page numbers is one document. A gap starts a new run.
     pages.sort(key=lambda p: p["page_index"])
     run = 0
     for i, page in enumerate(pages):
@@ -774,7 +783,7 @@ def _handle_merge(body: Dict) -> JSONResponse:
             created_at=int(meta["created_at"]), source_token=rid,
             page_index=page["page_index"],
         )
-        # absorbed：页首的续表并到了上一页；extended：页尾的表接上了下一页（可同时为真）
+        # absorbed: the continued table at the top of the page was merged into the previous page. extended: the table at the bottom continues onto the next page. Both can be true.
         resp["minicpm_ocr"]["cross_page"] = {"absorbed": absorbed, "extended": extended}
         out.append(resp)
     return JSONResponse(content={"merged_pages": len(out), "pages": out})
@@ -786,7 +795,7 @@ def _handle_rerun_block(body: Dict) -> JSONResponse:
 
 
 # ===================================================================
-# 入口
+# Entry
 # ===================================================================
 
 from document_jobs import router as document_job_router  # noqa: E402

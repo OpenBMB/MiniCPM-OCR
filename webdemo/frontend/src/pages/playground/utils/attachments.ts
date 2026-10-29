@@ -1,8 +1,8 @@
 /**
- * 多模态附件工具：读文件预览、上传对象存储、类型/大小校验、OpenAI content-part 映射。
+ * Multimodal attachment helpers: read a file for preview, upload to object storage, check type and size, and map OpenAI content parts.
  *
- * 用途：Playground 上传图像/视频/文件优先走对象存储 URL，避免 base64 撑大 L2 请求体；
- * 音频因 OpenAI input_audio 契约仍使用裸 base64。
+ * Purpose: Playground uploads of images, video, and files prefer an object-storage URL so base64 does not bloat the L2 request body;
+ * audio still uses raw base64 because of the OpenAI input_audio contract.
  */
 
 import { mapAssetsApi } from '@/api/map/assets';
@@ -10,24 +10,24 @@ import { fileUploadConfig, uploadPlaygroundFile } from '@/api/map/fileUploads';
 import type { Attachment, AttachmentKind } from '../types';
 import type { ChatContentPart } from '@/api/map/chat';
 
-/** 各模态的校验配置：允许的 MIME、大小上限、中文标签 */
+/** Validation config for each modality: allowed MIME types, size limit, and Chinese label */
 interface KindConfig {
-  /** 允许的精确 MIME 列表（file 模态不做白名单，仅按大小与「非媒体」兜底） */
+  /** Exact allowed MIME list (the file modality has no allowlist; it only falls back by size and "not media") */
   accept: string[];
-  /** 大小上限（字节） */
+  /** Size limit (bytes) */
   maxBytes: number;
-  /** 中文标签（错误文案用） */
+  /** Chinese label (used in error copy) */
   label: string;
 }
 
 const MB = 1024 * 1024;
 
-/** 图片、音频和视频的单个附件大小上限。 */
+/** Per-attachment size limit for images, audio, and video. */
 const MAX_BYTES_PER_ATTACHMENT = 8 * MB;
-/** 文档上传大小上限，需与后端 ASSET_UPLOAD_MAX_BYTES 和 portal Nginx 保持一致。 */
+/** Document upload size limit; must stay consistent with backend ASSET_UPLOAD_MAX_BYTES and the portal Nginx limit. */
 const MAX_BYTES_PER_DOCUMENT = 200 * MB;
 
-/** 模态配置表 */
+/** Modality config table */
 const KIND_CONFIG: Record<AttachmentKind, KindConfig> = {
   image: {
     accept: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
@@ -53,7 +53,7 @@ const KIND_CONFIG: Record<AttachmentKind, KindConfig> = {
     label: '音频',
   },
   file: {
-    // 常见文档/文本类型；实际以「非 image/video/audio」兜底为 file
+    // Common document and text types; anything that is not image/video/audio actually falls back to file
     accept: [
       'application/pdf',
       'text/plain',
@@ -79,9 +79,9 @@ function mimeAllowed(mime: string, allowed: readonly string[]): boolean {
 }
 
 /**
- * 获取单个附件模态对应的文件选择器 accept 值。
- * @param kind 附件模态
- * @returns MIME 与扩展名列表
+ * File-picker accept value for a single attachment modality.
+ * @param kind attachment modality
+ * @returns MIME types and extensions
  */
 export function getAttachmentAccept(kind: AttachmentKind): string[] {
   const cfg = KIND_CONFIG[kind];
@@ -89,12 +89,12 @@ export function getAttachmentAccept(kind: AttachmentKind): string[] {
   return [...cfg.accept, '.pdf', '.txt', '.md', '.csv', '.json', '.doc', '.docx'];
 }
 
-/** 单条消息附件总数上限（避免请求体过大） */
+/** Cap on attachments per message (keeps the request body from growing too large) */
 export const MAX_ATTACHMENTS = 6;
 
 /**
- * 按 MIME 判定附件模态。image/video/audio 前缀分别归类，其余一律视为 file。
- * @param mime 文件 MIME
+ * Classify an attachment modality by MIME. image/video/audio prefixes each map to their own kind; everything else is file.
+ * @param mime file MIME
  */
 export function detectKind(mime: string): AttachmentKind {
   if (mime.startsWith('image/')) return 'image';
@@ -103,7 +103,7 @@ export function detectKind(mime: string): AttachmentKind {
   return 'file';
 }
 
-/** 构造本地附件对象；预览地址可以兼容 data URL 与运行时 Blob URL。 */
+/** Build a local attachment object; the preview URL may be either a data URL or a runtime Blob URL. */
 export function createLocalAttachment(
   file: File,
   previewUrl: string,
@@ -120,37 +120,37 @@ export function createLocalAttachment(
   };
 }
 
-/** 读取结果：成功带 attachment，失败带中文错误信息 */
+/** Read result: success carries an attachment, failure carries a Chinese error message */
 export interface ReadAttachmentResult {
   ok: boolean;
   attachment?: Attachment;
   error?: string;
 }
 
-/** 调用方可覆盖读取行为；不传 options 时保持 Playground 附件规则。 */
+/** Callers may override read behavior; omitting options keeps the Playground attachment rules. */
 export interface ReadAttachmentOptions {
-  /** 单文件大小上限。 */
+  /** Per-file size limit. */
   maxBytes?: number;
-  /** 调用方专用 MIME 白名单；缺省使用当前模态配置。 */
+  /** Caller-specific MIME allowlist; defaults to the current modality config. */
   accept?: readonly string[];
-  /** OCR 专用：文件服务不可用时允许退回本地 dataUrl，避免阻断识别。 */
+  /** OCR only: when the file service is unavailable, allow falling back to a local dataUrl so recognition is not blocked. */
   allowLocalFallback?: boolean;
-  /** OCR 专用：直接使用旧资产上传入口，返回平台签名链接。 */
+  /** OCR only: use the legacy asset upload entry directly and return the platform signed URL. */
   preferLegacyUpload?: boolean;
 }
 
 let seq = 0;
-/** 生成附件唯一 id（前端 key / 移除用，无需 crypto 强度） */
+/** Generate a unique attachment id (frontend key / removal; does not need cryptographic strength) */
 function nextId(): string {
   seq += 1;
   return `att_${Date.now().toString(36)}_${seq.toString(36)}`;
 }
 
 /**
- * 读取单个文件为本地预览 data URL，不发送网络请求。
- * @param file 用户选中的文件
- * @param signal 连续选图时中止旧文件读取
- * @returns 成功含 attachment；失败含中文 error
+ * Read a single file as a local preview data URL, with no network request.
+ * @param file file the user selected
+ * @param signal abort signal for an older file read when images are selected in succession
+ * @returns success includes an attachment; failure includes a Chinese error
  */
 export async function readPreviewAttachment(
   file: File,
@@ -160,7 +160,7 @@ export async function readPreviewAttachment(
   const kind = detectKind(file.type);
   const cfg = KIND_CONFIG[kind];
   const maxBytes = options?.maxBytes ?? cfg.maxBytes;
-  // 媒体类做 MIME 白名单校验；file 兜底类不限具体类型（仅封顶大小）
+  // Media kinds are checked against a MIME allowlist; the file fallback kind does not limit the specific type (only the size cap)
   const allowedTypes = options?.accept ?? cfg.accept;
   if (kind !== 'file' && !mimeAllowed(file.type, allowedTypes)) {
     return Promise.resolve({
@@ -216,7 +216,7 @@ function isUploadError(
   );
 }
 
-/** 仅服务或存储故障回退旧入口；业务校验、鉴权和限流错误不能绕过。 */
+/** Fall back to the legacy entry only for a service or storage failure; business validation, auth, and rate-limit errors must not be bypassed. */
 function canFallbackToLegacyUpload(error: unknown): boolean {
   if (!isUploadError(error)) return false;
   if (
@@ -233,11 +233,11 @@ function canFallbackToLegacyUpload(error: unknown): boolean {
 }
 
 /**
- * 读取附件并优先写入文件服务；通用附件在文件服务故障时回退旧资产入口。
- * OCR 选择本地兜底时不访问旧入口，避免上传最终不会使用的对象。
- * @param file 用户选中的文件
- * @param signalOrIndex 中止信号；兼容旧调用方传入的序号
- * @param options 大小上限与本地兜底策略
+ * Read the attachment and write it to the file service first; a general attachment falls back to the legacy asset entry when the file service fails.
+ * When OCR chooses the local fallback, do not touch the legacy entry, so an object that will not be used is not uploaded.
+ * @param file file the user selected
+ * @param signalOrIndex abort signal; compatible with old callers that passed an index
+ * @param options size cap and local-fallback policy
  */
 export async function readFileAsAttachment(
   file: File,
@@ -321,13 +321,13 @@ export async function readFileAsAttachment(
   }
 }
 
-/** 从 data URL 取出去前缀的裸 base64（input_audio.data 需要裸串） */
+/** Take the raw base64 out of a data URL, without the prefix (input_audio.data needs the raw string) */
 function stripDataUrlPrefix(dataUrl: string): string {
   const comma = dataUrl.indexOf(',');
   return comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
 }
 
-/** 由音频 MIME 推断 OpenAI input_audio 的 format 字段（mp3/wav/...） */
+/** Infer the OpenAI input_audio format field (mp3/wav/...) from the audio MIME */
 function audioFormat(mime: string): string {
   if (mime === 'audio/mpeg' || mime === 'audio/mp3') return 'mp3';
   if (mime === 'audio/wav' || mime === 'audio/x-wav') return 'wav';
@@ -336,10 +336,10 @@ function audioFormat(mime: string): string {
 }
 
 /**
- * 把附件映射为 OpenAI 兼容的 content-part。
- * - image → image_url；video → video_url（Qwen-VL 等约定），优先传平台公开签名代理 URL
- * - audio → input_audio（裸 base64 + format）；file → file（优先 file_url，兜底 file_data）
- * @param att 附件
+ * Map an attachment to an OpenAI-compatible content part.
+ * - image → image_url; video → video_url (the Qwen-VL convention and similar), preferring the platform's public signed proxy URL
+ * - audio → input_audio (raw base64 + format); file → file (file_url first, file_data as fallback)
+ * @param att attachment
  */
 export function attachmentToPart(att: Attachment): ChatContentPart {
   const url = att.publicUrl || att.url || att.dataUrl;
@@ -360,12 +360,12 @@ export function attachmentToPart(att: Attachment): ChatContentPart {
   }
 }
 
-/** input[type=file] 的 accept 值：汇总所有模态白名单 + 常见文档扩展名 */
+/** accept value for input[type=file]: every modality allowlist plus common document extensions */
 export const ATTACHMENT_ACCEPT = (Object.keys(KIND_CONFIG) as AttachmentKind[])
   .flatMap((kind) => getAttachmentAccept(kind))
   .join(',');
 
-/** 人类可读的文件大小（用于附件展示） */
+/** Human-readable file size (for attachment display) */
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < MB) return `${(bytes / 1024).toFixed(0)} KB`;

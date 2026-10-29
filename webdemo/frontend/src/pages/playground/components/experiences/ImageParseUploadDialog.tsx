@@ -12,7 +12,7 @@ interface ImageParseUploadDialogProps {
   onPick: (file: File) => void;
 }
 
-/** 新建识别弹窗，复用工作台的上传校验和解析生命周期。 */
+/** New-recognition dialog, reusing the workspace's upload validation and parse lifecycle. */
 export function ImageParseUploadDialog({
   open,
   disabled,

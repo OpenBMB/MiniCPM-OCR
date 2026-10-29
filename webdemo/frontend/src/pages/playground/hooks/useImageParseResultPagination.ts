@@ -1,6 +1,6 @@
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 
-/** PDF 页码状态与结果身份，用于在现有单页结果栏中接续阅读。 */
+/** PDF page state and result identity, used to continue reading in the existing single-page result column. */
 export interface ImageParseResultPaginationOptions {
   pdf?: { page: number; pages: number; setPage: (page: number) => void };
   resultKeyForPage: (page?: number) => string;
@@ -12,11 +12,11 @@ const GESTURE_IDLE_MS = 160;
 const PAGE_TURN_INTERVAL_MS = 320;
 
 /**
- * 当前页预览到达边界后翻页；正文滚动、编辑和缩放继续使用原生交互。
- * @param resultKey 当前结果身份
- * @param options PDF 页码与结果身份
- * @param onEnter 新页挂载后定位到页首或页尾
- * @returns 结果栏根节点 ref，空页和失败页也可接收翻页手势
+ * Turn the page when the current-page preview reaches an edge; body scroll, editing, and zoom keep using native interaction.
+ * @param resultKey current result identity
+ * @param options PDF page number and result identity
+ * @param onEnter after the new page mounts, position at the start or the end of the page
+ * @returns the result-column root ref; an empty page and a failed page can also receive the page-turn gesture
  */
 export function useImageParseResultPagination(
   resultKey: string,
@@ -60,7 +60,7 @@ export function useImageParseResultPagination(
         return;
       const viewport = root.querySelector<HTMLElement>('[data-ocr-result-scroll]');
       if (viewport && (!(target instanceof Node) || !viewport.contains(target))) return;
-      // 嵌套表格/代码滚动区域不应该触发整页切换。
+      // A nested table or code scroll area should not trigger a whole-page switch.
       if (target instanceof HTMLElement) {
         for (
           let node: HTMLElement | null = target;
@@ -96,7 +96,7 @@ export function useImageParseResultPagination(
       const next = page + direction;
       if (next < 1 || next > pages) return;
       event.preventDefault();
-      // 一次触控板惯性手势只跨一页，短页也不会连续跳到文档末尾。
+      // One trackpad inertia gesture crosses only one page, so a short page does not keep jumping to the end of the document.
       if (gestureLocked.current) return;
       entry.current = { key: pageKey(next), previousKey: resultKey, edge: direction > 0 ? 0 : 1 };
       gestureLocked.current = true;
@@ -114,7 +114,7 @@ export function useImageParseResultPagination(
       if (pending.previousKey !== resultKey) entry.current = undefined;
       return;
     }
-    // 左侧页码定位在下一帧提交，再恢复右侧入口，避免旧页确认覆盖新页底部。
+    // The left page-number position is committed on the next frame, then the right entry is restored, so the old page's confirmation does not cover the bottom of the new page.
     let frame = requestAnimationFrame(() => {
       frame = requestAnimationFrame(() => {
         if (entry.current === pending && onEnter(pending.edge)) entry.current = undefined;

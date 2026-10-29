@@ -2,14 +2,14 @@ import { mapRequest } from './request';
 import type { CaptchaChallengeDTO, MapAuthResponse, MapPortalUser } from './types';
 
 /**
- * MAP 认证 API。
+ * MAP auth API.
  *
- * 用途：开发者门户的注册 / 登录 / 验证码 / 找回密码等认证动作，全部由 `mapRequest` 直发
- * MAP 后端（裸 JSON）。这些是命令式一次性动作，调用方用 ahooks/useApi 或 mutation 触发，
- * 不进 TanStack Query 缓存。由原 `web/portal/src/api.ts` 的 `client` 认证段迁移而来。
+ * Purpose: developer-portal auth actions such as register, login, verification code, and password recovery are all sent by `mapRequest`
+ * directly to the MAP backend (raw JSON). These are imperative one-shot actions. Callers trigger them with ahooks/useApi or a mutation,
+ * and they do not enter the TanStack Query cache. Migrated from the `client` auth section of the original `web/portal/src/api.ts`.
  */
 export const mapAuthApi = {
-  /** 探测公共配置（是否启用人机验证、门户飞连登录、第三方登录等），无需鉴权 */
+  /** Probe public config (whether human verification, portal Feilian login, third-party login, and similar are enabled); no auth required */
   publicConfig: () =>
     mapRequest<{
       feilian_enabled: boolean;
@@ -24,38 +24,38 @@ export const mapAuthApi = {
       wechat_enabled: boolean;
     }>('/auth/config'),
 
-  /** 获取一道滑块人机验证题（答案只存服务端） */
+  /** Fetch one slider human-verification challenge (the answer is stored only on the server) */
   getCaptcha: () => mapRequest<CaptchaChallengeDTO>('/auth/captcha', { method: 'POST' }),
 
-  /** 校验滑块落点，通过后服务端写一次性通行凭证（用题目 id 作为凭证 id） */
+  /** Check the slider drop point; on success the server writes a one-time pass (the challenge id is the pass id) */
   verifyCaptcha: (payload: { id: string; x: number; y: number }) =>
     mapRequest<{ id: string; passed: boolean }>('/auth/captcha/verify', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
 
-  /** 注册（手机号 + 验证码 + 密码） */
+  /** Register (phone number + verification code + password) */
   register: (payload: { phone: string; code: string; name?: string; password: string; referral_code?: string }) =>
     mapRequest<MapAuthResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
 
-  /** 校验邮箱验证令牌 */
+  /** Verify an email verification token */
   verifyEmail: (token: string) =>
     mapRequest<{ token: string; user: MapPortalUser }>('/auth/verify-email', {
       method: 'POST',
       body: JSON.stringify({ token }),
     }),
 
-  /** 重发邮箱验证邮件 */
+  /** Resend the email verification message */
   resendVerification: (email: string) =>
     mapRequest<MapAuthResponse>('/auth/resend-verification', {
       method: 'POST',
       body: JSON.stringify({ email }),
     }),
 
-  /** 账号密码登录（账号支持手机号或邮箱）。captchaId 为人机验证通行凭证 */
+  /** Account and password login (the account may be a phone number or an email). captchaId is the human-verification pass */
   login: (payload: { account: string; password: string; captchaId?: string }) =>
     mapRequest<MapAuthResponse>('/auth/login', {
       method: 'POST',
@@ -66,121 +66,121 @@ export const mapAuthApi = {
       }),
     }),
 
-  /** 密码登录的新 IP 二次验证通过后签发登录态 */
+  /** Issue a login session after the new-IP second verification for password login succeeds */
   verifyPasswordLogin: (payload: { challenge_token: string; code: string }) =>
     mapRequest<MapAuthResponse>('/auth/password-login/verify', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
 
-  /** 重发密码登录的新 IP 二次验证码 */
+  /** Resend the new-IP second verification code for password login */
   resendPasswordLogin: (payload: { challenge_token: string }) =>
     mapRequest<MapAuthResponse>('/auth/password-login/resend', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
 
-  /** 发送短信验证码。captchaId 为人机验证通行凭证 */
+  /** Send an SMS verification code. captchaId is the human-verification pass */
   sendSMSCode: (phone: string, captchaId?: string) =>
     mapRequest<MapAuthResponse>('/auth/sms-code', {
       method: 'POST',
       body: JSON.stringify({ phone, captcha_id: captchaId }),
     }),
 
-  /** 发送邮箱验证码（注册/登录/找回密码共用，验证码只通过邮件发送）。captchaId 为人机验证通行凭证 */
+  /** Send an email verification code (shared by register/login/password recovery; the code is sent only by email). captchaId is the human-verification pass */
   sendEmailCode: (email: string, captchaId?: string) =>
     mapRequest<MapAuthResponse>('/auth/email-code', {
       method: 'POST',
       body: JSON.stringify({ email, captcha_id: captchaId }),
     }),
 
-  /** 邮箱 + 验证码登录（未注册邮箱将自动注册） */
+  /** Email + verification code login (an unregistered email is registered automatically) */
   emailLogin: (payload: { email: string; code: string; name?: string; referral_code?: string }) =>
     mapRequest<MapAuthResponse>('/auth/email-login', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
 
-  /** 邮箱 + 验证码 + 密码注册 */
+  /** Register with email + verification code + password */
   emailRegister: (payload: { email: string; code: string; name?: string; password: string; referral_code?: string }) =>
     mapRequest<MapAuthResponse>('/auth/email-register', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
 
-  /** 手机号 + 验证码登录（未注册手机号将自动注册） */
+  /** Phone + verification code login (an unregistered phone number is registered automatically) */
   phoneLogin: (payload: { phone: string; code: string; name?: string; referral_code?: string }) =>
     mapRequest<MapAuthResponse>('/auth/phone-login', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
 
-  /** 发起找回密码，返回重置令牌。captchaId 为人机验证通行凭证 */
+  /** Start password recovery and return a reset token. captchaId is the human-verification pass */
   forgotPassword: (email: string, captchaId?: string) =>
     mapRequest<MapAuthResponse>('/auth/forgot-password', {
       method: 'POST',
       body: JSON.stringify({ email, captcha_id: captchaId }),
     }),
 
-  /** 用重置令牌设置新密码（邮箱找回） */
+  /** Set a new password with the reset token (email recovery) */
   resetPassword: (payload: { token: string; password: string }) =>
     mapRequest<{ status: string }>('/auth/reset-password', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
 
-  /** 手机号 + 短信验证码重置密码（短信找回，复用 /auth/sms-code 下发的验证码） */
+  /** Reset the password with phone + SMS verification code (SMS recovery, reusing the code issued by /auth/sms-code) */
   resetPasswordBySms: (payload: { phone: string; code: string; password: string }) =>
     mapRequest<{ status: string }>('/auth/reset-password', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
 
-  /** 邮箱 + 验证码重置密码（邮箱找回，复用 /auth/email-code 下发的验证码，与手机找回对称） */
+  /** Reset the password with email + verification code (email recovery, reusing the code issued by /auth/email-code, symmetric with phone recovery) */
   resetPasswordByEmailCode: (payload: { email: string; code: string; password: string }) =>
     mapRequest<{ status: string }>('/auth/reset-password', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
 
-  /** 退出登录 */
+  /** Log out */
   logout: () => mapRequest<{ status: string }>('/auth/logout', { method: 'POST' }),
 
-  /** 获取当前登录用户信息 */
+  /** Fetch the currently logged-in user */
   me: () => mapRequest<MapPortalUser>('/me'),
 
-  /** 注销（软删除）当前账号 */
+  /** Delete (soft-delete) the current account */
   deleteAccount: () => mapRequest<{ status: string }>('/me', { method: 'DELETE' }),
 
-  /** 登录态设置或修改密码；提供 current_password 时校验旧密码 */
+  /** Set or change the password while logged in; when current_password is provided, verify the old password */
   updatePassword: (payload: { current_password?: string; password: string }) =>
     mapRequest<{ status: string; token?: string }>('/me/password', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
 
-  /** 登录态修改昵称（name）与/或用户名（username） */
+  /** Change the nickname (name) and/or username (username) while logged in */
   updateProfile: (payload: { name?: string; username?: string }) =>
     mapRequest<MapPortalUser>('/me', {
       method: 'PATCH',
       body: JSON.stringify(payload),
     }),
 
-  /** 登录态绑定邮箱（需先经 sendEmailCode 拿验证码） */
+  /** Bind an email while logged in (get a verification code from sendEmailCode first) */
   bindEmail: (payload: { email: string; code: string }) =>
     mapRequest<MapPortalUser>('/me/email', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
 
-  /** 登录态发送手机号绑定验证码；captchaId 为人机验证通行凭证 */
+  /** Send a phone-binding verification code while logged in; captchaId is the human-verification pass */
   sendPhoneBindCode: (phone: string, captchaId?: string) =>
     mapRequest<MapAuthResponse>('/me/phone/code', {
       method: 'POST',
       body: JSON.stringify({ phone, captcha_id: captchaId }),
     }),
 
-  /** 登录态绑定手机号（需先经 sendPhoneBindCode 获取专用验证码） */
+  /** Bind a phone number while logged in (get the dedicated code from sendPhoneBindCode first) */
   bindPhone: (payload: { phone: string; code: string }) =>
     mapRequest<MapPortalUser>('/me/phone', {
       method: 'POST',
@@ -189,30 +189,30 @@ export const mapAuthApi = {
 };
 
 /**
- * 飞连（Feilian）SSO 门户登录入口（仅测试环境启用，由后端 feilian_enabled 开关驱动）。
+ * Feilian SSO portal login entry (enabled only in the test environment, driven by the backend feilian_enabled switch).
  *
- * 整页跳转到后端 `/auth/feilian/login?target=portal`，后端 302 跳飞连授权页；授权后飞连
- * 回调后端 `/admin/auth/callback`（与管理台复用同一 redirect_uri，靠 state 里的 target 区分），
- * 后端按邮箱 upsert 门户用户并签发用户 JWT，以 URL fragment（`#token=...`）回跳门户登录页。
+ * Navigate the whole page to backend `/auth/feilian/login?target=portal`. The backend 302s to the Feilian authorization page; after authorization Feilian
+ * calls back to backend `/admin/auth/callback` (the same redirect_uri as the admin console, distinguished by target in state),
+ * the backend upserts the portal user by email and issues a user JWT, then redirects back to the portal login page with a URL fragment (`#token=...`).
  *
- * 路径前缀与 mapRequest 对齐：dev 走 `/api`（Vite 代理去前缀转发到后端），生产同源直连
- * 网关 `/auth` 路由。飞连是整页导航，不走 fetch，故此处单独拼前缀而非用 mapRequest。
+ * The path prefix matches mapRequest: dev uses `/api` (the Vite proxy strips the prefix and forwards to the backend), and production calls the same origin directly
+ * at the gateway `/auth` route. Feilian is a full-page navigation and does not use fetch, so the prefix is assembled here instead of using mapRequest.
  */
 export function feilianLogin(): void {
   const base = import.meta.env.DEV ? '/api' : '';
   window.location.assign(`${base}/auth/feilian/login?target=portal`);
 }
 
-/** 第三方登录提供方标识：与后端 /auth/oauth/{provider}/login 的 path 参数一致。 */
+/** Third-party login provider id: matches the path parameter of backend /auth/oauth/{provider}/login. */
 export type OAuthProvider = 'google' | 'github' | 'wechat';
 
 /**
- * 第三方（社会化）登录入口：Google / GitHub / 微信。
+ * Third-party (social) login entry: Google / GitHub / WeChat.
  *
- * 整页跳转到后端 `/auth/oauth/{provider}/login?target=portal`，后端 302 跳对应授权页；
- * 授权后回调后端 `/auth/oauth/{provider}/callback`，后端换 token、拉 userinfo、幂等建号/绑定，
- * 并以 URL fragment（`#token=...`）把用户 JWT 回跳门户登录页（与飞连回跳同构，前端复用同一处理）。
- * 路径前缀与 feilianLogin 对齐：dev 走 `/api`（Vite 代理去前缀），生产同源直连网关 `/auth`。
+ * Navigate the whole page to backend `/auth/oauth/{provider}/login?target=portal`. The backend 302s to the matching authorization page;
+ * after authorization it calls back to backend `/auth/oauth/{provider}/callback`, which exchanges the token, loads userinfo, and idempotently creates or binds the account,
+ * then redirects the user JWT back to the portal login page in a URL fragment (`#token=...`) (same shape as the Feilian return, and the frontend reuses the same handling).
+ * The path prefix matches feilianLogin: dev uses `/api` (the Vite proxy strips the prefix), and production calls the gateway `/auth` on the same origin.
  */
 export function oauthLogin(provider: OAuthProvider): void {
   const base = import.meta.env.DEV ? '/api' : '';

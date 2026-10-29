@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { linkifyCitationMarkers } from '../citationMarkers';
 import type { Citation } from '../../types';
 
-/** 两条来源：下标 +1 即角标编号。 */
+/** Two sources: index + 1 is the citation-marker number. */
 const citations: Citation[] = [
   { url: 'https://one.example.com/a', title: '来源一' },
   { url: 'https://two.example.com/b', title: '来源二' },
@@ -83,7 +83,7 @@ describe('linkifyCitationMarkers', () => {
     expect(linkifyCitationMarkers('结论[ref_7]。', withRefs)).toBe(
       '结论[7](https://two.example.com/b)。',
     );
-    // 裸角标是兜底路径：模型不听话时同样按编号查，而不是按数组下标。
+    // A bare citation marker is the fallback path: when the model does not follow instructions, look it up by number rather than by array index.
     expect(linkifyCitationMarkers('结论[4]。', withRefs)).toBe(
       '结论[4](https://one.example.com/a)。',
     );
@@ -94,8 +94,8 @@ describe('linkifyCitationMarkers', () => {
       { ref: 4, url: 'https://one.example.com/a', title: '来源一' },
       { ref: 7, url: 'https://two.example.com/b', title: '来源二' },
     ];
-    // [1] 在旧口径下会指向数组第一条；有 ref 之后它是个无效编号，必须原样留着——
-    // 回退数组下标恰好会把无效角标指到一条无关来源上，那正是本次改动要消灭的缺陷。
+    // Under the old rule, [1] pointed at the first array item; once a ref exists it is an invalid number and must be left as-is —
+    // falling back to the array index would point that invalid marker at an unrelated source, which is the defect this change removes.
     expect(linkifyCitationMarkers('结论[1]。', withRefs)).toBe('结论[1]。');
     expect(linkifyCitationMarkers('结论[ref_9]。', withRefs)).toBe('结论[ref_9]。');
   });
@@ -109,13 +109,13 @@ describe('linkifyCitationMarkers', () => {
   });
 
   it('英文正文里紧跟单词的 [ref_N] 仍是引用', () => {
-    // 提示词要求角标紧跟论断，英文下必然写成 blue[ref_1]。下标判据若对带 ref_ 的角标
-    // 也一刀切，英文回答的角标会被整批当成 arr[1] 吞掉。
+    // The prompt requires the citation marker to follow the claim, so English necessarily writes blue[ref_1]. If the index heuristic also
+    // cuts markers that contain ref_, every citation marker in an English answer would be swallowed as arr[1].
     const withRefs: Citation[] = [{ ref: 1, url: 'https://a.example', title: 'A' }];
     expect(linkifyCitationMarkers('The sky is blue[ref_1].', withRefs)).toBe(
       'The sky is blue[1](https://a.example).',
     );
-    // 裸角标没有前缀消歧，紧跟标识符时仍按下标取值处理。
+    // A bare citation marker has no prefix to disambiguate it; when it immediately follows an identifier it is still treated as an index lookup.
     expect(linkifyCitationMarkers('arr[1] 取值', withRefs)).toBe('arr[1] 取值');
   });
 
@@ -130,7 +130,7 @@ describe('linkifyCitationMarkers', () => {
   });
 
   it('一个方括号里合写的多个编号全部展开', () => {
-    // 提示词只要求角标紧跟论断，没规定一处只能引一条来源，模型把多来源合写是常态。
+    // The prompt only requires the marker to follow the claim; it does not limit a claim to one source, so the model often writes several sources together.
     const withRefs: Citation[] = [
       { ref: 3, url: 'https://one.example.com/a', title: '来源一' },
       { ref: 5, url: 'https://two.example.com/b', title: '来源二' },
@@ -138,14 +138,14 @@ describe('linkifyCitationMarkers', () => {
     expect(linkifyCitationMarkers('打造模型库[ref_3, ref_5]。', withRefs)).toBe(
       '打造模型库[3](https://one.example.com/a)[5](https://two.example.com/b)。',
     );
-    // 裸角标合写同理，中文顿号也是模型常用的分隔符。
+    // Grouped bare markers work the same way; the Chinese enumeration comma is also a separator the model commonly uses.
     expect(linkifyCitationMarkers('打造模型库[3、5]。', withRefs)).toBe(
       '打造模型库[3](https://one.example.com/a)[5](https://two.example.com/b)。',
     );
   });
 
   it('合写角标里有编号查不到来源时整体保持原文', () => {
-    // 半改写会留下「一个链接 + 一截裸文本」，读者无从判断后半截是没搜到还是渲染坏了。
+    // A partial rewrite leaves "one link + a trailing bare text fragment", and the reader cannot tell whether the trailing part was not found or failed to render.
     const withRefs: Citation[] = [{ ref: 3, url: 'https://one.example.com/a', title: '来源一' }];
     expect(linkifyCitationMarkers('打造模型库[ref_3, ref_9]。', withRefs)).toBe(
       '打造模型库[ref_3, ref_9]。',

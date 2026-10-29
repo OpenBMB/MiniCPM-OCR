@@ -13,21 +13,21 @@ export interface UseImageParseGuidedTourOptions {
   tourId: string;
   userId?: string;
   enabled: boolean;
-  /** 首屏身份、历史与当前文档初始化结束后才自动启动。 */
+  /** Start automatically only after first-screen identity, history, and the current document have finished initializing. */
   ready?: boolean;
   hasDocument?: boolean;
-  /** 当前阶段可展示目标；不同任务可分别表示配置就绪或结果就绪。 */
+  /** Targets the current phase can show; different tasks may mean configuration ready or result ready. */
   resultReady?: boolean;
-  /** 上传失败、识别失败或用户停止时，取消自动恢复。 */
+  /** Cancel automatic resume when upload fails, recognition fails, or the user stops. */
   failed?: boolean;
   gateSelectors: readonly string[];
   buildSteps: (hasDocument: () => boolean) => DriveStep[];
 }
 
 /**
- * 图像解析任务共用的首次引导生命周期，负责任务状态暂停、恢复与已读记录。
- * @param options 引导标识、步骤构造和当前任务状态
- * @returns 手动重播引导的入口
+ * Shared first-visit tour lifecycle for image-parsing tasks, responsible for pausing and resuming on task state, and for the seen record.
+ * @param options tour id, step builder, and current task state
+ * @returns the entry that replays the tour manually
  */
 export function useImageParseGuidedTour({
   tourId,
@@ -78,7 +78,7 @@ export function useImageParseGuidedTour({
         clearTourStepHighlight();
         stopLayoutTracking.current();
         markSeen();
-        // 动画尚未完成时 driver 不一定触发 onDestroyed，用户关闭必须在此清理。
+        // Before the animation finishes, driver may not fire onDestroyed; a user close must clean up here.
         tourRef.current = null;
         instance.destroy();
       },
@@ -93,7 +93,7 @@ export function useImageParseGuidedTour({
     tour.drive();
   }, [buildSteps, closeAutoOpenedMenu, markSeen, openMenuForStep, t]);
 
-  // 语言变化更新下次启动的步骤，不中途销毁引导。
+  // A language change updates the steps for the next start, and does not destroy the tour halfway.
   const startRef = useRef(start);
   useLayoutEffect(() => {
     documentRef.current = hasDocument;
@@ -112,10 +112,10 @@ export function useImageParseGuidedTour({
     tourRef.current = null;
     active?.destroy();
   }, [closeAutoOpenedMenu]);
-  // 程序化清理不走用户关闭钩子，避免切页或账号切换被误记为已读。
+  // Programmatic cleanup does not go through the user-close hook, so changing pages or accounts is not recorded as seen by mistake.
   useEffect(() => stop, [enabled, userId, tourId, stop]);
 
-  // 上传/识别时移除遮罩，保留步骤；只在当前任务目标就绪后恢复。
+  // While uploading or recognizing, remove the mask and keep the step; resume only after the current task's target is ready.
   useEffect(() => {
     if (!enabled || !userId) return;
     if (failed) {
@@ -170,7 +170,7 @@ export function useImageParseGuidedTour({
       tourRef.current?.isActive()
     )
       return;
-    // 等首屏布局稳定再弹，避免遮罩跟着布局抖动。
+    // Wait for the first-screen layout to settle before popping, so the mask does not jitter with the layout.
     timerRef.current = window.setTimeout(() => {
       timerRef.current = undefined;
       pendingReplay.current = false;
@@ -181,7 +181,7 @@ export function useImageParseGuidedTour({
       timerRef.current = undefined;
     };
   }, [enabled, userId, ready, hasDocument, resultReady, failed, seen]);
-  /** 手动重播忽略已读记录，初始化中则等页面就绪。 */
+  /** A manual replay ignores the seen record, and waits for the page to be ready if initialization is still in progress. */
   const replay = useCallback(() => {
     if (!enabled || !userId) return;
     stop();

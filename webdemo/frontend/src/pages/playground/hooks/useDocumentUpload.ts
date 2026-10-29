@@ -1,4 +1,4 @@
-/** 文档远端上传生命周期：替换即取消旧任务，失败保留文件以便重试。 */
+/** Remote document-upload lifecycle: replacing cancels the old task, and a failure keeps the file so it can be retried. */
 import { useEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -20,18 +20,18 @@ interface UploadState {
   error?: string;
 }
 
-/** OCR 文档读取配置：本地大小上限必须显式传入，避免通用附件默认值误伤 PDF。 */
+/** OCR document read config: the local size cap must be passed explicitly, so the generic attachment default does not harm a PDF. */
 interface DocumentReadOptions extends ReadAttachmentOptions {
   maxBytes: number;
 }
 
 /**
- * 编排图像解析的真实上传，组件卸载或新文件到来时隔离过期响应。
- * @param onReady 成功后替换当前附件
- * @param scope 账号及默认项目标识，变化时取消旧上传
- * @param onStart 文件通过校验后清除旧识别结果
- * @param previewOnly 无解析模型时仅本地预览，不向服务端上传
- * @param rules 当前识别档位的格式、数量与大小边界
+ * Orchestrate the real upload for image parsing, and isolate a stale response when the component unmounts or a new file arrives.
+ * @param onReady replace the current attachment after success
+ * @param scope account and default-project id; a change cancels the old upload
+ * @param onStart clear the old recognition result after the file passes checks
+ * @param previewOnly when there is no parsing model, preview locally only and do not upload to the server
+ * @param rules format, count, and size bounds of the current recognition tier
  */
 export function useDocumentUpload(
   onReady: (attachment: Attachment) => void,
@@ -45,7 +45,7 @@ export function useDocumentUpload(
   const active = useRef<AbortController | null>(null);
   const previousScope = useRef(scope);
   const mutation = useMutation({
-    // 上传由用户显式重试，不让缓存保留文档内容。
+    // Upload is retried explicitly by the user; do not let the cache keep the document content.
     gcTime: 0,
     retry: false,
     mutationFn: async ({ resultPromise }: { resultPromise: Promise<ReadAttachmentResult> }) => {
@@ -103,9 +103,9 @@ export function useDocumentUpload(
     onStart?.();
     setState({ file, pending: true });
     try {
-      // 先建立上传请求再交给 mutation 追踪，保证连续替换时旧请求已能立即响应 abort。
+      // Create the upload request before handing it to the mutation to track, so when files are replaced in succession the old request can already respond to abort immediately.
       const normalized = normalizeDocumentFile(file);
-      // 上传失败不进入识别；只有预览模式允许不访问文件服务。
+      // A failed upload does not enter recognition; only preview mode may avoid the file service.
       const options = {
         maxBytes: rules?.maxBytes ?? DOCUMENT_MAX_BYTES,
         accept: rules?.accept ?? DOCUMENT_IMAGE_TYPES,
@@ -123,7 +123,7 @@ export function useDocumentUpload(
       setState({
         file,
         pending: false,
-        // SDK/上游消息可能带签名 URL，界面只展示稳定文案。
+        // An SDK or upstream message may carry a signed URL; the UI shows only stable copy.
         error: t('documentUploadFailed'),
       });
       return undefined;
@@ -138,7 +138,7 @@ export function useDocumentUpload(
   return { ...state, upload, cancel, retry: () => state.file && void upload(state.file) };
 }
 
-/** OCR 原件上传统一通过文件服务。 */
+/** OCR original uploads all go through the file service. */
 function readDocumentAttachment(file: File, options: DocumentReadOptions, signal: AbortSignal) {
   return uploadImageParseDocument(file, options, signal);
 }

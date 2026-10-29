@@ -7,15 +7,15 @@ import { mergeImageParseTables } from '../utils/imageParseTableMerge';
 
 interface ExampleMergeState {
   status: 'idle' | 'merging' | 'merged';
-  /** 被合并改动过的页（0 起始） */
+  /** Pages changed by a merge (0-based) */
   pages: number[];
 }
 
 const MERGE_IDLE: ExampleMergeState = { status: 'idle', pages: [] };
 
 /**
- * 多页示例的跨页表格合并：复用 PDF 的前端表格合并逻辑。
- * 结果只返回有变化的页，由调用方写回示例快照并从原图/结果栏重新渲染。
+ * Cross-page table merge for a multi-page example: reuse the PDF frontend table-merge logic.
+ * The result returns only pages that changed; the caller writes them back to the example snapshot and re-renders from the original image and the result column.
  */
 export function useImageParseExampleMerge(
   snapshots?: readonly ImageParseSnapshot[],
@@ -52,14 +52,14 @@ export function useImageParseExampleMerge(
     setState(MERGE_IDLE);
   }, [onMerged]);
 
-  // 切换示例时上一组的合并结果不能带到新一组页面。
+  // When switching examples, the previous group's merge result must not be carried onto the new group's pages.
   useEffect(() => {
     setState(MERGE_IDLE);
   }, [snapshots]);
 
   return {
     ...state,
-    /** 与 PDF 合并共用构建开关；关闭时工具栏不渲染合并按钮。 */
+    /** Shares the build flag with PDF merge; when it is off, the toolbar does not render the merge button. */
     enabled: IMAGE_PARSE_CROSS_PAGE_MERGE_ENABLED,
     available,
     merge,

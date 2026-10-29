@@ -66,7 +66,7 @@ describe('ChatComposer', () => {
 
     const toggle = screen.getByRole('switch', { name: '联网搜索' });
     expect(toggle).toHaveAttribute('aria-checked', 'true');
-    // 联网与思考是同级能力开关，开启态统一走弱底；实底只留给发送按钮
+    // Web search and reasoning are peer capability switches; the on state uses the same weak fill, and a solid fill is reserved for the send button
     expect(toggle).toHaveClass('bg-primary/10', 'text-primary');
     expect(toggle).not.toHaveClass('text-primary-foreground');
     expect(

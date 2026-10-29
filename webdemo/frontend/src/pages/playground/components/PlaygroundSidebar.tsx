@@ -1,11 +1,10 @@
 /**
- * 体验中心左侧栏。
+ * Left sidebar of the experience center.
  *
- * 用途：顶部「返回 + 折叠」；「模型体验」分组按当前用户可见模型动态展示；底部历史列表按当前体验
- * 使用对应的数据和操作。
+ * Purpose: "back + collapse" at the top; the "model experiences" group is shown dynamically from the models visible to the current user; the history list at the bottom uses the data and actions for the current experience.
  */
 
-import { ScanText } from 'lucide-react';
+import { ListChecks, ScanText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { isDocumentExperience, type ExperienceKey } from '../utils/experienceRoute';
@@ -21,37 +20,37 @@ export type { ExperienceKey, SidebarSession };
 interface PlaygroundSidebarProps {
   collapsed: boolean;
   onToggle: () => void;
-  /** 模型体验当前激活项 */
+  /** Currently active item in model experiences */
   activeExperience: ExperienceKey;
   onSelectExperience: (key: ExperienceKey) => void;
-  /** 最近对话 */
+  /** Recent conversations */
   sessions: SidebarSession[];
   activeSessionId?: string;
   onSelectSession: (id: string) => void;
   onDeleteSession: (id: string) => void;
   onNewChat: () => void;
-  /** 当前用户是否有语音合成模型（无则不渲染该入口） */
+  /** Whether the current user has a speech-synthesis model (otherwise do not render that entry) */
   hasTtsModels?: boolean;
-  /** 当前用户是否有实时音视频模型（无则不渲染该入口） */
+  /** Whether the current user has a realtime audio-video model (otherwise do not render that entry) */
   hasRealtimeModels?: boolean;
-  /** 当前用户是否有文档解析模型（无则不渲染该入口） */
+  /** Whether the current user has a document-parse model (otherwise do not render that entry) */
   hasImageParseModels?: boolean;
-  /** 是否还有更多历史可加载 */
+  /** Whether more history can be loaded */
   hasMore?: boolean;
-  /** 正在加载更多 */
+  /** Loading more */
   loadingMore?: boolean;
-  /** 显式加载下一页 */
+  /** Explicitly load the next page */
   onLoadMore?: () => void;
-  /** OCR 云端个人历史；正文由 OCR 工作台按需读取。 */
+  /** OCR cloud personal history; the body is read on demand by the OCR workspace. */
   imageParseHistory?: PlaygroundSidebarHistory;
 }
 
 /**
- * 模型体验分组项。语言模型恒在；语音合成 / 实时音视频 / 文档解析均按当前用户可见模型动态增减。
- * @param hasTts 是否有语音合成模型
- * @param hasRealtime 是否有实时音视频模型
- * @param hasImageParse 是否有文档解析模型
- * @returns 可展示的体验入口列表
+ * Items in the model-experiences group. The language model is always present; speech synthesis / realtime audio-video / document parse are added or removed from the models visible to the current user.
+ * @param hasTts Whether there is a speech-synthesis model
+ * @param hasRealtime Whether there is a realtime audio-video model
+ * @param hasImageParse Whether there is a document-parse model
+ * @returns Experience entries that can be shown
  */
 function experienceItems(
   hasTts: boolean,
@@ -62,6 +61,7 @@ function experienceItems(
     tts: string;
     realtime: string;
     imageParse: string;
+    fieldExtract: string;
   },
 ): SidebarItem[] {
   if (hasImageParse) {
@@ -71,13 +71,18 @@ function experienceItems(
         label: labels.imageParse,
         icon: <ScanText className="h-4 w-4" aria-hidden="true" />,
       },
+      {
+        key: 'field-extract',
+        label: labels.fieldExtract,
+        icon: <ListChecks className="h-4 w-4" aria-hidden="true" />,
+      },
     ];
   }
   return [];
 }
 
 /**
- * 左侧栏。
+ * Left sidebar.
  */
 export function PlaygroundSidebar({
   collapsed,
@@ -108,7 +113,7 @@ export function PlaygroundSidebar({
         collapsed ? 'w-16' : 'w-60'
       }`}
     >
-      {/* 顶部：返回 + 折叠 */}
+      {/* Top: back + collapse */}
       <div className="flex h-14 shrink-0 items-center justify-between px-3">
         <button
           type="button"
@@ -149,6 +154,7 @@ export function PlaygroundSidebar({
               tts: t('tts'),
               realtime: t('realtime'),
               imageParse: t('imageParse'),
+              fieldExtract: t('fieldExtract'),
             })}
             activeKey={activeExperience}
             collapsed={collapsed}
@@ -185,7 +191,7 @@ export function PlaygroundSidebar({
   );
 }
 
-/* —— 内联图标（保持与门户一致的细线风格，避免新增依赖） —— */
+/* —— Inline icons (keep the same thin-line style as the portal, and avoid a new dependency) —— */
 function IconText() {
   return (
     <svg

@@ -39,7 +39,7 @@ const result = adaptImageParseV2({
 const ranges = imageParseBlockRanges(result.markdown, result.blocks);
 const linkedRanges = [...ranges].map(([id, range]) => ({ id, range }));
 
-/** 复用工作台悬停状态链路，覆盖真实服务响应到原图框的双向映射。 */
+/** Reuse the workspace hover-state path, covering the two-way mapping from a real service response to original-image boxes. */
 function PdfHoverWorkspace() {
   const [hoveredId, setHoveredId] = useState<string>();
   const parse = {

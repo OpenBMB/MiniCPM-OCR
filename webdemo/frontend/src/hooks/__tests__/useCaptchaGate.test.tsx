@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { setApplicationLocale } from '@/i18n';
 import { useCaptchaGate } from '../useCaptchaGate';
 
-// mock 认证 API，隔离网络
+// Mock the auth API so the test stays off the network.
 const publicConfig = vi.fn();
 const getCaptcha = vi.fn();
 const verifyCaptcha = vi.fn();
@@ -66,7 +66,7 @@ describe('useCaptchaGate', () => {
       void result.current.runWithCaptcha(action);
     });
 
-    // 弹窗打开、取题被调用，但动作在验证通过前不执行
+    // The dialog opens and a challenge is fetched, but the action does not run until verification passes.
     await waitFor(() => expect(result.current.dialogProps.open).toBe(true));
     await waitFor(() => expect(getCaptcha).toHaveBeenCalledTimes(1));
     expect(action).not.toHaveBeenCalled();
@@ -111,7 +111,7 @@ describe('useCaptchaGate', () => {
     });
     await waitFor(() => expect(result.current.dialogProps.open).toBe(true));
 
-    // 模拟用户拖动释放
+    // Simulate the user releasing the drag.
     await act(async () => {
       result.current.dialogProps.onConfirm({ x: 100, y: 2 }, () => {});
       await pending;

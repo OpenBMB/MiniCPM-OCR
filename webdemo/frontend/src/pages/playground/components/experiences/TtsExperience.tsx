@@ -1,10 +1,7 @@
 /**
- * 体验中心「语音合成（TTS）」体验页。
+ * Experience-center "speech synthesis (TTS)" page.
  *
- * 用途：真实语音合成工作台——左侧文本输入与波形播放器结果，右侧合成设置（TtsSettingsPanel）。
- * 走 L2 `/v1/audio/speech`。音色三态：默认音色 / 预置示范音色 / 上传复刻（语音复刻，上传或录制
- * 参考音频克隆音色）；声音描述（Control Instruction）以文本前缀控制风格；输出支持 wav / mp3。本页为
- * 容器：装配 useTtsSynthesis 与视图，请求/状态编排收敛在 hook，设置控件收敛在 TtsSettingsPanel。
+ * Purpose: a real speech-synthesis workspace — text input and waveform-player result on the left, synthesis settings on the right (TtsSettingsPanel). It goes through L2 `/v1/audio/speech`. Three voice states: default voice / preset demo voice / upload clone (voice cloning, cloning a voice by uploading or recording reference audio); a voice description (Control Instruction) controls style as a text prefix; output supports wav / mp3. This page is a container: it assembles useTtsSynthesis and the views. Request/state orchestration stays in the hook, and setting controls stay in TtsSettingsPanel.
  */
 
 import { useEffect, useState } from 'react';
@@ -22,8 +19,8 @@ import { resolveTtsMode, VOICE_DEFAULT, VOICE_UPLOAD } from '../../utils/ttsVoic
 type PlaygroundModel = ReturnType<typeof usePlaygroundModel>;
 
 /**
- * 语音合成体验页。
- * @param model 模型与密钥编排（来自页面顶层 usePlaygroundModel）
+ * Speech-synthesis experience page.
+ * @param model Model and key orchestration (from the page-level usePlaygroundModel)
  */
 export function TtsExperience({ model }: { model: PlaygroundModel }) {
   const { toast } = useToast();
@@ -52,7 +49,7 @@ export function TtsExperience({ model }: { model: PlaygroundModel }) {
     }
   }
 
-  // 上传参考音频：超 50s / 转码失败给出可读提示（不静默吞）
+  // Uploading reference audio: over 50s / transcode failure gives a readable hint (it is not swallowed silently)
   async function onUpload(file: File) {
     try {
       await tts.uploadReference(file);
@@ -68,7 +65,7 @@ export function TtsExperience({ model }: { model: PlaygroundModel }) {
   return (
     <div className="flex h-full w-full flex-col gap-4 overflow-y-auto px-3 py-4 sm:px-4">
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        {/* 左：文本 + 结果 */}
+        {/* Left: text + result */}
         <div className="flex min-w-0 flex-col gap-4">
           <section className="flex flex-col rounded-2xl bg-card p-4 shadow-card sm:p-5">
             <div className="mb-2 flex items-center justify-between">
@@ -120,7 +117,7 @@ export function TtsExperience({ model }: { model: PlaygroundModel }) {
           />
         </div>
 
-        {/* 右：合成设置 */}
+        {/* Right: synthesis settings */}
         <TtsSettingsPanel
           model={model}
           tts={tts}
@@ -134,7 +131,7 @@ export function TtsExperience({ model }: { model: PlaygroundModel }) {
   );
 }
 
-/** 合成结果卡：加载 / 错误 / 播放器 / 空态四态。下载名跟随结果音频的实际格式 */
+/** Synthesis result card: the four states of loading / error / player / empty. The download name follows the result audio's actual format */
 function ResultCard({
   audioUrl,
   format,

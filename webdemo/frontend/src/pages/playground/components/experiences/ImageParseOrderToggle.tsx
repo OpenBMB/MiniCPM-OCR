@@ -5,8 +5,7 @@ import { useAppStore } from '@map/store';
 import { WORKSPACE_CONTROL } from '../../utils/imageParseWorkspaceStyles';
 
 /**
- * 版面框上的阅读顺序序号开关；偏好持久化，单图与 PDF 共用。
- * 识别框隐藏时序号也看不到，按钮随之禁用。
+ * Reading-order number switch on layout boxes; the preference is persisted and shared by single images and PDFs. When recognition boxes are hidden the numbers cannot be seen either, and the button is disabled with them.
  */
 export function ImageParseOrderToggle({ disabled }: { disabled?: boolean }) {
   const { t } = useTranslation('playground');

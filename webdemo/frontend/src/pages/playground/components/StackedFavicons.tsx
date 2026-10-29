@@ -1,8 +1,7 @@
 /**
- * 叠放的来源站点图标。
+ * Stacked source-site icons.
  *
- * 用途：过程时间线的搜索行与回答下方的来源胶囊共用同一枚「一叠网页」视觉，
- * 用极小的横向占位表达「这一步碰了这些站点」，具体是哪些页面由抽屉承载。
+ * Purpose: the search row on the process timeline and the source chip under the answer share one "a stack of pages" visual. A very small horizontal footprint says "this step touched these sites," and which pages they are is carried by the drawer.
  */
 
 import { cn } from '@map/ui';
@@ -12,29 +11,25 @@ import { MAX_ROW_FAVICONS, STAGGER_CLASS_NAME, staggerStyle } from '../utils/ans
 import { CitationFavicon } from './CitationFavicon';
 
 interface StackedFaviconsProps {
-  /** 要展示的来源；只取其 url 画图标。 */
+  /** Sources to show; only their url is used to draw the icon. */
   citations: Citation[];
-  /** 最多叠放几个，多出来的不展示也不计数。 */
+  /** How many to stack at most; extras are neither shown nor counted. */
   max?: number;
-  /** 外层容器样式。 */
+  /** Outer container styles. */
   className?: string;
 }
 
 /**
- * 渲染一叠重叠的站点图标。
+ * Renders a stack of overlapping site icons.
  *
- * 图标是纯装饰（`aria-hidden`）：同一批来源的可读表达已经由紧挨着的文案（「搜索到 N 个网页」、
- * 胶囊上的「N 个网页」）和抽屉里的完整列表给出，这里再读一遍只会让屏幕阅读器把一行念成
- * 一串无意义的域名。
+ * The icons are pure decoration (`aria-hidden`): a readable expression of the same sources is already given by the adjacent copy ("found N pages," "N pages" on the chip) and the full list in the drawer. Reading them again here would only make a screen reader speak a row as a string of meaningless domains.
  *
- * 溢出**不报 +N**：数量就在旁边那句文案里，再补一个 +N 是同一件事说两遍；而搜索行的这一叠
- * 是拿整条消息的来源兜底出来的近似值（后端不发 web_search 的地址），+N 会与该行自己报的
- * 「搜索到 N 个网页」直接对不上——截图里 `搜索到 10 个网页 +26` 就是这么来的。
+ * Overflow **does not report +N**: the count is in the copy beside it, and adding a +N says the same thing twice. The stack on a search row is an approximation filled from the whole message's sources (the backend does not send web_search addresses), so +N would fail to match the "found N pages" that row reports itself — `found 10 pages +26` in the screenshot came from exactly that.
  *
- * @param citations 来源列表
- * @param max 最多叠放数量，默认 MAX_ROW_FAVICONS
- * @param className 外层容器样式
- * @returns 叠放图标；没有来源时不渲染
+ * @param citations Source list
+ * @param max Maximum stack count; default MAX_ROW_FAVICONS
+ * @param className Outer container styles
+ * @returns Stacked icons; render nothing when there are no sources
  */
 export function StackedFavicons({
   citations,
@@ -52,8 +47,7 @@ export function StackedFavicons({
           aria-hidden="true"
           style={staggerStyle(index)}
           /*
-            重叠靠负外边距，层级靠 ring 与 background 撑出的"描边"——两个图标之间必须有一圈
-            与页面同色的环，否则深色站点图标叠在一起会糊成一团分不出个数。
+            Overlap comes from a negative margin, and layering comes from the "stroke" held up by ring and background — there must be a ring the same color as the page between two icons, or dark site icons stacked together blur into one mass and the count cannot be told apart.
           */
           className={cn(STAGGER_CLASS_NAME, '-ml-1.5 first:ml-0')}
         >

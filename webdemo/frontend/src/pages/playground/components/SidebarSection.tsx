@@ -1,32 +1,32 @@
 /**
- * 侧栏分组（标题 + 项列表）。
+ * Sidebar group (title + item list).
  *
- * 用途：渲染体验中心左侧栏的一个分组。项可为真功能（可点击）或占位（带「敬请期待」标，禁用）。
+ * Purpose: render one group in the experience-center left sidebar. An item can be a real feature (clickable) or a placeholder (with a "coming soon" mark, disabled).
  */
 
 import { Badge } from '@map/ui';
 
-/** 单个侧栏项 */
+/** A single sidebar item */
 export interface SidebarItem {
   key: string;
   label: string;
   icon: React.ReactNode;
-  /** 是否为占位项（禁用 + 待开放标） */
+  /** Whether this is a placeholder item (disabled + not-yet-open mark) */
   placeholder?: boolean;
 }
 
 interface SidebarSectionProps {
   title: string;
   items: SidebarItem[];
-  /** 当前激活项 key */
+  /** Key of the currently active item */
   activeKey?: string;
-  /** 是否收起（仅显示图标） */
+  /** Whether it is collapsed (icons only) */
   collapsed?: boolean;
   onSelect?: (key: string) => void;
 }
 
 /**
- * 渲染一个侧栏分组。
+ * Renders one sidebar group.
  */
 export function SidebarSection({
   title,
@@ -71,7 +71,7 @@ export function SidebarSection({
   );
 }
 
-/** 侧栏项的状态样式：占位 / 激活 / 普通 */
+/** State styles for a sidebar item: placeholder / active / normal */
 function itemStateClass(placeholder: boolean, active: boolean): string {
   if (placeholder) return 'cursor-not-allowed text-muted-foreground/50';
   if (active) return 'bg-primary/10 font-medium text-primary';

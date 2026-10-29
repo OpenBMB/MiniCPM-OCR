@@ -2,7 +2,7 @@ import { useCallback, useRef } from 'react';
 
 import { isImageParseTourSettingsTrigger } from '../utils/imageParseTourSettings';
 
-/** 引导切换步骤时，只关闭由引导自动打开的设置菜单。 */
+/** When the tour changes steps, close only the settings menu the tour opened automatically. */
 export function useImageParseTourMenus() {
   const autoOpened = useRef<HTMLElement | null>(null);
   const toggle = useCallback((trigger: HTMLElement) => {

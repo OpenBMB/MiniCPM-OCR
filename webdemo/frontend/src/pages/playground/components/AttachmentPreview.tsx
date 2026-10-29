@@ -1,9 +1,9 @@
 /**
- * 附件预览列表（待发送态与消息气泡只读态共用）。
+ * Attachment preview list (shared by the pending-send state and the read-only state in a message bubble).
  *
- * 用途：把用户上传的多模态附件按类别渲染为缩略图/播放器/文件卡片。
- * - 传入 `onRemove` 视为「待发送态」：紧凑瓦片 + 右上角移除按钮，不内联播放。
- * - 不传 `onRemove` 视为「只读展示态」：图片可点击放大，视频/音频内联播放，文件可下载。
+ * Purpose: render uploaded multimodal attachments by category as thumbnails, players, or file cards.
+ * - Passing `onRemove` is the "pending-send" state: compact tiles + a remove button at the top right, no inline playback.
+ * - Omitting `onRemove` is the "read-only" state: images can be clicked to enlarge, video/audio play inline, and files can be downloaded.
  */
 
 import { useEffect, useState } from 'react';
@@ -14,20 +14,20 @@ import { formatBytes } from '../utils/attachments';
 
 interface AttachmentPreviewProps {
   attachments: Attachment[];
-  /** 提供则进入待发送态并渲染移除按钮 */
+  /** When provided, enter the pending-send state and render the remove button */
   onRemove?: (id: string) => void;
-  /** 只读态点击图片放大 */
+  /** Click an image to enlarge it in the read-only state */
   onImageClick?: (src: string) => void;
-  /** 靠右对齐（用户气泡场景） */
+  /** Align to the right (user-bubble case) */
   align?: 'start' | 'end';
 }
 
 /**
- * 渲染附件列表。
- * @param attachments 附件数组
- * @param onRemove 移除回调（存在则为待发送态）
- * @param onImageClick 图片放大回调（只读态）
- * @param align 对齐方向
+ * Renders the attachment list.
+ * @param attachments Attachment array
+ * @param onRemove Remove callback (present means the pending-send state)
+ * @param onImageClick Image-enlarge callback (read-only state)
+ * @param align Alignment direction
  */
 export function AttachmentPreview({
   attachments,
@@ -59,7 +59,7 @@ export function AttachmentPreview({
   );
 }
 
-/** 单个附件：按 kind 分支渲染 */
+/** A single attachment: render by kind */
 function AttachmentItem({
   att,
   readOnly,
@@ -85,7 +85,7 @@ function AttachmentItem({
     );
   }
 
-  // 只读态：视频/音频内联播放
+  // Read-only state: play video/audio inline
   if (readOnly && att.kind === 'video') {
     return <video src={src} controls className="max-h-44 rounded-xl border border-border/60" />;
   }
@@ -98,7 +98,7 @@ function AttachmentItem({
     );
   }
 
-  // 其余（待发送态的视频/音频，以及任意态的文件）统一用文件卡片
+  // Everything else (pending-send video/audio, and files in any state) uses a file card
   return <FileChip att={att} readOnly={readOnly} />;
 }
 
@@ -136,7 +136,7 @@ function useProtectedAssetSrc(att: Attachment): string {
   return src;
 }
 
-/** 文件/媒体的卡片式展示：图标 + 名称 + 大小；只读态可下载 */
+/** Card display for a file or media item: icon + name + size; downloadable in the read-only state */
 function FileChip({ att, readOnly }: { att: Attachment; readOnly: boolean }) {
   const { t } = useTranslation('playground');
   const inner = (
@@ -167,7 +167,7 @@ function FileChip({ att, readOnly }: { att: Attachment; readOnly: boolean }) {
   return inner;
 }
 
-/** 按 kind 的图标 */
+/** Icon by kind */
 function KindIcon({ kind }: { kind: Attachment['kind'] }) {
   if (kind === 'video') {
     return (
@@ -221,7 +221,7 @@ function KindIcon({ kind }: { kind: Attachment['kind'] }) {
   );
 }
 
-/** 移除按钮的叉号 */
+/** The X on the remove button */
 function CloseIcon() {
   return (
     <svg

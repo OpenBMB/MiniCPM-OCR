@@ -5,7 +5,7 @@ import { Button, cn } from '@map/ui';
 
 import { DOCUMENT_ACCEPT } from '../../utils/documentUpload';
 
-/** 原件页导航项；预览由图片或 PDF 阅读器提供。 */
+/** Original-page navigation item; the preview is provided by the image or PDF reader. */
 export interface ImageParsePageItem {
   pageNumber: number;
   preview: ReactNode;
@@ -21,9 +21,9 @@ interface ImageParsePageRailProps {
 }
 
 /**
- * 原件页面缩略图列表；桌面纵向排列，窄屏使用独立滚动的横向页带。
- * @param props 页面预览、当前页及切页和追加回调
- * @returns 页面导航与列表末尾的添加入口
+ * Thumbnail list of original pages; stacked vertically on desktop, and a separately scrolling horizontal page strip on a narrow screen.
+ * @param props Page previews, the current page, and page-change and append callbacks
+ * @returns Page navigation and the add entry at the end of the list
  */
 export function ImageParsePageRail({
   pages,

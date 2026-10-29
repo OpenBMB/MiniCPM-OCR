@@ -1,14 +1,14 @@
-/** 免登录演示的本地文件元数据；只在当前页面会话内保存，不上传远端。 */
+/** Local file metadata for the login-free demo; kept only in the current page session and not uploaded remotely. */
 const uploads = new Map<string, File>();
 
-/** 公网 http 页面不是安全上下文，crypto.randomUUID 会抛错，改用可在该页面使用的编号。 */
+/** A public http page is not a secure context, so crypto.randomUUID throws. Use an id that works on that page instead. */
 function demoFileId(): string {
   const cryptoApi = globalThis.crypto;
   if (cryptoApi && typeof cryptoApi.randomUUID === 'function') {
     try {
       return `demo-${cryptoApi.randomUUID()}`;
     } catch {
-      // 非安全上下文会抛错，落到下面的备用编号。
+      // A non-secure context throws, and execution falls through to the fallback id below.
     }
   }
   const bytes = new Uint8Array(8);

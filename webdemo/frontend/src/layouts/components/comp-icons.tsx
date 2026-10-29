@@ -1,10 +1,10 @@
 import type React from 'react';
 
 /**
- * 组件库演示图标集合（搜索/组件总览里展示 @map/ui 各组件用）。
+ * Demo icon set for the component library (used when search or the component overview shows each @map/ui component).
  *
- * 用途：从 nav-icons 中拆出体量较大的 `Comp*` 图标，避免单文件超过 400 行上限。
- * 这些图标与侧栏导航无关，仅用于组件检索类场景，故独立成表。
+ * Purpose: split the larger `Comp*` icons out of nav-icons so a single file stays under the 400-line limit.
+ * These icons are unrelated to sidebar navigation and are only for component lookup, so they live in their own table.
  */
 export const compIconMap: Record<string, (props: { className?: string }) => React.ReactNode> = {
   CompButton: ({ className }) => (

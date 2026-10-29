@@ -1,5 +1,5 @@
 /**
- * 图像解析契约单测：系统提示词与 Chat Completions 请求装配。
+ * Contract unit tests for image parsing: system prompt and Chat Completions request assembly.
  */
 
 import { describe, expect, it } from 'vitest';

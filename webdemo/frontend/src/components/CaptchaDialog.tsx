@@ -9,7 +9,7 @@ import {
 } from '@map/ui';
 import { useTranslation } from 'react-i18next';
 
-/** CaptchaDialog 入参（由 useCaptchaGate 的 dialogProps 提供） */
+/** CaptchaDialog props (supplied by dialogProps from useCaptchaGate). */
 export interface CaptchaDialogProps {
   open: boolean;
   challenge: SlideCaptchaChallenge | null;
@@ -22,8 +22,8 @@ export interface CaptchaDialogProps {
 }
 
 /**
- * 人机验证弹窗（拼图滑块）。纯展示：渲染标题 + SlideCaptcha，事件透传给 useCaptchaGate。
- * 用途：登录/发码前置的安全验证弹层，与 useCaptchaGate 配套使用。
+ * Captcha dialog (slide puzzle). Presentation only: renders the title and SlideCaptcha, and forwards events to useCaptchaGate.
+ * Purpose: the security check shown before login or sending a code, used together with useCaptchaGate.
  */
 export function CaptchaDialog({
   open,

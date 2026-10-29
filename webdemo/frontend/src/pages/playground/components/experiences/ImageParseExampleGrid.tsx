@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from '@map/ui';
 
-/** 示例卡片的最小渲染契约；标准解析与 KIE 各自扩展字段。 */
+/** Minimum render contract for an example card; standard parse and KIE each extend the fields. */
 export interface ImageParseExampleCard<TType extends string = string> {
   id: string;
   type: TType;
@@ -12,7 +12,7 @@ export interface ImageParseExampleCard<TType extends string = string> {
   pageCount?: number;
 }
 
-/** 示例网格组件属性。 */
+/** Example-grid component props. */
 export interface ImageParseExampleGridProps<TType extends string = string> {
   titleKey?: string;
   examples: readonly ImageParseExampleCard<TType>[];
@@ -21,9 +21,9 @@ export interface ImageParseExampleGridProps<TType extends string = string> {
 }
 
 /**
- * 渲染示例文档自适应网格，桌面端 4×2，小屏逐级降列。
- * @param props 示例元数据、禁用状态和选择回调
- * @returns 示例文档网格
+ * Renders an adaptive grid of example documents: 4×2 on desktop, dropping columns step by step on small screens.
+ * @param props Example metadata, disabled state, and selection callback
+ * @returns Example-document grid
  */
 export function ImageParseExampleGrid<TType extends string>({
   examples,

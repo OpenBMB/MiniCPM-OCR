@@ -20,12 +20,12 @@ interface MathPart {
 }
 
 const PARSER = unified().use(remarkParse).use(remarkMath);
-// HTML 的缩进是排版空白；代码语义只由外层 code/pre 标签决定。
+// HTML indentation is layout whitespace; code semantics are decided only by the outer code/pre tags.
 PARSER.data('micromarkExtensions', [{ disable: { null: ['codeIndented'] } }]);
 const PROTECTED_TAGS = new Set(['code', 'pre', 'script', 'style', 'textarea', 'title']);
 const PROTECTED_SELECTOR = [...PROTECTED_TAGS].join(',');
 
-/** 用现有 Markdown 数学解析器提取显式公式，非公式文本不经过 Markdown 转换。 */
+/** Extract explicit formulas with the existing Markdown math parser; non-formula text does not go through Markdown conversion. */
 function mathParts(value: string): MathPart[] {
   if (!/[$\\]/.test(value)) return [{ value }];
   const protectedRanges: { start: number; end: number }[] = [];
@@ -48,7 +48,7 @@ function mathParts(value: string): MathPart[] {
         const opening = raw.match(/^\${2,}/)?.[0].length ?? 0;
         const lastLine = raw.slice(raw.lastIndexOf('\n') + 1).trim();
         const closing = lastLine.match(/^\${2,}$/)?.[0].length ?? 0;
-        // remark 允许 EOF 结束数学围栏；OCR 未闭合或带元数据的内容必须原样保留。
+        // remark allows EOF to end a math fence; OCR content that is unclosed or carries metadata must be kept as-is.
         if (!raw.includes('\n') || closing < opening || node.meta) return;
       }
       formulas.push({
@@ -62,7 +62,7 @@ function mathParts(value: string): MathPart[] {
     node.children?.forEach(visit);
   }
   visit(PARSER.parse(value) as MathNode);
-  // 原生公式直接生成节点，不能经美元符中转，否则正文的 \$ 或 verb 会截断公式。
+  // A native formula produces a node directly and must not be routed through dollar signs, or a \$ or verb in the body would cut the formula off.
   formulas.push(...nativeMathRanges(value, protectedRanges));
   const parts: MathPart[] = [];
   let cursor = 0;
@@ -78,8 +78,8 @@ function mathParts(value: string): MathPart[] {
 }
 
 /**
- * HTML 解析后将单元格的显式公式转为 KaTeX 输入节点，不改变源码及表格位置。
- * @returns 供 OCR 文档预览使用的语法树转换器；代码和单元格外文本不处理
+ * After HTML parsing, turn explicit formulas in cells into KaTeX input nodes, without changing the source or the table position.
+ * @returns a syntax-tree transform for OCR document preview; code and text outside cells are not processed
  */
 export function imageParseHtmlMath() {
   return (tree: MathNode, file: { value?: unknown }) => {
@@ -90,7 +90,7 @@ export function imageParseHtmlMath() {
       let cell = inCell;
       if (node.tagName === 'td' || node.tagName === 'th') {
         const start = node.position?.start.offset;
-        // GFM 单元格已经经过 remark-math 和反斜杠解码，禁止再次推断它的文本。
+        // A GFM cell has already passed through remark-math and backslash decoding; do not infer its text again.
         cell = start !== undefined && /^<(?:td|th)(?:\s|>)/i.test(source.slice(start, start + 4));
       }
       node.children = node.children.flatMap((child): MathNode[] => {
@@ -115,9 +115,9 @@ export function imageParseHtmlMath() {
 }
 
 /**
- * 富文本导入前将 HTML 单元格的公式转为已有数学扩展支持的 code 节点。
- * @param root 已由 DOMParser 解析且通过编辑器支持性检查的 HTML
- * @returns 是否转换了公式；属性、代码和转义 HTML 保持原有语义
+ * Before rich-text import, turn formulas in HTML cells into code nodes the existing math extension supports.
+ * @param root HTML already parsed by DOMParser and checked as supported by the editor
+ * @returns whether a formula was converted; attributes, code, and escaped HTML keep their original meaning
  */
 export function replaceImageParseHtmlMath(root: ParentNode): boolean {
   const document = root.ownerDocument ?? (root as Document);

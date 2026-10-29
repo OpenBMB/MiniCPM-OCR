@@ -1,13 +1,12 @@
 /**
- * 点踩反馈弹窗。
+ * Thumbs-down feedback dialog.
  *
- * 用途：用户点踩助手回答后弹出，可多选原因标签 + 填写可选正文，提交上报后端。
- * 点赞不弹此框（直接静默上报），故本组件仅服务点踩场景。
+ * Purpose: after the user thumbs-down an assistant answer, this opens so they can select several reason tags and optionally write a body, then submit it to the backend. A thumbs-up does not open this dialog (it is reported silently), so this component serves only the thumbs-down case.
  *
- * @param open 是否打开
- * @param onOpenChange 开合回调
- * @param submitting 提交中（禁用提交按钮）
- * @param onSubmit 提交回调，回传选中原因与正文
+ * @param open Whether it is open
+ * @param onOpenChange Open/close callback
+ * @param submitting Submitting (disables the submit button)
+ * @param onSubmit Submit callback; returns the selected reasons and body
  */
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -36,7 +35,7 @@ export function FeedbackDialog({ open, onOpenChange, submitting, onSubmit }: Fee
   const [reasons, setReasons] = useState<string[]>([]);
   const [comment, setComment] = useState('');
 
-  // 每次打开重置，避免上次选择残留
+  // Reset on every open so the previous selection does not linger
   useEffect(() => {
     if (open) {
       setReasons([]);

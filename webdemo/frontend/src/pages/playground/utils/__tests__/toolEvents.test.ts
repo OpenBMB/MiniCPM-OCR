@@ -90,9 +90,9 @@ describe('toolEvents', () => {
       ],
     });
 
-    // 前两条只差末尾斜杠、hash 与查询参数顺序，归一化后是同一条
+    // The first two differ only by a trailing slash, hash, and query-parameter order; after normalization they are the same item
     expect(events[0]?.citationUrls).toEqual(['https://example.com/a?a=1&b=2']);
-    // pageCount 仍取原始条数，主文案要用
+    // pageCount still uses the raw count; the main copy needs it
     expect(events[0]?.pageCount).toBe(4);
   });
 
@@ -134,7 +134,7 @@ describe('toolEvents', () => {
       { event_id: 'evt-1', step: 1, tool: 'web_search', status: 'running' },
       120,
     );
-    // success 帧比 running 帧晚几秒，这期间流出的思考属于工具行「之后」，不能改切点
+    // The success frame arrives seconds after the running frame; reasoning that streams in during that gap belongs after the tool row and must not move the split point
     const done = upsertToolEvent(
       running,
       { event_id: 'evt-1', step: 1, tool: 'web_search', status: 'success', result_count: 4 },
@@ -197,7 +197,7 @@ describe('runningSearchQueries', () => {
 
   it('没有进行中的搜索时返回空数组，顶行据此退回静态文案', () => {
     const events: ToolEvent[] = [
-      // running 但不带 queries：模型还在生成 tool_call 参数
+      // running without queries: the model is still generating tool_call arguments
       { eventId: 'a', step: 1, tool: 'web_search', status: 'running' },
       { eventId: 'b', step: 2, tool: 'web_extractor', status: 'running' },
     ];

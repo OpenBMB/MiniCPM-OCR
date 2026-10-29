@@ -8,9 +8,9 @@ interface ImageParseOptionInfoProps {
 }
 
 /**
- * 展示解析选项的功能说明；悬停或键盘聚焦时出现，不占用常驻空间。
- * @param props 选项名称与说明文案
- * @returns 支持悬停和键盘聚焦的 info 按钮
+ * Show what a parse option does; it appears on hover or keyboard focus and does not take permanent space.
+ * @param props Option name and description copy
+ * @returns An info button that supports hover and keyboard focus
  */
 export function ImageParseOptionInfo({ label, hint }: ImageParseOptionInfoProps) {
   const { t } = useTranslation('playground');

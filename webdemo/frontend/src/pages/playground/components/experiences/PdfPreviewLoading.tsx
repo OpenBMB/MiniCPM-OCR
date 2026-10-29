@@ -7,8 +7,8 @@ interface PdfPreviewLoadingProps {
 }
 
 /**
- * PDF 预览加载占位：文档骨架与紧凑状态共用于按需加载和页面渲染。
- * @param className 外层布局样式
+ * PDF preview loading placeholder: the document skeleton and the compact state are shared by on-demand loading and page rendering.
+ * @param className Outer layout styles
  */
 export function PdfPreviewLoading({ className }: PdfPreviewLoadingProps) {
   const { t } = useTranslation('playground');

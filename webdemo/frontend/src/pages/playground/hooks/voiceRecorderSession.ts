@@ -1,4 +1,4 @@
-/** PCM 录音会话及其浏览器资源。 */
+/** A PCM recording session and its browser resources. */
 export interface PcmRecordingSession {
   stream: MediaStream;
   context: AudioContext;
@@ -10,8 +10,8 @@ export interface PcmRecordingSession {
 }
 
 /**
- * 释放一次 PCM 录音会话占用的浏览器资源。
- * @param session 待释放的录音会话
+ * Release the browser resources held by one PCM recording session.
+ * @param session recording session to release
  */
 export function releaseRecordingSession(session: PcmRecordingSession): void {
   session.processor.disconnect();
@@ -22,9 +22,9 @@ export function releaseRecordingSession(session: PcmRecordingSession): void {
 }
 
 /**
- * 合并录音过程中采集的 PCM 分片。
- * @param chunks PCM 分片
- * @returns 连续的单声道 PCM 样本
+ * Merge PCM chunks captured during recording.
+ * @param chunks PCM chunks
+ * @returns continuous mono PCM samples
  */
 export function mergeRecordingChunks(chunks: Float32Array[]): Float32Array {
   const length = chunks.reduce((total, chunk) => total + chunk.length, 0);

@@ -1,5 +1,5 @@
 /**
- * 图片视图接线：文档模式贴合顶部、滚轮阅读与 Ctrl/Meta 缩放；交互及 resize 保持边界。
+ * Image-view wiring: document mode fits to the top, wheel reading, and Ctrl/Meta zoom; interaction and resize keep the bounds.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -12,7 +12,7 @@ import type { ImageZoomView, Point } from '../utils/imageZoom';
 export type { ImageZoom };
 
 /**
- * 图片视图控制。setViewport/setContent 分别测量裁剪视口和未缩放的内容。
+ * Image-view controls. setViewport and setContent measure the crop viewport and the unscaled content respectively.
  */
 export function useImageZoom({
   fitWidth: documentMode = false,
@@ -32,7 +32,7 @@ export function useImageZoom({
     ? geometry.fitWidthView(storedView, viewportSize, contentSize)
     : clamp(storedView, viewportSize, contentSize);
 
-  // 尺寸快照变化时同步调整状态，避免 resize 后下一次放大恢复旧的越界偏移。
+  // When the size snapshot changes, adjust state synchronously, so the next zoom after a resize does not restore an old out-of-bounds offset.
   if (measured.viewport !== viewportSize || measured.content !== contentSize) {
     setMeasured({ viewport: viewportSize, content: contentSize });
     setView((current) =>
@@ -41,7 +41,7 @@ export function useImageZoom({
         : clamp(current, viewportSize, contentSize),
     );
   }
-  // 横向增量单独累积；共享滚轮采集器只合并纵向值，不能用最后一帧覆盖横向输入。
+  // Horizontal deltas accumulate on their own; the shared wheel collector merges only the vertical value and must not overwrite horizontal input with the last frame.
   useEffect(() => {
     if (!viewport) return;
     const collect = (event: WheelEvent) => {

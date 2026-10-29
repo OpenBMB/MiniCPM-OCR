@@ -77,3 +77,16 @@ VITE_OCR_TARGET=http://127.0.0.1:8966 corepack pnpm dev --host --port 5173 --str
 ```
 
 Open **`http://localhost:5173/playground/document-parse`** to try the local Web Demo.
+
+## 5. API
+
+The backend also provides an API. The endpoints are listed below.
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/document-parse/jobs` | Async image or PDF. HTTP 200 returns a job |
+| `GET /api/document-parse/jobs/{id}` | HTTP 200 returns progress and results |
+| `DELETE /api/document-parse/jobs/{id}` | Cancel the job. HTTP 200 returns the job status |
+| `POST /api/kie` | Sync single image. HTTP 200 returns one page |
+
+Document parsing creates a job for both images and PDFs. The response `status` is `Running`. Key information extraction uses `POST /api/kie` and accepts one image: a JSON body with `image` and `fields`. That call does not create a job and does not accept a PDF. The async form of key information extraction can be adapted by following document parsing.

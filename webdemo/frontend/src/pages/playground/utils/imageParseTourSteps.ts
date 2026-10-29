@@ -1,8 +1,8 @@
 import type { DriveStep } from 'driver.js';
 
 /**
- * 示例步骤同时给出「下一步」。点下一步时载入当前列表的第一个示例，
- * 后续步骤等文档挂载后再由引导生命周期前进。
+ * The example step also offers "Next". Clicking Next loads the first example in the current list,
+ * and later steps advance through the tour lifecycle only after the document has mounted.
  */
 export function exampleGatePopover(
   selector: string,
@@ -10,7 +10,7 @@ export function exampleGatePopover(
 ): NonNullable<DriveStep['popover']> {
   return {
     showButtons: ['next', 'close'],
-    // 后面的目标还没挂载时，driver.js 会把这一步当成最后一步，按钮变成「开始使用」。
+    // When a later target has not mounted yet, driver.js treats this step as the last one and the button becomes "Get started".
     nextBtnText: nextLabel,
     onNextClick: (_element, _step, { driver: instance }) => {
       const example = document.querySelector<HTMLButtonElement>(
@@ -31,21 +31,21 @@ interface ImageParseTourStepsOptions {
 }
 
 /**
- * 构造文档解析引导：空态先让用户选择平台示例，再介绍识别设置与结果区能力。
- * @param options 翻译与当前文档状态
- * @returns 选择示例、识别设置、识别框、块编辑和导出步骤
+ * Build the document-parsing tour: the empty state first lets the user pick a platform example, then introduces recognition settings and result-area capabilities.
+ * @param options translations and current document state
+ * @returns the choose-example, recognition-settings, recognition-box, block-edit, and export steps
  */
 export function imageParseTourSteps({
   t,
   hasDocument = () => false,
 }: ImageParseTourStepsOptions): DriveStep[] {
-  // 识别等待由引导生命周期处理；缺失的可选目标直接跳过，避免隐藏提示框后留下遮罩。
+  // Recognition waiting is handled by the tour lifecycle; a missing optional target is skipped directly, so a mask is not left behind after the popover is hidden.
   const workspaceStep = { skipMissingElement: true, waitForElement: 0 };
   const steps: DriveStep[] = [];
   if (!hasDocument()) {
     steps.push({
       ...workspaceStep,
-      // 示例载入后选择区会卸载；该步骤已完成，回退时由 driver.js 跳过而不是停在无目标遮罩。
+      // After the example loads, the picker unmounts; that step is already done, and going back lets driver.js skip it instead of stopping on a mask with no target.
       element: '[data-tour="image-parse-examples"]',
       popover: {
         title: t('imageParseTourExampleTitle'),
@@ -86,7 +86,7 @@ export function imageParseTourSteps({
     },
     {
       ...workspaceStep,
-      // 解析完成前下载按钮尚不存在，先指向稳定的结果栏，避免引导空等。
+      // Before parsing finishes the download button does not exist yet, so point at the stable result bar first and do not leave the tour waiting on nothing.
       element: '[data-pane="markdown"]',
       popover: {
         title: t('imageParseTourExportTitle'),

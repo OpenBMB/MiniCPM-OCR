@@ -16,15 +16,15 @@ interface SidebarNavGroupProps {
 }
 
 /**
- * 展开态侧栏的可折叠父级菜单（带子菜单）。
+ * Collapsible parent menu (with children) for the expanded sidebar.
  *
- * @param route 父路由（children 为子菜单项）
- * @param isOpen 子菜单是否展开
- * @param isActive 父级是否激活
- * @param collapsed 侧栏是否收起
- * @param onToggle 点击父级标题时切换展开/折叠
- * @param onNavigate 点击子项后的回调
- * @param pathname 当前路径，用于子项高亮
+ * @param route Parent route (children are the submenu items).
+ * @param isOpen Whether the submenu is expanded.
+ * @param isActive Whether the parent is active.
+ * @param collapsed Whether the sidebar is collapsed.
+ * @param onToggle Toggle expand or collapse when the parent title is clicked.
+ * @param onNavigate Callback after a child is clicked.
+ * @param pathname Current path, used to highlight children.
  */
 export function SidebarNavGroup({
   route,

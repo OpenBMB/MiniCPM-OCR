@@ -11,7 +11,7 @@ import {
   flushThinkDelta,
 } from '../sse';
 
-/** 把整段文本按任意分片喂给拆分器，聚合出正文/思考，模拟真实流式切分。 */
+/** Feed the whole text to the splitter in arbitrary chunks and aggregate body and reasoning, simulating a real streaming split. */
 function runThinkSplit(chunks: string[]): { content: string; reasoning: string } {
   const state = createThinkSplitState();
   let content = '';
@@ -25,7 +25,7 @@ function runThinkSplit(chunks: string[]): { content: string; reasoning: string }
   return { content: content + tail.content, reasoning: reasoning + tail.reasoning };
 }
 
-/** SSE 行解析与 OpenAI chunk 抽取的纯函数单测 */
+/** Unit tests for SSE line parsing and OpenAI chunk extraction pure functions */
 describe('splitSseLines', () => {
   it('保留末尾未完成片段', () => {
     const { lines, rest } = splitSseLines('data: a\ndata: b\ndata: par');
@@ -235,7 +235,7 @@ describe('normalizeCitations', () => {
         { type: 'url_citation', url_citation: { index: 2, url: 'https://b.com' } },
       ]),
     ).toEqual([{ ref: 2, url: 'https://b.com' }]);
-    // 0 与非整数不是合法编号，不能落成 ref——下游会把它当「后端已发号」来判定越界。
+    // 0 and non-integers are not valid numbers and must not become a ref — downstream treats that as "the backend already assigned a number" when judging out-of-range.
     expect(normalizeCitations([{ ref: 0, url: 'https://c.com' }])).toEqual([
       { url: 'https://c.com' },
     ]);

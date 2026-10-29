@@ -6,8 +6,8 @@ describe('canUsePlaygroundWebSearch', () => {
     expect(canUsePlaygroundWebSearch({ web_search: true, function_call: true })).toBe(true);
   });
 
-  // 这条是重点：只勾 web_search 的模型不会真检索，只会捏造一次工具调用再编出带假引用的回答，
-  // 因此入口必须连同 function_call 一起判，与后端两条入口保持一致。
+  // This one matters: a model with only web_search checked will not actually search; it fabricates a tool call and then an answer with fake citations,
+  // so the entry check must also require function_call, matching the two backend entry points.
   it('缺少 function_call 时不展示联网入口', () => {
     expect(canUsePlaygroundWebSearch({ web_search: true, function_call: false })).toBe(false);
     expect(canUsePlaygroundWebSearch({ web_search: true })).toBe(false);

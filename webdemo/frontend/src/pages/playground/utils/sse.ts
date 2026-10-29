@@ -1,60 +1,60 @@
 /**
- * SSE（Server-Sent Events）行解析纯函数。
+ * Pure functions that parse SSE (Server-Sent Events) lines.
  *
- * 用途：把流式 fetch 累积的文本 buffer 切成完整 SSE 行，并从 OpenAI 兼容 chunk 中
- * 抽取正文增量、思考增量与尾块 usage。无副作用、不依赖 fetch，便于单测。
+ * Purpose: cut the text buffer accumulated by a streaming fetch into complete SSE lines, and from an OpenAI-compatible chunk
+ * extract the body increment, the reasoning increment, and the tail usage. No side effects, no fetch dependency, so they are easy to unit test.
  */
 
 import type { Citation, TokenUsage } from '@/api/map/chat';
 
-/** 单行 SSE 解析结果 */
+/** Parse result of one SSE line */
 export interface SseEvent {
   /**
-   * chunk = 携带 data JSON 的数据帧；done = `[DONE]` 终止帧；
-   * tool_status = 工具进度；citations = 引用来源；request_id = 最终模型调用 ID；
-   * moderation = 审核安全回答；error = 带内错误帧。
+   * chunk = a data frame carrying data JSON; done = the `[DONE]` terminal frame;
+   * tool_status = tool progress; citations = citation sources; request_id = the final model-call ID;
+   * moderation = a moderation safety answer; error = an in-band error frame.
    */
   type: 'chunk' | 'done' | 'tool_status' | 'citations' | 'request_id' | 'moderation' | 'error';
-  /** type=chunk 时的已解析 JSON（解析失败为 undefined） */
+  /** Parsed JSON when type=chunk (undefined when parsing failed) */
   data?: unknown;
 }
 
-/** 完整 SSE frame（以空行分隔） */
+/** A complete SSE frame (separated by a blank line) */
 export interface SseFrame {
   event?: string;
   data: string;
 }
 
-/** 从单个 OpenAI chunk 抽出的增量 */
+/** Increment extracted from one OpenAI chunk */
 export interface ChunkDeltas {
-  /** 正文增量 */
+  /** Body increment */
   content: string;
-  /** 思考增量 */
+  /** Reasoning increment */
   reasoning: string;
-  /** 本帧携带的联网引用来源（url_citation annotations，可能为空） */
+  /** Web-search citation sources carried by this frame (url_citation annotations, may be empty) */
   citations?: Citation[];
-  /** 尾块 usage（仅最后一帧带） */
+  /** Tail usage (present only on the last frame) */
   usage?: TokenUsage;
 }
 
 /**
- * 把累积 buffer 按换行切成完整行 + 残留未完成片段。
+ * Cut the accumulated buffer into complete lines plus a leftover unfinished fragment, split on newlines.
  *
- * @param buffer fetch 累积的解码文本
- * @returns lines 已完整的行（不含换行符）；rest 末尾未遇到换行的残片，留待下次拼接
+ * @param buffer decoded text accumulated by fetch
+ * @returns lines that are already complete (without the newline); rest is the trailing fragment that has not seen a newline yet, kept to join next time
  */
 export function splitSseLines(buffer: string): { lines: string[]; rest: string } {
   const parts = buffer.split('\n');
-  // 最后一段可能是不完整行，保留到下次
+  // The last segment may be an incomplete line; keep it until next time
   const rest = parts.pop() ?? '';
   const lines = parts.map((l) => (l.endsWith('\r') ? l.slice(0, -1) : l));
   return { lines, rest };
 }
 
 /**
- * 把累积 buffer 按 SSE frame 切分（空行表示一个完整事件）。
- * @param buffer fetch 累积的解码文本
- * @returns frames 完整 frame；rest 末尾未完成片段
+ * Split the accumulated buffer into SSE frames (a blank line means one complete event).
+ * @param buffer decoded text accumulated by fetch
+ * @returns complete frames; rest is the unfinished fragment at the end
  */
 export function splitSseFrames(buffer: string): { frames: string[]; rest: string } {
   const normalized = buffer.replace(/\r\n/g, '\n');
@@ -63,7 +63,7 @@ export function splitSseFrames(buffer: string): { frames: string[]; rest: string
   return { frames: parts, rest };
 }
 
-/** 把 SSE frame 的 event 字段映射为内部事件类型；未声明或未知 event 一律按默认 OpenAI chunk 处理。 */
+/** Map an SSE frame's event field to an internal event type; an undeclared or unknown event is always treated as a default OpenAI chunk. */
 function frameEventType(event: string): Exclude<SseEvent['type'], 'done'> {
   if (event === 'tool_status') return 'tool_status';
   if (event === 'citations') return 'citations';
@@ -74,8 +74,8 @@ function frameEventType(event: string): Exclude<SseEvent['type'], 'done'> {
 }
 
 /**
- * 解析完整 SSE frame，支持 event 字段和多行 data。
- * @param frame 不含结尾空行的完整 frame 文本
+ * Parse a complete SSE frame, supporting an event field and multi-line data.
+ * @param frame complete frame text without the trailing blank line
  */
 export function parseSseFrame(frame: string): SseEvent | null {
   let event = '';
@@ -98,12 +98,12 @@ export function parseSseFrame(frame: string): SseEvent | null {
 }
 
 /**
- * 解析单行 SSE。
+ * Parse one SSE line.
  *
- * 仅处理 `data:` 前缀的数据行；注释行（`:` 开头，常用于心跳）、空行、其它字段行返回 null。
+ * Only data lines with a `data:` prefix are handled; comment lines (starting with `:`, often used as heartbeats), blank lines, and other field lines return null.
  *
- * @param line 单行文本（无换行符）
- * @returns 结构化事件，或 null（应忽略的行）
+ * @param line one line of text (no newline)
+ * @returns a structured event, or null (a line that should be ignored)
  */
 export function parseSseLine(line: string): SseEvent | null {
   const trimmed = line.trimStart();
@@ -114,24 +114,24 @@ export function parseSseLine(line: string): SseEvent | null {
   try {
     return { type: 'chunk', data: JSON.parse(data) };
   } catch {
-    // 不完整/非法 JSON：忽略此帧，避免打断整条流
+    // Incomplete or illegal JSON: ignore this frame so the whole stream is not interrupted
     return { type: 'chunk', data: undefined };
   }
 }
 
-/** 从未知值安全取正整数字段；缺省或非正数返回 0（视为「没有编号」）。 */
+/** Safely read a positive integer field from an unknown value; a missing or non-positive value returns 0 (treated as "no number"). */
 function pickPositiveInt(obj: Record<string, unknown>, key: string): number {
   const v = obj[key];
   return typeof v === 'number' && Number.isInteger(v) && v > 0 ? v : 0;
 }
 
-/** 从未知值安全取字符串字段 */
+/** Safely read a string field from an unknown value */
 function pickString(obj: Record<string, unknown>, key: string): string {
   const v = obj[key];
   return typeof v === 'string' ? v : '';
 }
 
-/** 仅允许可直接在浏览器新窗口打开的 HTTP(S) 来源。 */
+/** Allow only HTTP(S) sources that can be opened directly in a new browser window. */
 function safeCitationURL(value: string): string {
   try {
     const parsed = new URL(value);
@@ -142,14 +142,14 @@ function safeCitationURL(value: string): string {
 }
 
 /**
- * 把 OpenAI 兼容的 annotations 数组归一化为引用来源列表。
+ * Normalize an OpenAI-compatible annotations array into a citation-source list.
  *
- * 兼容两种形态：`{type:'url_citation', url_citation:{url,title}}`（OpenAI 官方），
- * 以及部分实现直接 `{url,title}` 的扁平形态。非数组或无有效 url 时返回空数组。
- * 来源编号（ref / index）若有则一并带出，它是角标数字的唯一来源。
+ * Compatible with two shapes: `{type:'url_citation', url_citation:{url,title}}` (official OpenAI),
+ * and the flat `{url,title}` some implementations use directly. Return an empty array when it is not an array or has no valid url.
+ * If a source number (ref / index) is present, carry it along; it is the only source of the citation-marker number.
  *
- * @param value delta/message 上的 annotations 原始值
- * @returns 归一化后的引用来源（仅保留含 url 的项）
+ * @param value raw annotations value on delta/message
+ * @returns normalized citation sources (only items that contain a url are kept)
  */
 export function normalizeCitations(value: unknown): Citation[] {
   if (!Array.isArray(value)) return [];
@@ -157,7 +157,7 @@ export function normalizeCitations(value: unknown): Citation[] {
   for (const item of value) {
     if (!item || typeof item !== 'object') continue;
     const obj = item as Record<string, unknown>;
-    // 官方形态：url_citation 子对象；否则退回扁平字段
+    // Official shape: the url_citation child object; otherwise fall back to the flat fields
     const src =
       obj.url_citation && typeof obj.url_citation === 'object'
         ? (obj.url_citation as Record<string, unknown>)
@@ -167,9 +167,9 @@ export function normalizeCitations(value: unknown): Citation[] {
     const title = pickString(src, 'title');
     const snippet =
       pickString(src, 'snippet') || pickString(src, 'excerpt') || pickString(src, 'text');
-    // 两个出口对同一个编号的字段名不同：体验中心的 citation 事件叫 ref，
-    // 公开 API 的 url_citation 叫 index（对齐 OpenAI 的 annotation 形状）。
-    // 编号可能挂在 url_citation 子对象上，也可能挂在扁平项上，两处都要看。
+    // The two exits name the same number differently: the experience center's citation event calls it ref,
+    // and the public API's url_citation calls it index (aligned with OpenAI's annotation shape).
+    // The number may hang on the url_citation child object or on the flat item; both places have to be checked.
     const ref =
       pickPositiveInt(src, 'ref') ||
       pickPositiveInt(src, 'index') ||
@@ -186,13 +186,13 @@ export function normalizeCitations(value: unknown): Citation[] {
 }
 
 /**
- * 从 OpenAI 兼容 chunk 抽取正文/思考增量与 usage。
+ * Extract the body and reasoning increments and usage from an OpenAI-compatible chunk.
  *
- * 思考字段不同模型命名不一，按 `reasoning_content → reasoning → thinking` 顺序兜底取首个非空。
- * usage 仅在尾块出现（后端已强制注入 stream_options.include_usage）。
+ * Reasoning fields are named differently per model; take the first non-empty value in the order `reasoning_content → reasoning → thinking`.
+ * usage appears only on the tail chunk (the backend already forces stream_options.include_usage).
  *
- * @param chunk 已 JSON.parse 的 chunk
- * @returns 本帧的正文/思考增量与可选 usage
+ * @param chunk chunk that has already been JSON.parse'd
+ * @returns this frame's body and reasoning increments and optional usage
  */
 export function extractDeltas(chunk: unknown): ChunkDeltas {
   const empty: ChunkDeltas = { content: '', reasoning: '' };
@@ -214,7 +214,7 @@ export function extractDeltas(chunk: unknown): ChunkDeltas {
           pickString(d, 'reasoning_content') ||
           pickString(d, 'reasoning') ||
           pickString(d, 'thinking');
-        // 联网引用可能挂在 delta.annotations（官方）或 delta.citations（部分实现）
+        // A web-search citation may hang on delta.annotations (official) or delta.citations (some implementations)
         citations = normalizeCitations(d.annotations ?? d.citations);
       }
     }

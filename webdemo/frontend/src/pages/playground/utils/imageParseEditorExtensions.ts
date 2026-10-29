@@ -17,7 +17,7 @@ import { SAFE_KATEX_OPTIONS } from './math-options';
 import { inlineMathMarkdown } from './math-native';
 import { imageParseEditorMathToken } from './imageParseEditorMath';
 
-/** 未支持语法的原文保留节点；不会把原文当成编辑器 HTML 插入。 */
+/** A preserved node for source text whose syntax is unsupported; the source is not inserted as editor HTML. */
 export const PreservedImageParseSource = Node.create({
   name: 'preservedSource',
   group: 'block',
@@ -56,7 +56,7 @@ function tableHtml(node: JSONContent, extensions: Extensions) {
     const align = (cell as HTMLElement).style.textAlign;
     if (['left', 'center', 'right'].includes(align)) cell.setAttribute('align', align);
   });
-  // 表格不能压成 pipe Markdown；公式用现有预览管线支持的安全 code 节点表示。
+  // A table must not be flattened to pipe Markdown; formulas use a safe code node supported by the existing preview pipeline.
   fragment
     .querySelectorAll('[data-type="inline-math"], [data-type="block-math"]')
     .forEach((math) => {
@@ -70,8 +70,8 @@ function tableHtml(node: JSONContent, extensions: Extensions) {
 }
 
 /**
- * OCR 富文本编辑扩展；表格固定导出 HTML，交给 Tiptap schema 处理合并和嵌套内容。
- * @param preserved 可选的 React 节点视图，测试和无视图调用沿用基础保留节点
+ * Rich-text edit extensions for OCR; tables always export HTML, and the Tiptap schema handles merged and nested content.
+ * @param preserved optional React node view; tests and calls with no view keep the basic preserved node
  */
 export function imageParseEditorExtensions(
   preserved = PreservedImageParseSource,
@@ -102,7 +102,7 @@ export function imageParseEditorExtensions(
       parseHTML() {
         return [
           ...(this.parent?.() ?? []),
-          // DOM 规则需先于通用 code 标记匹配，否则再次导入会丢失公式节点。
+          // DOM rules must match before the generic code mark, or importing again drops the formula node.
           {
             tag: 'code.math-inline',
             priority: 100,
@@ -116,7 +116,7 @@ export function imageParseEditorExtensions(
       markdownTokenizer: {
         name: 'blockMath',
         level: 'block',
-        // marked 用去掉首字符的文本寻找段落中断点，不能匹配多美元围栏的后缀。
+        // marked finds paragraph breaks in text with the first character removed, and cannot match the suffix of a multi-dollar fence.
         start: (source) => {
           const index = source.search(/\n\$\$(?!\$)/);
           return index < 0 ? -1 : index + 1;

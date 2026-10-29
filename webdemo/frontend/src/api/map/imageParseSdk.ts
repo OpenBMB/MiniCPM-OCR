@@ -6,9 +6,9 @@ import type {
 import type { ImageParseSource } from './imageParseSource';
 
 /**
- * 工作台识别档位。
- * 新识别统一使用算法流水线。scored/high-precision 只为历史快照保留，
- * 不代表当前支持评分或高精度。
+ * Workbench recognition tier.
+ * New recognition always uses the algorithm pipeline. scored/high-precision are kept only for historical snapshots,
+ * and do not mean scoring or high precision is supported now.
  */
 export type ImageParseMode =
   | 'standard'
@@ -18,39 +18,39 @@ export type ImageParseMode =
   | 'seal'
   | 'kie';
 
-/** 算法流水线档位均由 L3 代理，不依赖浏览器持有的 L2 API Key。 */
+/** Algorithm pipeline tiers are all proxied by L3 and do not depend on an L2 API Key held in the browser. */
 export function isImageParsePipelineMode(
   mode: ImageParseMode,
 ): mode is 'standard-pipeline' | 'seal' | 'kie' {
   return mode === 'standard-pipeline' || mode === 'seal' || mode === 'kie';
 }
 
-/** 印章识别只接受单张图片；关键信息抽取支持图片与 PDF 逐页链路。 */
+/** Seal recognition accepts only a single image; key information extraction supports image and per-page PDF paths. */
 export function isImageParsePipelineImageMode(
   mode: ImageParseMode,
 ): mode is 'seal' | 'kie' {
   return mode === 'seal' || mode === 'kie';
 }
 
-/** 图片、PDF 与缓存恢复共用的工作台识别默认档位。 */
+/** Default workbench recognition tier shared by images, PDFs, and cache restore. */
 export const IMAGE_PARSE_DEFAULT_MODE: ImageParseMode = 'standard';
 
-/** 门户消费的结构化结果，由服务适配层统一生成。 */
+/** Structured result consumed by the portal, produced uniformly by the service adapter. */
 export interface ImageParseSdkResult {
   markdown: string;
   blocks: readonly ImageParseLayoutBlock[];
-  /** 本页识别的 request_id；跨页表格合并按它找回各页结果。 */
+  /** request_id of this page’s recognition; cross-page table merge uses it to find each page’s result. */
   requestId?: string;
   source?: ImageParseSource;
-  /** 服务端摆正信息；缺省表示旧响应未开启旋转。 */
+  /** Server rotation-adaptation info; when absent, the old response did not enable rotation. */
   rotation?: ImageParseRotationInfo;
 }
 
-/** 单块重算结果；分数必须与基础识别使用相同评分尺度。 */
+/** Single-block recompute result; the score must use the same scale as the base recognition. */
 export interface ImageParseRegenerateResult {
   markdown: string;
   confidence: number;
-  /** v4 的实际模型轮次；存在时代表服务端已完成整次优化，不再在前端重试。 */
+  /** Actual model rounds for v4; when present, the server has finished the whole optimization and the frontend does not retry. */
   roundsUsed?: number;
   text?: string;
   requestId?: string;
@@ -60,7 +60,7 @@ export interface ImageParseRegenerateResult {
   exhausted?: boolean;
 }
 
-/** 校验 SDK 返回的坐标与分数；未知分数保留 null，不在前端估算。 */
+/** Validate coordinates and scores returned by the SDK; keep unknown scores as null and do not estimate them on the frontend. */
 export function validateImageParseSdkResult(
   result: ImageParseSdkResult,
   options: { allowEmptyMarkdown?: boolean } = {},
@@ -121,13 +121,13 @@ export function validateImageParseSdkResult(
   return result;
 }
 
-/** 清洗服务端旋转元数据；缺失或非法时返回 null，不伪造摆正角度。 */
+/** Sanitize server rotation metadata; return null when it is missing or invalid, and do not fabricate a rotation-adaptation angle. */
 export function sanitizeImageParseRotation(value: unknown): ImageParseRotationInfo | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const rotation = value as Record<string, unknown>;
   const numbers = [rotation.totalAngle, rotation.orientationAngle, rotation.deskewAngle];
   const isNumber = (value: unknown) => typeof value === 'number' && Number.isFinite(value);
-  // 预测字段只在摆正真正跑过时才有；未启用 / gated 时后端给 null。
+  // Predicted fields are present only when rotation adaptation actually ran; the backend sends null when it is disabled or gated.
   const optional = (value: unknown) => value === null || isNumber(value);
   if (
     typeof rotation.enabled !== 'boolean' ||
@@ -155,7 +155,7 @@ export function sanitizeImageParseRotation(value: unknown): ImageParseRotationIn
   };
 }
 
-/** 清洗归一化多区域；非法区域返回 null，避免合并块只画出错误局部。 */
+/** Sanitize normalized multi-regions; return null for an invalid region so a merged block does not draw only a wrong fragment. */
 export function sanitizeImageParseRegions(
   value: unknown,
 ): readonly ImageParseLayoutRegion[] | null {

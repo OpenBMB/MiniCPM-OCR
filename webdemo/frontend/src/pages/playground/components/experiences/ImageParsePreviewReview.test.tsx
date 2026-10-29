@@ -387,7 +387,7 @@ describe('结果预览单块复核', () => {
     expect(regeneration.regenerateBlock).not.toHaveBeenCalled();
     rerender(<ImageParseResultPane {...props} />);
     const wrapper = container.querySelector('[data-edit-block]')!;
-    // 模拟编辑器挂载与卸载，不在此测试中加载第三方编辑器。
+    // Simulate editor mount and unmount; do not load the third-party editor in this test.
     wrapper.setAttribute('data-visual-editing', 'true');
     await waitFor(() =>
       expect(screen.queryByRole('button', { name: 'imageParseRegenerateBlock' })).toBeNull(),

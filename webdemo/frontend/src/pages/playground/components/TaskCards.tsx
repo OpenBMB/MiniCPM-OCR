@@ -1,21 +1,20 @@
 /**
- * 「试试以下任务」示例卡片网格。
+ * "Try these tasks" example-card grid.
  *
- * 用途：对话开始前展示一组示例提示词，点击把文案填入输入框（半真功能）。
- * 文案为静态预设，呼应火山方舟的任务卡片区。
+ * Purpose: before a conversation starts, show a set of example prompts; clicking fills the copy into the input (a half-real feature). The copy is a static preset, echoing Volcano Ark's task-card area.
  */
 
 import { Card } from '@map/ui';
 import { useTranslation } from 'react-i18next';
 
 interface TaskCardsProps {
-  /** 点击卡片：把示例文案填入输入框 */
+  /** Click a card: fill the example copy into the input */
   onPick: (prompt: string) => void;
 }
 
 /**
- * 渲染示例卡片网格。
- * @param onPick 选中回调
+ * Renders the example-card grid.
+ * @param onPick Selection callback
  */
 export function TaskCards({ onPick }: TaskCardsProps) {
   const { t } = useTranslation('playground');

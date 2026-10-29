@@ -3,29 +3,29 @@ import type { ToolStatusEvent } from '@/api/map/chat';
 import type { ToolEvent, ToolEventStatus } from '../types';
 import { citationURLKey, safeCitationHref } from './citations';
 
-/** 单条回答最多保留的工具事件数量，避免异常工具循环放大消息体。 */
+/** Maximum number of tool events kept for one answer, so an abnormal tool loop does not inflate the message body. */
 export const MAX_TOOL_EVENTS = 32;
 
-/** 单条工具事件最多保留的来源地址数，与过程行上叠放图标的展示上限对齐。 */
+/** Maximum number of source URLs kept on one tool event, aligned with the display cap of stacked icons on the process row. */
 export const MAX_EVENT_CITATION_URLS = 8;
 
-/** 单条工具事件最多保留的查询词数量，进行中的搜索行只是就地预告，不是完整清单。 */
+/** Maximum number of queries kept on one tool event; an in-progress search row is only an in-place preview, not the full list. */
 export const MAX_EVENT_QUERIES = 4;
 
-/** 顶行最多列出的查询词数：收起态只有这一行，列全会把「正在搜索」本身挤出视野。 */
+/** Maximum number of queries listed on the top row: the collapsed state has only this row, and listing all of them would push "searching" itself out of view. */
 const MAX_TITLE_QUERIES = 2;
 
-/** 顶行单个查询词的字符上限，模型偶尔会把整句话塞进 query。 */
+/** Character cap for one query on the top row; the model occasionally stuffs a whole sentence into query. */
 const MAX_TITLE_QUERY_CHARS = 14;
 
 /**
- * 把后端下发的 urls 收敛成可落库的来源地址。
+ * Collapse urls from the backend into source addresses that can be stored.
  *
- * 只保留能安全打开的 http(s) 地址，并统一成 citationURLKey 归一化形式——渲染时要拿它去
- * join message.citations 取标题，两边键不一致就永远匹配不上。
+ * Keep only http(s) addresses that can be opened safely, and normalize them to the citationURLKey form — rendering joins
+ * message.citations on that key to get the title, and a mismatched key never matches.
  *
- * @param urls 工具事件原始地址
- * @returns 去重且截断后的地址；一个都不剩时返回 undefined（不返回空数组，见 upsertToolEvent 的合并语义）
+ * @param urls raw addresses on the tool event
+ * @returns deduped and truncated addresses; undefined when none remain (do not return an empty array; see the merge semantics of upsertToolEvent)
  */
 function normalizeEventUrls(urls?: string[]): string[] | undefined {
   if (!urls?.length) return undefined;
@@ -39,10 +39,10 @@ function normalizeEventUrls(urls?: string[]): string[] | undefined {
 }
 
 /**
- * 收敛查询词：去空白、去重、截断。
+ * Collapse queries: trim, dedupe, and truncate.
  *
- * @param queries 工具事件原始查询词
- * @returns 截断后的查询词；一个都不剩时返回 undefined（空数组会「合法覆盖」掉首帧的值）
+ * @param queries raw queries on the tool event
+ * @returns truncated queries; undefined when none remain (an empty array would "legally overwrite" the first frame's value)
  */
 function normalizeEventQueries(queries?: string[]): string[] | undefined {
   if (!queries?.length) return undefined;
@@ -56,7 +56,7 @@ function normalizeEventQueries(queries?: string[]): string[] | undefined {
   return seen.size > 0 ? [...seen] : undefined;
 }
 
-/** 将后端状态归一化为前端可渲染的工具事件状态。 */
+/** Normalize a backend status into a tool-event status the frontend can render. */
 function normalizeToolEventStatus(status?: string): ToolEventStatus {
   if (status === 'success' || status === 'failed' || status === 'interrupted') {
     return status;
@@ -64,16 +64,16 @@ function normalizeToolEventStatus(status?: string): ToolEventStatus {
   return 'running';
 }
 
-/** 为没有 event_id 的旧 SSE 事件生成稳定兼容键。 */
+/** Build a stable compatibility key for an old SSE event that has no event_id. */
 export function toolEventKey(event: Pick<ToolStatusEvent, 'event_id' | 'step' | 'tool'>): string {
   if (event.event_id) return event.event_id;
   return `legacy:${event.step ?? 0}:${event.tool ?? 'unknown'}`;
 }
 
 /**
- * 将单个后端工具状态事件转换为前端摘要事件。
- * @param event 后端工具状态事件
- * @param reasoningOffset 该工具首帧到达时已产出的思考字符数，用作过程时间线的切分点
+ * Turn one backend tool-status event into a frontend summary event.
+ * @param event backend tool-status event
+ * @param reasoningOffset reasoning character count already produced when this tool's first frame arrived, used as the process-timeline split point
  */
 export function toToolEvent(event: ToolStatusEvent, reasoningOffset?: number): ToolEvent {
   const queryCount = event.queries?.length;
@@ -97,11 +97,11 @@ export function toToolEvent(event: ToolStatusEvent, reasoningOffset?: number): T
 }
 
 /**
- * 将工具状态追加或合并到事件列表。
- * @param events 当前事件列表
- * @param incoming 后端工具状态事件
- * @param reasoningOffset 思考切分点，仅在该事件首次出现时采用
- * @returns 不超过上限且保持时间顺序的事件列表
+ * Append or merge a tool status into the event list.
+ * @param events current event list
+ * @param incoming backend tool-status event
+ * @param reasoningOffset reasoning split point, used only the first time this event appears
+ * @returns an event list that stays within the cap and keeps time order
  */
 export function upsertToolEvent(
   events: ToolEvent[],
@@ -124,11 +124,11 @@ export function upsertToolEvent(
     pageCount: nextEvent.pageCount ?? current.pageCount,
     durationMs: nextEvent.durationMs ?? current.durationMs,
     message: nextEvent.message ?? current.message,
-    // 地址取"有就覆盖、没有就留着"：web_extractor 的 running 与 success 两帧都带 urls，
-    // 而 normalizeEventUrls 在一个都不剩时给 undefined，不会拿空值抹掉首帧的结果。
+    // Addresses use "overwrite when present, keep when absent": both the running and success frames of web_extractor carry urls,
+    // and normalizeEventUrls returns undefined when none remain, so it does not wipe the first frame's result with an empty value.
     citationUrls: nextEvent.citationUrls ?? current.citationUrls,
-    // 切分点必须锚在工具"开始"的那一刻，所以 current 优先：success 帧比 running 帧晚几秒，
-    // 用它重算会把这期间流出的思考错划到工具行之前。
+    // The split point must be anchored at the moment the tool "starts", so current wins: the success frame arrives seconds after the running frame,
+    // and recomputing from it would place the reasoning that streamed in during that gap before the tool row.
     reasoningOffset: current.reasoningOffset ?? nextEvent.reasoningOffset,
   };
   const result = [...events];
@@ -137,17 +137,17 @@ export function upsertToolEvent(
 }
 
 /**
- * 取出当前进行中的搜索查询词，供过程区顶行做动态摘要。
+ * Take the search queries currently in progress, for a live summary on the top row of the process area.
  *
- * 顶行是收起态唯一在场的进度通道，而一轮搜索几秒起步。期间它若一直是静态的「正在搜索」，
- * 用户无从判断是真在跑还是卡住了——展开态的工具行早就把查询词逐个显示了（见 ProcessToolRow
- * 的 RunningQueries），收起时这条信息却整个消失，只剩一个转圈图标。
+ * The top row is the only progress channel present in the collapsed state, and one search takes several seconds to start. If it stayed a static "Searching" the whole time,
+ * the user could not tell whether it was really running or stuck — the expanded tool row has long shown queries one by one (see RunningQueries
+ * in ProcessToolRow), but while collapsed that information disappears entirely and only a spinner remains.
  *
- * 不按工具名过滤：带 queries 的只有搜索类工具（web_extractor 的 running 帧带的是 urls），
- * 用字段在不在判断既够用，也不必让本模块反向依赖 answerTimeline 的 WEB_TOOLS。
+ * Do not filter by tool name: only search tools carry queries (web_extractor's running frame carries urls),
+ * so checking whether the field is present is enough, and this module does not have to depend back on answerTimeline's WEB_TOOLS.
  *
- * @param events 当前工具事件列表
- * @returns 去首尾空白、按长度截断后的查询词；没有进行中的搜索时返回空数组
+ * @param events current tool-event list
+ * @returns queries with surrounding whitespace removed and truncated by length; an empty array when no search is in progress
  */
 export function runningSearchQueries(events: ToolEvent[]): string[] {
   const queries: string[] = [];
@@ -167,7 +167,7 @@ export function runningSearchQueries(events: ToolEvent[]): string[] {
   return queries;
 }
 
-/** 将生命周期结束时仍运行的事件统一落为指定终态。 */
+/** Settle events that are still running when the lifecycle ends to the given terminal state. */
 export function finalizeToolEvents(
   events: ToolEvent[],
   status: Extract<ToolEventStatus, 'failed' | 'interrupted'>,

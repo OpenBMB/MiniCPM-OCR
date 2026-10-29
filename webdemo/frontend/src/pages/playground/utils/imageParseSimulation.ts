@@ -1,17 +1,17 @@
-/** 进度组件的状态契约；当前 OCR 仅返回最终结果，不在前端模拟进度。 */
+/** State contract for the progress component; current OCR returns only the final result and does not simulate progress on the frontend. */
 
-/** 解析阶段。顺序即执行顺序，界面按这个顺序推进扫描与版面框。 */
+/** Parse phases. The order is the execution order; the UI advances the scan and layout boxes in this order. */
 export type ImageParseStage = 'layout' | 'structure' | 'render';
 
-/** 服务端进度快照；尚无进度事件时使用 null，不合成百分比。 */
+/** Server progress snapshot; null when there is no progress event yet, and no percentage is synthesized. */
 export interface ImageParseProgressSnapshot {
   stage: ImageParseStage;
-  /** 总进度 0–100 */
+  /** Overall progress 0–100 */
   percent: number;
-  /** 已检出的版面块数量，驱动原图上的框逐个出现 */
+  /** Number of layout blocks already detected, which drives boxes appearing one by one on the original image */
   detectedBlocks: number;
-  /** 已完成结构还原的版面块数量，驱动框的高亮向下推进 */
+  /** Number of layout blocks whose structure has been restored, which drives the highlight moving down the boxes */
   scannedBlocks: number;
-  /** 当前已流出的 Markdown 片段 */
+  /** Markdown fragment that has streamed out so far */
   markdown: string;
 }

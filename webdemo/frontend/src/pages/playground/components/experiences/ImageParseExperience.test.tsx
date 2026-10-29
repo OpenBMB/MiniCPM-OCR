@@ -1,6 +1,5 @@
 /**
- * 图像解析体验页单测：空态不展示结果栏；选图后固定对照结果、停止、下载。
- * 另覆盖三件新行为：解析中的分阶段进度、原文页改稿后可还原、区域复制入口不再放在顶栏。
+ * Image-parse experience page unit tests: the empty state does not show the result column; after an image is selected, the comparison result, stop, and download stay fixed. Also covers three new behaviors: staged progress while parsing, restore after editing on the original page, and the region-copy entry no longer living in the top bar.
  */
 
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -62,7 +61,7 @@ vi.mock('../../utils/copyText', () => ({
   copyText: (text: string) => mocks.copyText(text),
 }));
 
-// 新手引导自带 driver.js 与计时器，页面单测里单独验证，这里整体替换掉。
+// The first-run guide brings driver.js and timers. Page unit tests verify it separately, so it is replaced entirely here.
 vi.mock('../../hooks/useImageParseExperienceTour', () => ({
   useImageParseExperienceTour: () => ({ replay: vi.fn() }),
 }));
@@ -166,7 +165,7 @@ beforeAll(() => {
   HTMLElement.prototype.scrollTo = vi.fn();
   Range.prototype.getClientRects = () => [] as unknown as DOMRectList;
   Range.prototype.getBoundingClientRect = () => new DOMRect();
-  // jsdom 不做坐标命中测试，键盘输入沿用当前焦点元素。
+  // jsdom does not hit-test coordinates; keyboard input follows the currently focused element.
   document.elementFromPoint = () => document.activeElement;
 });
 
@@ -540,7 +539,7 @@ describe('ImageParseExperience', () => {
     expect(document.querySelector('[data-pane="markdown"]')).toHaveAttribute('data-state', 'split');
     expect(document.querySelector('[data-pane="origin"]')?.className).not.toMatch(/opacity-/);
     expect(document.querySelector('[data-pane="markdown"]')?.className).not.toMatch(/opacity-/);
-    // 两个标签页都保持挂载，所以只在当前激活的面板里找结果文本
+    // Both tabs stay mounted, so look for the result text only in the currently active panel
     const activePanel = document.querySelector<HTMLElement>(
       '[role="tabpanel"][data-state="active"]',
     );
@@ -749,7 +748,7 @@ describe('ImageParseExperience', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'imageParseEditorUndo' })).toBeEnabled(),
     );
-    // 点编辑块以外的区域即失焦保存，草稿随之更新。
+    // Clicking outside the edited block blurs and saves, and the draft updates with it.
     fireEvent.pointerDown(screen.getByRole('article'));
 
     expect(screen.getByText('imageParseEdited')).toBeInTheDocument();

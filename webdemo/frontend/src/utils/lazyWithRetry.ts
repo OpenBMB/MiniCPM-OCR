@@ -1,8 +1,8 @@
 /**
- * 动态模块加载失败时按递增延时重试，并保留默认导出的完整类型。
- * @param factory 动态导入函数
- * @param retries 首次失败后的最大重试次数
- * @returns 加载成功的模块；重试耗尽后交由调用方错误边界处理
+ * Retry a failed dynamic module load with increasing delay, and keep the full type of the default export.
+ * @param factory Dynamic import function.
+ * @param retries Maximum retries after the first failure.
+ * @returns The loaded module; when retries are exhausted, the caller’s error boundary handles it.
  */
 export function lazyWithRetry<T>(
   factory: () => Promise<{ default: T }>,

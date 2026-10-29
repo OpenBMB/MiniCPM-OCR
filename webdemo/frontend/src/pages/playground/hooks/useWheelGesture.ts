@@ -1,27 +1,27 @@
 /**
- * 滚轮手势采集。
+ * Wheel-gesture collection.
  *
- * 用途：图片缩放要跟着滚轮走，但原生滚轮事件直接接会有两个坑：
- * 1. React 把根上的 wheel 注册为 passive，合成事件里 preventDefault 拦不住页面滚动，
- *    必须自己以非 passive 方式挂原生监听；
- * 2. 一次滚动能打出上百个事件，逐个 setState 会让大图掉帧——所以按
- *    requestAnimationFrame 合帧，累计增量每帧只应用一次。
+ * Purpose: image zoom has to follow the wheel, but attaching the native wheel event directly has two pitfalls:
+ * 1. React registers wheel on the root as passive, so preventDefault in a synthetic event cannot stop page scroll,
+ *    and a native listener has to be attached non-passive by hand;
+ * 2. one scroll can fire hundreds of events, and setState on each one drops frames on a large image — so they are coalesced on
+ *    requestAnimationFrame, and the accumulated delta is applied only once per frame.
  *
- * 另外把「正在滚」暴露出去：连续手势期间调用方应关掉 CSS 过渡才跟手。
+ * "Currently scrolling" is also exposed: during a continuous gesture the caller should turn CSS transitions off so it follows the hand.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-/** 行模式滚轮（Firefox）一格 deltaY 只有 ±3，按行高折算成像素才有同样手感。 */
+/** In line-mode wheel (Firefox) one notch of deltaY is only ±3; convert it by line height into pixels so the feel matches. */
 const LINE_HEIGHT = 16;
-/** 滚动停止多久后认为手势结束。 */
+/** How long after scrolling stops the gesture is considered finished. */
 const SETTLE_MS = 140;
 
 /**
- * 把元素上的滚轮接成合帧后的增量回调。
- * @param node 目标元素，null 时不监听
- * @param onDelta 每帧回调一次，delta 是累计的像素增量，event 是该帧最后一个事件
- * @returns gesturing 是否正在连续滚动
+ * Turn the wheel on an element into a coalesced delta callback.
+ * @param node target element; do not listen when null
+ * @param onDelta called once per frame; delta is the accumulated pixel increment, and event is the last event of that frame
+ * @returns gesturing, whether a continuous scroll is in progress
  */
 export function useWheelGesture(
   node: HTMLElement | null,

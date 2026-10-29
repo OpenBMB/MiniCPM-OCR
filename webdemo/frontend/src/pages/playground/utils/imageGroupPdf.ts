@@ -1,6 +1,6 @@
 /**
- * 多张图片合成一份 PDF，复用现有的分页预览和逐页识别。
- * 单张图片和单份 PDF 保持原文件。
+ * Compose several images into one PDF, reusing the existing paged preview and per-page recognition.
+ * A single image and a single PDF stay as the original file.
  */
 import {
   documentFileError,
@@ -11,7 +11,7 @@ import {
 } from './documentUpload';
 import { withResolvedDocumentMime } from './documentMime';
 
-/** 合成页的长边上限，避免手机原图把主线程和后续识别撑得过大。 */
+/** Long-edge cap for a composed page, so a phone original does not overwhelm the main thread and later recognition. */
 export const IMAGE_GROUP_MAX_EDGE = 2000;
 
 export type PreparedDocument = { ok: true; file: File } | { ok: false; error: string };
@@ -22,7 +22,7 @@ interface JpegPage {
   height: number;
 }
 
-/** 预览按 2 倍渲染，页面尺寸用像素的一半，识别图才能回到原图像素。 */
+/** Preview renders at 2x and page size uses half the pixels, so the recognition image can return to the original image pixels. */
 export function pdfFromJpegs(pages: readonly JpegPage[]): Uint8Array {
   if (!pages.length) throw new Error('documentEmptyFile');
   const encoder = new TextEncoder();
@@ -96,7 +96,7 @@ function groupFileName(files: readonly File[]): string {
   return `${stem} 等${files.length}张.pdf`;
 }
 
-/** 把一张图收成 JPEG 页。已有页面传 Infinity，避免缩小后对不齐原来的识别框。 */
+/** Turn one image into a JPEG page. An existing page passes Infinity, so shrinking it does not misalign the original recognition boxes. */
 export async function imageFileToJpegPage(
   file: File,
   maxEdge = IMAGE_GROUP_MAX_EDGE,
@@ -135,8 +135,8 @@ async function imagesToPdfFile(files: readonly File[]): Promise<File> {
 }
 
 /**
- * 一份 PDF 保持原样。多张图片合成一份 PDF。多份 PDF，或 PDF 和图片混在一起，返回错误键。
- * 单文件结果是同步的，避免现有选择流程多等一轮。
+ * One PDF stays as-is. Several images are composed into one PDF. Several PDFs, or a PDF mixed with images, return an error key.
+ * A single-file result is synchronous, so the existing selection flow does not wait an extra round.
  */
 export function prepareDocumentFiles(
   incoming: FileList | readonly File[],
@@ -173,7 +173,7 @@ export function prepareDocumentFiles(
   );
 }
 
-/** 同步结果立刻回调；只有多张图片会等合成完成。 */
+/** A synchronous result calls back immediately; only several images wait for composition to finish. */
 export function applyPreparedDocument(
   incoming: FileList | readonly File[] | null | undefined,
   onFile: (file: File) => void,

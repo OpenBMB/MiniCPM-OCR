@@ -1,13 +1,13 @@
-/** 应用品牌常量——用户可见文案的单一来源（内部包名 @map/* 保持不变）。 */
+/** App brand constants — the single source of user-visible copy (internal package names @map/* stay unchanged). */
 
-/** 产品名 */
+/** Product name. */
 export const APP_NAME = 'MiniCPM-OCR';
 
-/** 浏览器标签页默认标题 */
+/** Default browser tab title. */
 export const APP_TITLE = APP_NAME;
 
-/** 页面标语 */
+/** Page tagline. */
 export const APP_TAGLINE = 'Document parse';
 
-/** 页脚版权文案 */
+/** Footer copyright copy. */
 export const APP_COPYRIGHT = `© 2026 OpenBMB.`;

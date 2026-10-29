@@ -1,12 +1,9 @@
 /**
- * 体验中心全屏外壳。
+ * Full-screen shell of the experience center.
  *
- * 用途：左侧栏 + 右侧主区（顶栏 + 内容 + 底部免责声明）的全屏布局。
- * 桌面端（≥lg）侧栏常驻并排；移动端侧栏改为抽屉（fixed 滑出 + 遮罩），主区占满全宽。
- * 纯结构组件，不含业务逻辑。
+ * Purpose: a full-screen layout of the left sidebar + the right main area (top bar + content + bottom disclaimer). On desktop (≥lg) the sidebar stays side by side; on mobile the sidebar becomes a drawer (fixed slide-out + mask) and the main area takes the full width. A pure structure component, with no business logic.
  *
- * 备案说明：体验中心用独立全屏壳，底部不放备案（备案已在登录页与 AdminLayout 下的
- * 全部业务页常驻展示），此处改为「AI 生成内容免责声明 + 协议入口」。
+ * Filing-record note: the experience center uses an independent full-screen shell and does not put the filing record at the bottom (the filing record already stays on the login page and on every business page under AdminLayout). This is changed to "AI-generated-content disclaimer + agreement entry."
  */
 
 import { useEffect, useState } from 'react';
@@ -19,24 +16,24 @@ interface PlaygroundLayoutProps {
   sidebar: React.ReactNode;
   topBar: React.ReactNode;
   children: React.ReactNode;
-  /** 是否为移动端（<lg）：侧栏转抽屉，右侧工作区转覆盖式 */
+  /** Whether this is mobile (<lg): the sidebar becomes a drawer, and the right workspace becomes an overlay */
   isMobile: boolean;
-  /** 移动端抽屉是否打开 */
+  /** Whether the mobile drawer is open */
   mobileSidebarOpen: boolean;
-  /** 关闭移动端抽屉（点遮罩） */
+  /** Close the mobile drawer (click the mask) */
   onCloseMobileSidebar: () => void;
-  /** 语言模型主区右侧的非模态工作区。 */
+  /** Non-modal workspace on the right of the language-model main area. */
   rightPanel?: React.ReactNode;
-  /** 右侧工作区是否展开。 */
+  /** Whether the right workspace is expanded. */
   rightPanelOpen?: boolean;
-  /** 关闭右侧工作区；桌面端非模态不需要，仅移动端点遮罩时触发。 */
+  /** Close the right workspace; desktop non-modal mode does not need this, and it fires only when the mobile mask is clicked. */
   onCloseRightPanel?: () => void;
-  /** 图像解析等工作台自带顶栏时，不再叠体验中心免责条 */
+  /** When a workspace such as image parse brings its own top bar, do not stack the experience-center disclaimer bar */
   hideFooter?: boolean;
 }
 
 /**
- * 全屏外壳。用 h-dvh + 100vh 回退适配移动端地址栏。
+ * Full-screen shell. Use h-dvh with a 100vh fallback to fit the mobile address bar.
  */
 export function PlaygroundLayout({
   sidebar,
@@ -54,7 +51,7 @@ export function PlaygroundLayout({
     <div className="flex h-screen h-[100dvh] w-full overflow-hidden bg-muted/30">
       {isMobile ? (
         <>
-          {/* 遮罩 */}
+          {/* Mask */}
           <div
             className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-200 ${
               mobileSidebarOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
@@ -62,7 +59,7 @@ export function PlaygroundLayout({
             onClick={onCloseMobileSidebar}
             aria-hidden
           />
-          {/* 抽屉 */}
+          {/* Drawer */}
           <div
             className={`fixed inset-y-0 left-0 z-50 transition-transform duration-200 ease-out ${
               mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'
@@ -78,8 +75,7 @@ export function PlaygroundLayout({
         {topBar}
         <div className="flex min-h-0 min-w-0 flex-1">
           {/*
-            桌面端面板在文档流里占位，主区让出宽度，所以要 overflow-hidden 兜住收窄瞬间
-            可能横向溢出的宽表格／长代码块；移动端面板是覆盖式，主区宽度不变，无需裁剪。
+            The desktop panel occupies space in document flow and the main area gives up width, so overflow-hidden covers wide tables / long code blocks that may overflow horizontally the instant it narrows. The mobile panel is an overlay, the main-area width does not change, and clipping is unnecessary.
           */}
           <main
             className={cn('min-h-0 min-w-0 flex-1', !isMobile && rightPanel && 'overflow-hidden')}
@@ -90,7 +86,7 @@ export function PlaygroundLayout({
             {rightPanel}
           </AnimatedRightPanel>
         </div>
-        {/* 免责声明 + 协议入口：固定贴在主区底部，不随内容滚动。备案见登录页/AdminLayout */}
+        {/* Disclaimer + agreement entry: pinned to the bottom of the main area and does not scroll with content. Filing record: see the login page / AdminLayout */}
         {hideFooter ? null : (
           <PlaygroundFooter className="shrink-0 bg-background/55 py-2 backdrop-blur-sm" />
         )}
@@ -99,38 +95,36 @@ export function PlaygroundLayout({
   );
 }
 
-/** Drawer 统一的时长与缓动，宽度、位移、遮罩三者共用，让位与滑入才不会脱节。 */
+/** Shared duration and easing for the Drawer. Width, translation, and mask all use it, so making room and sliding in do not fall out of step. */
 const PANEL_MOTION = 'duration-300 [transition-timing-function:cubic-bezier(0.32,0.72,0,1)]';
 
-/** 桌面端面板宽度：26rem 打底，窄屏按 36vw 收，避免把正文挤得过窄。 */
+/** Desktop panel width: 26rem as the base, shrinking to 36vw on a narrow screen so the body is not squeezed too narrow. */
 const PANEL_WIDTH = 'w-[min(26rem,36vw)]';
 
 interface AnimatedRightPanelProps {
   children?: React.ReactNode;
   open: boolean;
-  /** 窄屏（<lg）没有并排空间，退化为覆盖式抽屉 + 遮罩。 */
+  /** A narrow screen (<lg) has no side-by-side space and degrades to an overlay drawer + mask. */
   isMobile: boolean;
-  /** 移动端点遮罩关闭。 */
+  /** On mobile, click the mask to close. */
   onClose?: () => void;
 }
 
 /**
- * 布局级右侧工作区，带对称的进入与退出动画。
+ * Layout-level right workspace, with symmetric enter and exit animations.
  *
- * 桌面端是**非模态并排**：面板在文档流里占位、主区让出宽度，左右两侧同时可点击 / 滚动 /
- * 输入——这正是来源面板要的（边对着来源边继续追问）。所以桌面端**不渲染遮罩**：遮罩会把
- * 面板变成事实上的模态，压暗并锁死正文。
+ * Desktop is **non-modal side by side**: the panel occupies space in document flow, the main area gives up width, and both sides can be clicked / scrolled / typed in at once — which is what the source panel needs (keep following up while looking at sources). So desktop **does not render a mask**: a mask would turn the panel into a modal in practice, dimming and locking the body.
  *
- * 窄屏没有并排的宽度，只能退化成覆盖式抽屉 + 遮罩，此时遮罩同时是最顺手的关闭落点。
+ * A narrow screen has no side-by-side width and can only degrade to an overlay drawer + mask. The mask is then also the most convenient close target.
  *
- * 首次挂载时先提交收起态，再跨两个动画帧进入终态，避免 React 批量更新让面板直接出现。
+ * On first mount, commit the collapsed state first, then enter the final state across two animation frames, so a React batched update does not make the panel appear directly.
  */
 function AnimatedRightPanel({ children, open, isMobile, onClose }: AnimatedRightPanelProps) {
   const [entered, setEntered] = useState(false);
 
   useEffect(() => {
     if (!open) {
-      // 关闭态先复位，后续快速重新打开仍能从明确的起始帧进入。
+      // Reset the closed state first, so a later quick reopen can still enter from a definite starting frame.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setEntered(false);
       return;
@@ -156,7 +150,7 @@ function AnimatedRightPanel({ children, open, isMobile, onClose }: AnimatedRight
   if (isMobile) {
     return (
       <>
-        {/* 遮罩：非模态浮层停在 z-40（dropdown 层），留在 dialog(z-50) / toast(z-100) 之下 */}
+        {/* Mask: the non-modal overlay stays at z-40 (the dropdown layer), under dialog (z-50) / toast (z-100) */}
         <div
           className={cn(
             'fixed inset-0 z-40 bg-foreground/20 backdrop-blur-[1px]',
@@ -190,8 +184,7 @@ function AnimatedRightPanel({ children, open, isMobile, onClose }: AnimatedRight
   }
 
   /*
-    桌面端：外层管宽度（把主区推开）、内层管位移与淡入（滑进来）。分两层是因为宽度动画会
-    连带压缩内容、让文字在过渡期抖动；内层固定住最终宽度再整体平移，观感才干净。
+    Desktop: the outer layer owns width (pushing the main area open), and the inner layer owns translation and fade-in (sliding in). Two layers, because a width animation also compresses content and makes text jitter during the transition; the inner layer locks the final width and then translates as a whole, which looks clean.
   */
   return (
     <div

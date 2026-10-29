@@ -4,7 +4,7 @@ const IMAGE_KINDS = new Set(['image', 'chart', 'seal']);
 const PLACEHOLDER = /!\[image\]\(\)/g;
 const IMAGE_MARKUP = /!\[image\]\((?:<([^>\r\n]*)>|([^)]*))\)/g;
 
-/** 正文里需要用原图裁切补上的插图位置。http(s) 和 data URL 保持原样。 */
+/** Illustration positions in the body that need a crop from the original image. http(s) and data URLs are left as-is. */
 export function unservedImagePlaceholderOffsets(markdown: string): number[] {
   const offsets: number[] = [];
   for (const match of markdown.matchAll(IMAGE_MARKUP)) {
@@ -15,7 +15,7 @@ export function unservedImagePlaceholderOffsets(markdown: string): number[] {
   return offsets;
 }
 
-/** 图表与有文字印章在正文里显示文字；关闭展示时才替换为原图占位符。 */
+/** Charts and seals that have text show that text in the body; they are replaced with an original-image placeholder only when display is turned off. */
 export function isImageParseDisplayTextBlock(block: ImageParseLayoutBlock): boolean {
   return (block.kind === 'chart' || block.kind === 'seal') && Boolean(block.text.trim());
 }
@@ -34,7 +34,7 @@ function isEmptySeal(block: ImageParseLayoutBlock): boolean {
   return block.kind === 'seal' && !block.text.trim();
 }
 
-/** 展示印章图片时使用的完整裁图集合；页脚图没有正文占位符，不纳入集合。 */
+/** Full crop set used when showing seal images; footer images have no body placeholder and are not included. */
 export function imageParseAllCropBlocks(
   blocks: readonly ImageParseLayoutBlock[],
 ): ImageParseLayoutBlock[] {
@@ -42,10 +42,10 @@ export function imageParseAllCropBlocks(
 }
 
 /**
- * 正文里的 ![image]() 按阅读顺序对应这些块。
- * 有文字的印章和图表对应正文，不参与图片占位符配对。
- * header_image、footer_image 和 image 一样要出图。服务端若漏了页脚图占位符，数量对不上时先去掉它再配，避免把别的图贴错。
- * 还是对不上就不猜，避免把图贴到错误的块上。
+ * `![image]()` in the body corresponds to these blocks in reading order.
+ * Seals and charts that have text correspond to the body and do not take part in image-placeholder pairing.
+ * header_image, footer_image, and image all need a picture. If the server omitted a footer-image placeholder, drop it before pairing when the counts disagree, so another image is not pasted in the wrong place.
+ * If they still disagree, do not guess, so an image is not pasted onto the wrong block.
  */
 export function imageParseCropBlocks(
   blocks: readonly ImageParseLayoutBlock[],
@@ -58,10 +58,10 @@ export function imageParseCropBlocks(
 }
 
 /**
- * 服务正文已有占位符与图片块配对。
- * 有文字的印章和图表对应正文；服务端通常不会为空印章写占位符，
- * 因此数量对不上时先排除空印章，
- * 再由兼容层补写印章占位符，避免把已有图片占位符错配给印章。
+ * Pair placeholders already in the service body with image blocks.
+ * Seals and charts that have text correspond to the body; the server usually does not write a placeholder for an empty seal,
+ * so when the counts disagree, exclude empty seals first,
+ * then let the compatibility layer write seal placeholders, so an existing image placeholder is not mismatched to a seal.
  */
 export function imageParseMarkdownCropBlocks(
   blocks: readonly ImageParseLayoutBlock[],
@@ -77,7 +77,7 @@ export function imageParseMarkdownCropBlocks(
   return withoutOmitted.length === placeholderCount ? withoutOmitted : [];
 }
 
-/** 占位符数量与可显示图块数量不一致时不猜测配对，避免把别的图贴到错误块上。 */
+/** When the placeholder count and the number of displayable image blocks disagree, do not guess the pairing, so another image is not pasted onto the wrong block. */
 export async function imageParseCrops(
   markdown: string,
   blocks: readonly ImageParseLayoutBlock[],
@@ -101,7 +101,7 @@ export async function imageParseCrops(
   const image = new Image();
   if (remote) image.crossOrigin = 'anonymous';
   image.src = original;
-  // jsdom 与部分旧浏览器没有 decode；裁图是增强能力，失败时保留文字与坐标。
+  // jsdom and some old browsers have no decode; cropping is an enhancement, and on failure the text and coordinates are kept.
   if (typeof image.decode !== 'function') return [];
   try {
     await image.decode();

@@ -1,10 +1,7 @@
 /**
- * 语音合成「合成设置」面板。
+ * Speech-synthesis "synthesis settings" panel.
  *
- * 用途：TtsExperience 右栏设置的展示组件——模型（只读锁定）、声音描述（预设下拉 + 自定义展开
- * + 查看示例）、音色（默认/预置/上传复刻）、上传或录制参考音频、高级设置
- * （CFG 引导强度滑块 + 参考音频降噪 / 文本规范化开关）、合成按钮与密钥状态。逻辑全在 useTtsSynthesis，
- * 本组件只吃 props 渲染，不含请求/状态编排。响应式：随外层栅格在窄屏堆叠，控件均全宽自适应。
+ * Purpose: the display component for TtsExperience's right-column settings — model (read-only and locked), voice description (preset dropdown + custom expand + view examples), voice (default/preset/upload clone), upload or record reference audio, advanced settings (CFG guidance-strength slider + reference-audio denoise / text-normalization switches), the synthesize button, and key status. All logic is in useTtsSynthesis. This component only renders from props and does not orchestrate requests or state. Responsive: it stacks with the outer grid on a narrow screen, and controls are all full-width and adaptive.
  */
 
 import { AudioLines, Loader2, Sparkles, SlidersHorizontal, ChevronDown } from 'lucide-react';
@@ -55,18 +52,18 @@ interface TtsSettingsPanelProps {
   model: PlaygroundModel;
   tts: TtsState;
   mode: TtsMode;
-  /** 当前用户是否可使用语音复刻；未授权时只展示普通语音生成。 */
+  /** Whether the current user may use voice cloning; when unauthorized, show only ordinary speech generation. */
   canUseVoiceClone: boolean;
   onModeChange: (mode: TtsMode) => void;
-  /** 上传参考音频（含错误 toast） */
+  /** Upload reference audio (including an error toast) */
   onUpload: (file: File) => void;
 }
 
 /**
- * 合成设置面板。
- * @param model 模型与密钥编排
- * @param tts useTtsSynthesis 返回的状态与动作
- * @param onUpload 参考音频上传处理
+ * Synthesis settings panel.
+ * @param model Model and key orchestration
+ * @param tts State and actions returned by useTtsSynthesis
+ * @param onUpload Reference-audio upload handler
  */
 export function TtsSettingsPanel({
   model,
@@ -213,7 +210,7 @@ export function TtsSettingsPanel({
           {t('cloningHint')}
         </p>
       )}
-      {/* 暂时隐藏生成模式说明，避免与当前简化的设置面板重复。 */}
+      {/* Hide the generation-mode note for now, so it does not repeat the currently simplified settings panel. */}
 
       <Button
         className="mt-auto w-full gap-2"
@@ -243,7 +240,7 @@ function getTtsActionLabel(isClone: boolean, cloneLabel: string, generateLabel: 
   return isClone ? cloneLabel : generateLabel;
 }
 
-/** 高级设置：CFG 引导强度滑块 + 参考音频降噪 / 文本规范化开关（后二者透传上游） */
+/** Advanced settings: CFG guidance-strength slider + reference-audio denoise / text-normalization switches (the latter two are passed through upstream) */
 function AdvancedSettings({ tts, isClone }: { tts: TtsState; isClone: boolean }) {
   const { t } = useTranslation('playground');
   return (
@@ -254,7 +251,7 @@ function AdvancedSettings({ tts, isClone }: { tts: TtsState; isClone: boolean })
         <ChevronDown className="ml-auto h-3.5 w-3.5 shrink-0 transition-transform duration-200 group-open:rotate-180" />
       </summary>
       <div className="mt-3 flex flex-col gap-4">
-        {/* CFG 引导强度：滑块直观调参，右侧同步数值 */}
+        {/* CFG guidance strength: the slider adjusts it directly, and the number on the right stays in sync */}
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">{t('cfgGuidance')}</span>
@@ -273,7 +270,7 @@ function AdvancedSettings({ tts, isClone }: { tts: TtsState; isClone: boolean })
           <p className="text-[11px] leading-relaxed text-muted-foreground/70">{t('cfgHint')}</p>
         </div>
 
-        {/* 透传开关：官方为 demo 侧预处理，我方作字段透传，生效取决于上游 LIS 能力 */}
+        {/* Pass-through switches: officially these are demo-side preprocessing. We pass the fields through, and whether they take effect depends on upstream LIS capability */}
         {isClone && (
           <ToggleRow
             label={t('referenceDenoise')}
@@ -282,13 +279,13 @@ function AdvancedSettings({ tts, isClone }: { tts: TtsState; isClone: boolean })
             onChange={tts.setDenoise}
           />
         )}
-        {/* 暂时隐藏文本规范化：当前上游能力未稳定提供，保留状态与透传逻辑以便恢复。 */}
+        {/* Hide text normalization for now: the current upstream capability is not provided stably. Keep the state and pass-through logic so it can be restored. */}
       </div>
     </details>
   );
 }
 
-/** 开关行：标题 + 「上游支持时生效」诚实标注 + Switch */
+/** Switch row: title + an honest "takes effect when upstream supports it" mark + Switch */
 function ToggleRow({
   label,
   hint,
@@ -311,7 +308,7 @@ function ToggleRow({
   );
 }
 
-/** 「查看示例」弹窗：对齐官方 demo 的角色扮演 + 方言生成指南，给声音描述灵感 */
+/** "View examples" dialog: aligned with the official demo's role-play + dialect generation guide, for voice-description ideas */
 function ExamplesDialog() {
   const { t } = useTranslation('playground');
   const [open, setOpen] = useState(false);
@@ -361,7 +358,7 @@ function ExamplesDialog() {
   );
 }
 
-/** 带标题的表单字段容器 */
+/** Form field container with a title */
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
@@ -371,10 +368,9 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-/** 只读锁定模型下拉：仅一个选项并默认选中，保持下拉外观但不提供切换 */
+/** Read-only locked model dropdown: only one option, selected by default. It keeps the dropdown look but does not offer switching */
 /**
- * 语音合成模型下拉：候选来自管理端勾了「语音合成」能力的全部模型。
- * 只有一个候选时下拉照常可用（仅一项），无候选时禁用并显示「暂无可用模型」。
+ * Speech-synthesis model dropdown: candidates are every model the admin console marked with the "speech synthesis" capability. With only one candidate the dropdown still works (just one item); with no candidates it is disabled and shows "no model available."
  */
 function ExperienceModelSelect({
   models,

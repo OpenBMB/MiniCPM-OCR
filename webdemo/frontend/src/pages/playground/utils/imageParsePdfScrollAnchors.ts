@@ -4,7 +4,7 @@ import type { ImageParseLayoutBlock } from './imageParseSample';
 
 const bounded = (value: number) => Math.max(0, Math.min(1, value));
 
-/** 连续 PDF 按页面骨架映射全篇，当前页再用真实区块细化；离屏页仍可定位。 */
+/** A continuous PDF maps the whole document by page skeletons, then the current page is refined with real blocks; offscreen pages can still be positioned. */
 export function imageParsePdfScrollAnchors(
   origin: HTMLElement,
   result: HTMLElement,

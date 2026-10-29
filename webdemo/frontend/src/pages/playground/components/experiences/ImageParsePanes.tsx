@@ -3,9 +3,9 @@ import { cn } from '@map/ui';
 import type { SplitPane } from '../../hooks/useSplitPane';
 
 /**
- * 分栏分隔条。窄屏是上下布局，没有横向分栏可拖，所以整条隐藏。
+ * Column-split handle. A narrow screen is a top-bottom layout and has no horizontal split to drag, so the whole handle is hidden.
  *
- * 仅在交互时显示居中短提示，不贯穿顶部工具栏；透明抓取区不增加布局宽度。
+ * Show a short centered hint only while interacting, and do not run it through the top toolbar; the transparent grab area does not add layout width.
  */
 export function PaneDivider({ split }: { split: SplitPane }) {
   const { t } = useTranslation('playground');

@@ -1,8 +1,8 @@
 /**
- * 算法侧图像解析流水线的前端适配层。
+ * Frontend adapter for the algorithm image-parsing pipeline.
  *
- * 浏览器只调用 MAP L3 的同源接口；流水线地址、无鉴权上游接口与任务归属
- * 均由后端持有。印章/关键信息抽取不沿用 L2 API Key 链路。
+ * The browser calls only MAP L3 same-origin APIs. The pipeline address, unauthenticated upstream APIs, and task ownership
+ * are all held by the backend. Seal recognition and key information extraction do not reuse the L2 API Key path.
  */
 
 import { BizError } from '@map/types';
@@ -38,8 +38,8 @@ function parseCapabilities(value: unknown): ImageParsePipelineCapabilities {
   const modes = Array.isArray(raw.modes)
     ? raw.modes.filter((mode): mode is string => typeof mode === 'string')
     : [];
-  // 兼容算法文档的 enabled/modes 契约。旧版 MAP 只返回 enabled，
-  // 不能仅凭它开放流水线入口；必须看到 modes 声明。
+  // Compatible with the enabled/modes contract in the algorithm docs. Older MAP returns only enabled,
+  // which is not enough to open the pipeline entry; a modes declaration is required.
   const enabled =
     raw.pipeline === true ||
     (raw.pipeline === undefined &&
@@ -56,9 +56,9 @@ function parseCapabilities(value: unknown): ImageParsePipelineCapabilities {
 }
 
 /**
- * 探测流水线能力。缓存与重试由调用方的 TanStack Query 负责，失败时向上抛出。
- * @param signal 页面或查询生命周期信号
- * @returns 归一化能力；响应结构不合法时安全降级为不可用
+ * Probe pipeline capabilities. The caller’s TanStack Query owns caching and retries; failures are thrown upward.
+ * @param signal Page or query lifecycle signal
+ * @returns Normalized capabilities; an invalid response shape safely degrades to unavailable
  */
 export async function loadImageParsePipelineCapabilities(
   signal?: AbortSignal,
@@ -88,8 +88,8 @@ interface ImageParsePipelineBaseInput {
 }
 
 /**
- * 工作台仅传文件服务 fileId，经 MAP 异步任务执行。
- * fileUrl 和 inline image 仅兼容旧调用方，不是工作台回退路径。
+ * The workbench sends only a file-service fileId and runs it through a MAP async job.
+ * fileUrl and inline image remain only for older callers; they are not a workbench fallback path.
  */
 export type ImageParsePipelineInput = ImageParsePipelineBaseInput &
   (
@@ -98,7 +98,7 @@ export type ImageParsePipelineInput = ImageParsePipelineBaseInput &
     | { image: string; fileId?: never; fileUrl?: never }
   );
 
-/** 单图 fileId 走异步任务；旧 URL/内联调用保留同步契约，均由 L3 校验。 */
+/** A single-image fileId goes through an async job; older URL and inline calls keep the sync contract. L3 validates both. */
 export async function parseImagePipeline(
   input: ImageParsePipelineInput,
 ): Promise<ImageParseSdkResult> {
@@ -165,7 +165,7 @@ export async function parseImagePipeline(
   )
     throw new Error('imageParseInvalidResult');
   const result = adaptImageParseV2(response);
-  // 算法流水线不提供重算凭据，旧历史来源不能被新响应重新启用。
+  // The algorithm pipeline does not provide recompute credentials, so an old history source must not be re-enabled by a new response.
   delete result.source;
   return validateImageParseSdkResult(result, {
     allowEmptyMarkdown: input.mode === 'seal',

@@ -1,5 +1,5 @@
 /**
- * 校对草稿单测：改稿后进入 dirty、还原回到结果、新结果覆盖旧草稿。
+ * Proofreading-draft unit tests: an edit enters dirty, restore returns to the result, and a new result replaces the old draft.
  */
 
 import { act, renderHook } from '@testing-library/react';
@@ -36,7 +36,7 @@ describe('useImageParseDraft', () => {
   });
 
   it('follows a new parse result instead of keeping a stale draft', () => {
-    // 重新解析或换图后旧草稿已无意义，留着会让用户以为改动仍对应当前这张图。
+    // After parsing again or changing the image, the old draft is meaningless; leaving it would make the user think the edit still applies to the current image.
     const { result, rerender } = renderHook(({ md }) => useImageParseDraft(md), {
       initialProps: { md: '第一版' },
     });

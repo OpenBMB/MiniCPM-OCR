@@ -2,7 +2,7 @@ import { isImageParsePipelineImageMode } from '@/api/map/imageParseSdk';
 import type { useImageParse } from '../hooks/useImageParse';
 import { isPdfAttachment } from './documentUpload';
 
-/** 当前任务对用户呈现的互斥阶段。 */
+/** Mutually exclusive phase the current task shows the user. */
 export type ImageParseTaskPhase =
   | 'empty'
   | 'unsupported'
@@ -13,11 +13,11 @@ export type ImageParseTaskPhase =
   | 'result';
 
 /**
- * 派生任务对应的操作阶段，避免文档正文被误判为已有字段结果。
- * @param parse 当前识别状态
- * @param setupOpen 是否主动打开字段配置
- * @param uploading 是否仍在上传原件
- * @returns 任务、格式限制和开始操作状态
+ * Derive the operation phase for the task, so document body text is not mistaken for an existing field result.
+ * @param parse current recognition state
+ * @param setupOpen whether field configuration was opened on purpose
+ * @param uploading whether the original is still uploading
+ * @returns task, format limits, and start-operation state
  */
 export function imageParseTaskView(
   parse: ReturnType<typeof useImageParse>,

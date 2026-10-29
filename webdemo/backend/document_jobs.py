@@ -1,6 +1,7 @@
-"""把上传的图片或 PDF 交给本机 page-worker 解析。
+"""Hand an uploaded image or PDF to the local page worker.
 
-前端按页轮询。检测器仍只在切页时占用，摆正和识别走各自的队列。
+The frontend polls page by page. A detector is held only while that page is
+being cut. Rotation adaptation and recognition each have their own queue.
 """
 from __future__ import annotations
 
@@ -46,7 +47,7 @@ def _extract_page(src: Path, index: int, dest: Path) -> None:
 
 
 def _layout_page_index(layout: Dict, stem: str) -> int:
-    """PDF 页码写在 source.page_index，文件名 document_page_001 从 1 计。"""
+    """The PDF page number is source.page_index. A name like document_page_001 counts from 1."""
     source = layout.get("source") if isinstance(layout.get("source"), dict) else {}
     page_index = source.get("page_index", layout.get("page_index"))
     if isinstance(page_index, int) and not isinstance(page_index, bool) and page_index >= 0:

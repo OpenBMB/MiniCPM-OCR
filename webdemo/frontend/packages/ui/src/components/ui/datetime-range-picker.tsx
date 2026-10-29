@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../utils';
 
-/** 快捷预设项：可选择指定日期范围，或通过全部项清空时间筛选。 */
+/** Shortcut preset: pick a date range, or clear the time filter with the All item. */
 export type DateRangePreset = DateRangeValuePreset | DateRangeAllPreset;
 
 interface DateRangeValuePreset {
@@ -35,21 +35,21 @@ interface DateRangeAllPreset {
 }
 
 export interface DateTimeRangePickerProps {
-  /** 起始时间；datetime 模式为 YYYY-MM-DD HH:mm:ss，date 模式为 YYYY-MM-DD；空表示未选 */
+  /** Start time; YYYY-MM-DD HH:mm:ss in datetime mode, YYYY-MM-DD in date mode; empty means unset. */
   start?: string;
-  /** 结束时间；格式同 start；空表示未选 */
+  /** End time; same format as start; empty means unset. */
   end?: string;
-  /** 确定时回调，回传 (start, end)；清除时回传 ('', '') */
+  /** Called on confirm with (start, end); called with ('', '') when cleared. */
   onChange?: (start: string, end: string) => void;
-  /** 点击“全部”时回调；未提供时与清除行为一致 */
+  /** Called when "All" is clicked; when omitted, behaves the same as clear. */
   onSelectAll?: () => void;
-  /** 是否处于“全部”状态，用于受控展示 */
+  /** Whether the "All" state is active, for controlled display. */
   allSelected?: boolean;
-  /** 输入内容有效性变化回调；输入非法时为 false */
+  /** Called when input validity changes; false when the input is invalid. */
   onValidityChange?: (valid: boolean) => void;
-  /** 'datetime'（默认，带时分秒列）或 'date'（纯日期，无时间列，输出 YYYY-MM-DD） */
+  /** 'datetime' (default, with hour-minute-second columns) or 'date' (date only, no time columns, output YYYY-MM-DD). */
   mode?: 'datetime' | 'date';
-  /** 左侧快捷预设；省略用内置（全部/今天/昨天/最近 7 天/最近 30 天），传 [] 则不显示预设栏 */
+  /** Shortcuts on the left; omit them to use the built-ins (All / today / yesterday / last 7 days / last 30 days), or pass [] to hide the preset bar. */
   presets?: DateRangePreset[];
   placeholder?: string;
   disabled?: boolean;
@@ -77,7 +77,7 @@ function pad(n: number): string {
   return n < 10 ? `0${n}` : String(n);
 }
 
-/** 解析 "YYYY-MM-DD HH:mm:ss" 或 "YYYY-MM-DDTHH:mm[:ss]"；解析失败时间部分回退 0。 */
+/** Parse "YYYY-MM-DD HH:mm:ss" or "YYYY-MM-DDTHH:mm[:ss]"; on failure the time part falls back to 0. */
 function parse(value?: string): Parts {
   const empty: Parts = { ymd: null, h: 0, mi: 0, s: 0 };
   if (!value) return empty;
@@ -108,7 +108,7 @@ function formatOut(p: Parts): string {
   return `${p.ymd.y}-${pad(p.ymd.m + 1)}-${pad(p.ymd.d)} ${pad(p.h)}:${pad(p.mi)}:${pad(p.s)}`;
 }
 
-/** 纯日期输出 YYYY-MM-DD（date 模式用）。 */
+/** Date-only output YYYY-MM-DD (used in date mode). */
 function formatDate(p: Parts): string {
   if (!p.ymd) return '';
   return `${p.ymd.y}-${pad(p.ymd.m + 1)}-${pad(p.ymd.d)}`;
@@ -118,7 +118,7 @@ function sameDay(a: YMD | null, b: YMD | null): boolean {
   return !!a && !!b && a.y === b.y && a.m === b.m && a.d === b.d;
 }
 
-/** < 0 表示 a 早于 b（仅比较年月日） */
+/** < 0 means a is earlier than b (year, month, and day only). */
 function compareDay(a: YMD, b: YMD): number {
   if (a.y !== b.y) return a.y - b.y;
   if (a.m !== b.m) return a.m - b.m;
@@ -199,8 +199,8 @@ function formatEditableRange(start: Parts, end: Parts, isDate: boolean): string 
 }
 
 /**
- * 解析输入框中的完整区间。仅接受明确的日期格式，避免浏览器自动修正
- * 2026-02-31 这类无效日期后提交错误查询。
+ * Parse a complete range from the input. Only explicit date formats are accepted, so the browser cannot
+ * auto-correct an invalid date such as 2026-02-31 and submit a wrong query.
  */
 function parseEditableRange(
   value: string,
@@ -252,7 +252,7 @@ function parseEditableRange(
   return { start, end };
 }
 
-/** 判断输入是否已经达到完整区间格式，供输入过程中区分“未输完”和“输入错误”。 */
+/** Whether the input has reached a complete range format, so typing can tell "not finished" from "invalid". */
 function isCompleteEditableRange(value: string, mode: 'datetime' | 'date'): boolean {
   const match =
     value.trim().match(/^(.+?)\s+(?:→|->|to|至)\s+(.+)$/i) ??
@@ -264,7 +264,7 @@ function isCompleteEditableRange(value: string, mode: 'datetime' | 'date'): bool
   return partPattern.test(match[1].trim()) && partPattern.test(match[2].trim());
 }
 
-/** 仅保留日期区间输入允许的字符，避免无关文本进入控件状态。 */
+/** Keep only characters allowed in a date-range input, so unrelated text never enters the control state. */
 function sanitizeEditableInput(value: string): string {
   return value.replace(/[^\d\-: Tto至→>]/g, '');
 }
@@ -342,11 +342,11 @@ const DEFAULT_PRESETS: DateRangePreset[] = [
 ];
 
 /**
- * 日期时间区间选择器（@map/ui）。
+ * Date-time range picker (@map/ui).
  *
- * 用途：统一替代「两个日期框 + 手填时间」的零散筛选，提供与设计系统一致的浮层：
- * 左侧快捷预设（全部/今天/昨天/最近 7 天/最近 30 天）、中间区间日历、右侧时/分/秒列，底部确定。
- * 基座为 @floating-ui/react（与本库 DatePicker 同源），受控：值由调用方持有，确定时回传。
+ * Purpose: replace the loose "two date fields plus a hand-typed time" filter with one popover that matches the design system:
+ * shortcuts on the left (All / today / yesterday / last 7 days / last 30 days), a range calendar in the middle, hour/minute/second columns on the right, and confirm at the bottom.
+ * Built on @floating-ui/react (same base as this library’s DatePicker). Controlled: the caller owns the value, and it is returned on confirm.
  */
 function DateTimeRangePicker({
   start,
@@ -365,10 +365,10 @@ function DateTimeRangePicker({
 }: DateTimeRangePickerProps) {
   const isDate = mode === 'date';
   const presetList = presets ?? DEFAULT_PRESETS;
-  // date 模式输出 YYYY-MM-DD，datetime 输出含时分秒。
+  // Date mode outputs YYYY-MM-DD; datetime includes hours, minutes, and seconds.
   const emit = isDate ? formatDate : formatOut;
   const [open, setOpen] = React.useState(false);
-  // 草稿：打开后在面板内编辑，点「确定」才回写
+  // Draft: edit inside the panel after open, and write back only when "Confirm" is clicked.
   const [draftStart, setDraftStart] = React.useState<Parts>({ ymd: null, h: 0, mi: 0, s: 0 });
   const [draftEnd, setDraftEnd] = React.useState<Parts>({ ymd: null, h: 23, mi: 59, s: 59 });
   const [active, setActive] = React.useState<'start' | 'end'>('start');
@@ -414,8 +414,8 @@ function DateTimeRangePicker({
 
   React.useEffect(() => {
     const formatted = formatTriggerText(start, end, allSelected, mode);
-    // onChange 是受控回调，父组件可能在下一次 render 才回传新值；在此期间保留
-    // 刚刚确认的输入，避免同步 effect 把它闪回旧区间。
+    // onChange is a controlled callback, and the parent may pass the new value back only on the next render; until then, keep
+    // the value just confirmed, so a sync effect does not flash the old range back.
     if (pendingInputValueRef.current !== null) {
       if (pendingInputValueRef.current !== formatted) return;
       pendingInputValueRef.current = null;
@@ -450,7 +450,7 @@ function DateTimeRangePicker({
   const today = todayYMD();
 
   const cells = React.useMemo(() => {
-    // 周一为一周起点：getDay() 周日=0 → 映射为 6
+    // Monday is the start of the week: getDay() Sunday = 0 maps to 6.
     const firstWeekday = (new Date(view.y, view.m, 1).getDay() + 6) % 7;
     const startDate = new Date(view.y, view.m, 1 - firstWeekday);
     return Array.from({ length: 42 }, (_, i) => {
@@ -540,7 +540,7 @@ function DateTimeRangePicker({
     const sHas = !!draftStart.ymd;
     const eHas = !!draftEnd.ymd;
     if (!sHas || (sHas && eHas)) {
-      // 起一段新区间
+      // Start a new range.
       const nextStart = { ...draftStart, ymd: cell };
       const nextEnd = { ...draftEnd, ymd: null };
       setDraftStart(nextStart);
@@ -551,7 +551,7 @@ function DateTimeRangePicker({
       setInputError('');
       return;
     }
-    // 已有起点、待选终点
+    // A start is set; waiting for the end.
     if (compareDay(cell, draftStart.ymd!) < 0) {
       const nextStart = { ...draftStart, ymd: cell };
       setDraftStart(nextStart);
@@ -635,7 +635,7 @@ function DateTimeRangePicker({
     setTime(target.side, target.field, next, caret);
   }
 
-  // 快捷预设：属于「快速选择」，点击即回填并收起浮层，无需再点「确定」。
+  // Shortcuts are "quick picks": a click fills the range and closes the popover, with no extra "Confirm".
   function applyPreset(startYMD: YMD, endYMD: YMD) {
     const s: Parts = { ymd: startYMD, h: 0, mi: 0, s: 0 };
     const e: Parts = { ymd: endYMD, h: 23, mi: 59, s: 59 };
@@ -688,8 +688,8 @@ function DateTimeRangePicker({
       applyInput(inputValue);
       return;
     }
-    // 只选了一端（含日历里只点一天）也算单日区间：用已选的那天补齐另一端，
-    // 起点保留其时间（默认 00:00:00）、终点保留其时间（默认 23:59:59）。
+    // Selecting only one end (including a single day click on the calendar) still counts as a one-day range: fill the other end with that day,
+    // keeping the start’s time (default 00:00:00) and the end’s time (default 23:59:59).
     if (!draftStart.ymd && !draftEnd.ymd) return;
     const s: Parts = draftStart.ymd ? draftStart : { ...draftStart, ymd: draftEnd.ymd };
     const e: Parts = draftEnd.ymd ? draftEnd : { ...draftEnd, ymd: draftStart.ymd };
@@ -861,7 +861,7 @@ function DateTimeRangePicker({
             getInsideElements={() => (inputRef.current ? [inputRef.current] : [])}
           >
             <div
-              // eslint-disable-next-line react-hooks/refs -- Floating UI 的回调 ref 必须在渲染时传入。
+              // eslint-disable-next-line react-hooks/refs -- Floating UI’s callback ref must be passed during render.
               ref={floatingRefs.setFloating}
               style={floatingStyles}
               className={cn(
@@ -872,7 +872,7 @@ function DateTimeRangePicker({
               {...getFloatingProps()}
             >
               <div className="flex">
-                {/* 左：快捷预设（传入空数组则不显示） */}
+                {/* Left: shortcuts (hidden when an empty array is passed) */}
                 {presetList.length > 0 && (
                   <div className="flex w-28 shrink-0 flex-col gap-1 border-r border-border/60 p-2">
                     {presetList.map((preset) => (
@@ -904,7 +904,7 @@ function DateTimeRangePicker({
                   </div>
                 )}
 
-                {/* 中：区间日历 */}
+                {/* Middle: range calendar */}
                 <div className="min-w-0 flex-1 p-3">
                   <div className="mb-2 flex items-center justify-between">
                     <div className="flex items-center gap-0.5">
@@ -984,7 +984,7 @@ function DateTimeRangePicker({
                   </div>
                 </div>
 
-                {/* 右：时分秒（date 模式隐藏） */}
+                {/* Right: hours, minutes, and seconds (hidden in date mode) */}
                 {!isDate && (
                   <div className="flex w-[15.5rem] shrink-0 flex-col border-l border-border/60">
                     <div className="flex items-center gap-2 border-b border-border/60 px-3 py-2 text-[13px]">
@@ -1032,7 +1032,7 @@ function DateTimeRangePicker({
                 )}
               </div>
 
-              {/* 底部操作 */}
+              {/* Footer actions */}
               <div className="flex items-center justify-between border-t border-border/60 px-3 py-2">
                 <button
                   type="button"

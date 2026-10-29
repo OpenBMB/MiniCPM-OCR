@@ -13,9 +13,9 @@ import type { ImageParseFormulaTarget } from '../utils/imageParseFormulaEditCont
 const MATH_TYPES = new Set(['blockMath', 'inlineMath']);
 
 /**
- * Tiptap 编辑生命周期与保存；未改变文档时保留逐字符一致的原始草稿。
- * @param source 当前结果草稿
- * @param extensions OCR schema 和安全配置
+ * Tiptap edit lifecycle and save; when the document is unchanged, keep the original draft identical character by character.
+ * @param source current result draft
+ * @param extensions OCR schema and safe config
  */
 export function useImageParseRichEditor(
   source: string,
@@ -102,7 +102,7 @@ export function useImageParseRichEditor(
     const math = state?.math;
     if (redo) editor.commands.redo();
     else editor.commands.undo();
-    // 历史事务可能恢复普通文本选区；公式属性编辑仍留在原节点，不关闭源码输入框。
+    // A history transaction may restore an ordinary text selection; formula-attribute editing stays on the original node and does not close the source input.
     if (math && editor.state.doc.nodeAt(math.pos)?.type.name === math.type) {
       editor.commands.setNodeSelection(math.pos);
     } else {
@@ -131,7 +131,7 @@ export function useImageParseRichEditor(
       flushOpenFormula();
       const unchanged = initialDoc.current?.eq(editor.state.doc);
       if (!unchanged) {
-        // 不拦截模型原有的非法公式，只阻止把本次新增或修改的非法 LaTeX 保存回正文。
+        // Do not intercept an illegal formula the model already had; only stop illegal LaTeX that was added or changed this time from being saved back into the body.
         const originals = new Set<string>();
         initialDoc.current?.descendants((node) => {
           if (MATH_TYPES.has(node.type.name)) originals.add(String(node.attrs.latex ?? ''));
@@ -166,7 +166,7 @@ export function useImageParseRichEditor(
       },
       composing: () => mathComposing.current || (!editor.isDestroyed && editor.view.composing),
     });
-    // 会话内容不在编辑期间更新；官方 useEditor 管理卸载，显式切块同步 destroy。
+    // Session content is not updated during editing; the official useEditor manages unmount, and an explicit block switch destroys synchronously.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, register]);
   return { editor, state, error, history, formulaContext };

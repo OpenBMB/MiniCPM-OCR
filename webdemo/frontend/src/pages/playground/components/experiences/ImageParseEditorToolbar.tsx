@@ -14,7 +14,7 @@ interface ImageParseEditorToolbarProps {
   onSave: () => void;
 }
 
-/** 编辑器工具栏；格式、撤销与单元格操作全部调用 Tiptap 命令。 */
+/** Editor toolbar; formatting, undo, and cell actions all call Tiptap commands. */
 export function ImageParseEditorToolbar({
   editor,
   state,

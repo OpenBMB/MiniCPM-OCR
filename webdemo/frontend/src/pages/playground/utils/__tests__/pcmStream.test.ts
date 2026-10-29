@@ -1,6 +1,6 @@
 /**
- * pcmStream 纯函数单测：float32 编解码需无损往返（无 Int16 量化），线性重采样长度/端点正确，
- * 非 4 字节对齐的 base64 尾部安全丢弃。AudioContext 相关类依赖浏览器音频栈，此处不覆盖。
+ * Unit tests for pcmStream pure functions: float32 encode/decode must round-trip losslessly (no Int16 quantization), linear resampling length/endpoints must be correct,
+ * and a base64 tail that is not 4-byte aligned is safely dropped. AudioContext-related classes depend on the browser audio stack and are not covered here.
  */
 
 import { describe, expect, it, vi } from 'vitest';
@@ -45,7 +45,7 @@ describe('float32ToBase64 ↔ base64ToFloat32', () => {
 
 describe('base64ToFloat32 对齐', () => {
   it('非 4 字节对齐时丢弃尾部字节', () => {
-    // 6 字节：前 4 字节 = float32 1.0（小端 00 00 80 3F），尾部 2 字节丢弃
+    // 6 bytes: the first 4 bytes = float32 1.0 (little-endian 00 00 80 3F); the trailing 2 bytes are dropped
     const b64 = btoa(String.fromCharCode(0, 0, 128, 63, 1, 2));
     const out = base64ToFloat32(b64);
     expect(out.length).toBe(1);

@@ -1,9 +1,9 @@
 import { getDemoUpload } from './demoStore';
 
 /**
- * 免登录演示请求器。
+ * Login-free demo request client.
  *
- * 文档解析页在浏览器里保留一份本地会话。解析请求发给本机工人，不发给云端。
+ * The document-parsing page keeps a local session in the browser. Parse requests go to the local worker, not to the cloud.
  */
 
 const TOKEN_KEY = 'map_token';
@@ -322,8 +322,68 @@ function ocrResponse(
   };
 }
 
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      if (typeof result !== 'string') {
+        reject(new Error('imageParseRequestFailed'));
+        return;
+      }
+      const comma = result.indexOf(',');
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.onerror = () => reject(new Error('imageParseRequestFailed'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function createKieJob(body: Record<string, unknown>): Promise<DemoJob> {
+  const upload = getDemoUpload(typeof body.file_id === 'string' ? body.file_id : undefined);
+  if (!upload) throw new Error('imageParseFileReferenceRequired');
+  const fields = Array.isArray(body.fields)
+    ? body.fields.filter((item): item is string => typeof item === 'string')
+    : [];
+  const response = await fetch('/api/kie', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({
+      image: await fileToBase64(upload),
+      fields,
+    }),
+  });
+  const payload = (await response.json().catch(() => ({}))) as {
+    error?: unknown;
+    choices?: DemoOcrResponse['choices'];
+    minicpm_ocr?: DemoOcrResponse['ocr'];
+  };
+  if (!response.ok) {
+    const message = typeof payload.error === 'string' ? payload.error : 'imageParseRequestFailed';
+    throw new Error(message);
+  }
+  if (!payload.minicpm_ocr || !payload.choices?.length) {
+    throw new Error('imageParseInvalidResult');
+  }
+  return {
+    id: crypto.randomUUID().replace(/-/g, ''),
+    task: 'kie',
+    status: 'Success',
+    pages_done: 1,
+    pages_total: 1,
+    pages: [
+      {
+        metadata: { page_index: 0 },
+        choices: payload.choices,
+        ocr: payload.minicpm_ocr,
+      },
+    ],
+  };
+}
+
 function createJob(init: RequestInit): Promise<DemoJob> {
   const body = parseBody(init);
+  if (body.task === 'kie') return createKieJob(body);
   const upload = getDemoUpload(typeof body.file_id === 'string' ? body.file_id : undefined);
   if (!upload) throw new Error('imageParseFileReferenceRequired');
   const form = new FormData();
@@ -480,7 +540,7 @@ export async function mapUpload<T>(
 }
 
 export async function mapDownload(_path: string, _filename: string): Promise<void> {
-  // 免登录演示不提供远端下载接口。
+  // The login-free demo does not provide a remote download API.
 }
 
 export async function mapBlobUrl(_path: string): Promise<string> {

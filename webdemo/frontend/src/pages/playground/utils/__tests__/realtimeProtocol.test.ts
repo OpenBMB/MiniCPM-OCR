@@ -1,6 +1,6 @@
 /**
- * realtimeProtocol 纯函数单测：帧构造需符合 MiniCPM-O API V2 线协议，
- * 下行事件归一化需按 type/kind 正确分流，未知/损坏帧安全降级为 other。
+ * Unit tests for realtimeProtocol pure functions: frame construction must match the MiniCPM-O API V2 wire protocol,
+ * downlink event normalization must branch correctly by type/kind, and unknown or corrupt frames safely degrade to other.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -216,7 +216,7 @@ describe('挂断标记约定', () => {
   });
 
   it('模型不输出标记时靠告别语兜底（实测 MiniCPM-o 只说自然语言）', () => {
-    // 这几句都是实测出现过的真实回复
+    // These sentences are real replies that were actually observed
     expect(stripHangupMarker('好的，我这就帮你挂断通话。').hangup).toBe(true);
     expect(stripHangupMarker('好的，我可以帮你挂断。你还有其他需要帮助的事情吗？').hangup).toBe(
       true,

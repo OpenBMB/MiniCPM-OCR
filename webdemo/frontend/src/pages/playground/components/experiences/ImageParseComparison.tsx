@@ -13,8 +13,8 @@ interface ImageParseComparisonProps {
 }
 
 /**
- * 单块复核的前后对比：当前最优在左、原始在右，窄屏时最优结果优先展示。
- * @param result 该块的重生成结果（原始、最优、差异与轮次信息）
+ * Before/after comparison for reviewing one block: the current best on the left, the original on the right. On a narrow screen the best result is shown first.
+ * @param result Regeneration result for this block (original, best, diff, and round information)
  */
 export function ImageParseComparison({ result }: ImageParseComparisonProps) {
   const { t } = useTranslation('playground');
@@ -24,7 +24,7 @@ export function ImageParseComparison({ result }: ImageParseComparisonProps) {
   );
   return (
     <div
-      // 未提升时直接展示两版正文，不为隐藏的说明保留空白信息栏。
+      // When there is no improvement, show both bodies directly, and do not reserve a blank info bar for a hidden note.
       className="border-t border-border/60"
       data-regeneration-comparison
     >

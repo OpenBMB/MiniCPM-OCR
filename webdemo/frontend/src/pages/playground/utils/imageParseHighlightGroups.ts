@@ -8,8 +8,8 @@ interface LinkedNode {
 const CONTAINERS = new Set(['div', 'ul', 'ol']);
 
 /**
- * 连续语义节点属于同一 OCR 块时统一外层定位与编辑范围，正文结构保持不变。
- * 列表必须整体同属一块才分组，避免在 ul/ol 内插入非法容器或合并其他区块。
+ * When consecutive semantic nodes belong to the same OCR block, share the outer positioning and edit range, and leave the body structure unchanged.
+ * A list is grouped only when the whole list belongs to one block, so an illegal container is not inserted inside ul/ol and other blocks are not merged.
  */
 export function groupImageParseHighlightNodes(
   tree: ImageParsePreviewNode,
@@ -80,7 +80,7 @@ export function groupImageParseHighlightNodes(
         pending.push(node);
       } else {
         flush();
-        // 不进入列表重新分组，列表项仍由原来的 li 保持结构和独立定位。
+        // Do not regroup inside a list; list items still keep their structure and independent positioning on the original li.
         if (node.tagName === 'div') group(node);
         children.push(node);
       }
@@ -97,7 +97,7 @@ function isWhitespace(node: ImageParsePreviewNode): boolean {
 
 function groupEditNodes(nodes: ImageParsePreviewNode[]): ImageParsePreviewNode[] {
   const elements = nodes.filter((node) => !isWhitespace(node));
-  // 仅合并全部具有可信源范围的编辑外壳；保留不支持编辑的内容边界。
+  // Merge only edit shells that all have a trusted source range; keep the boundary of content that cannot be edited.
   if (
     !elements.every(
       (node) =>

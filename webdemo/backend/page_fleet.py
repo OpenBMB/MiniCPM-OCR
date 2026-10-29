@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""按页把解析分到本机和远程 8 卡机器。
+"""Split a parse across this machine and remote 8-GPU machines, one page at a time.
 
-本机负责把 PDF 拆成页。每一页要么在本机做版面和 vLLM，要么交给一台远程机器，
-由它自己做版面、再打到它自己的 vLLM，把这一页的 markdown 还回来。
+This machine splits the PDF into pages. Each page is either laid out and
+recognized here, or sent to a remote machine that runs its own layout and its
+own vLLM, then returns that page's markdown.
 """
 from __future__ import annotations
 
@@ -26,26 +27,26 @@ PAGE_REGISTRY = Path(os.environ.get(
 
 
 def page_slots() -> int:
-    """一台机器同时能收下多少页。版面模型检测完就还，这个数按 vLLM 积压来定。"""
+    """How many pages one machine accepts at once. The layout model is returned after detection, so this limit follows the vLLM backlog."""
     return max(1, int(os.environ.get("OCR_PAGE_SLOTS", "64") or 64))
 
 
 def page_window() -> int:
-    """一本书同时发出去的页数。上一页的版面还没回来，下一页也可以先送。"""
+    """How many pages of one document are in flight at once. The next page can leave before the previous page's layout comes back."""
     return max(1, int(os.environ.get("OCR_PAGE_WINDOW", "8") or 8))
 
 
 def fleet_enabled() -> bool:
-    """远程机器登记之后，新的整本解析才按页分发。工人进程自己不再往外分。"""
+    """Once remote machines register, a new document is dispatched page by page. A worker process does not dispatch further."""
     if os.environ.get("OCR_PAGE_ROLE") == "worker":
         return False
     return bool(_read_remotes())
 
 
 def dispatch_file(job_id: str, local_path: str, runner, upright=None) -> None:
-    """一本书同时送出多页。某一页的版面还没结束，后面的页也可以先发出去。
+    """Send several pages of one document at once. Later pages can leave before an earlier page finishes layout.
 
-    结果仍按页写进这个任务自己的 results_json，进度查询才能看到。
+    Results are still written per page into this job's results_json, so progress queries can see them.
     """
     fleet = get_fleet()
     pages = _iter_pages(local_path)
@@ -96,7 +97,7 @@ def dispatch_file(job_id: str, local_path: str, runner, upright=None) -> None:
 
 
 class PageHandle:
-    """一页的两段：版面结束就可以收下一块模型，markdown 要等切片队列。"""
+    """Two stages of one page: the model can be reclaimed when layout finishes. Markdown waits on the crop queue."""
 
     def __init__(self) -> None:
         self.layout_done = threading.Event()
@@ -113,9 +114,9 @@ class PageHandle:
 
 
 def run_releasing_layout(runner, cfg, on_layout_idle=None):
-    """摆正、版面、分块识别分三段排队。
+    """Rotation adaptation, layout, and crop recognition each wait in their own queue.
 
-    检测器只在这一页做版面和切块时借出，切完就回到池里。切片识别继续在共享队列里跑。
+    A detector is borrowed only while this page is laid out and cut, then returned to the pool. Crop recognition continues on the shared queue.
     """
     from minicpmvocr import pipelined_run
     return pipelined_run(
@@ -126,7 +127,7 @@ def run_releasing_layout(runner, cfg, on_layout_idle=None):
 
 
 def launch_local_page(runner, png_bytes: bytes, upright=None) -> PageHandle:
-    """后台识别一页。版面结束时 handle.layout_done 置位，整页结束时 handle.done 置位。"""
+    """Recognize one page in the background. handle.layout_done is set when layout finishes, and handle.done when the whole page finishes."""
     handle = PageHandle()
 
     def work() -> None:
@@ -170,7 +171,7 @@ def launch_local_page(runner, png_bytes: bytes, upright=None) -> PageHandle:
 
 
 def run_local_page(runner, png_bytes: bytes) -> str:
-    """同步识别一页。远程接口改走票据，这里留给需要整页结果的调用。"""
+    """Recognize one page synchronously. Remote calls now use a ticket; this remains for callers that need the whole page."""
     handle = launch_local_page(runner, png_bytes)
     handle.done.wait()
     if handle.error is not None:
@@ -190,7 +191,7 @@ def remember(handle: PageHandle) -> str:
 
 
 def take_markdown(ticket: str):
-    """解码没完返回 None。完成则取出这一页的正文和切片，失败则抛出。"""
+    """Return None while decoding is unfinished. When it finishes, return this page's text and crops, or raise on failure."""
     with _TICKET_LOCK:
         item = _TICKETS.get(ticket)
     if item is None:
@@ -206,7 +207,7 @@ def take_markdown(ticket: str):
 
 
 def coerce_upright(value):
-    """请求里的摆正开关。缺省是 None，由解析端按现有配置决定。"""
+    """Rotation-adaptation switch from the request. The default is None, and the parser decides from its current config."""
     if value is None:
         return None
     if isinstance(value, bool):
@@ -215,7 +216,7 @@ def coerce_upright(value):
 
 
 def resolve_upright(choice) -> bool:
-    """显式 false 时跳过摆正。其余情况仍要本机有摆正模型才开启。"""
+    """Skip rotation adaptation when this is explicitly false. Otherwise it stays on only if this machine has the model."""
     if choice is False:
         return False
     upright_dir = os.environ.get("OCR_UPRIGHT_DIR", "")
@@ -233,7 +234,7 @@ class _Slot:
 
 class PageFleet:
     def __init__(self) -> None:
-        # 分发进程自己不做版面。本机工人和其他副本一样，靠登记目录进来。
+        # The dispatcher does not run layout. The local worker joins through the registry, the same way other replicas do.
         local_cap = 0 if os.environ.get("OCR_PAGE_ROLE") == "dispatcher" else page_slots()
         self._local = _Slot("local", local_cap)
         self._remotes: Dict[str, _Slot] = {}
@@ -242,7 +243,7 @@ class PageFleet:
         self._turn = 0
 
     def start(self, runner, png_bytes: bytes, upright=None) -> "_Inflight":
-        """占一个页名额，等到这一页的摆正和版面结束就返回。切片还在解码。"""
+        """Take one page slot and return when this page's rotation adaptation and layout finish. Crops are still decoding."""
         tried: List[str] = []
         last = "没有可以关闭摆正的解析机器" if upright is False else "没有可用的解析机器"
         while len(tried) < 6:
@@ -280,7 +281,7 @@ class PageFleet:
                     slot for slot in [self._local] + list(self._remotes.values())
                     if slot.name not in exclude and slot.down_until <= now
                 ]
-                # 关掉摆正的页只送给登记了这个开关的机器，避免旧进程仍去摆正。
+                # A page with rotation adaptation off goes only to a machine that registered that switch, so an old process does not still rotate it.
                 if upright is False:
                     capable = [slot for slot in choices if slot.upright_choice]
                     if not capable:
@@ -290,7 +291,7 @@ class PageFleet:
                     return None
                 free = [slot for slot in choices if slot.inflight < slot.capacity]
                 if free:
-                    # 空位一样多时轮流分，本机不再因为排在前面而总是先拿到。
+                    # When free slots are equal, take turns. The local machine is no longer always first just because it is listed first.
                     best = max(slot.capacity - slot.inflight for slot in free)
                     tied = [slot for slot in free if slot.capacity - slot.inflight == best]
                     tied.sort(key=lambda item: item.name)
@@ -350,7 +351,7 @@ def _read_remotes() -> Dict[str, tuple]:
         except Exception:
             continue
         url = str(row.get("url") or "").rstrip("/")
-        # 旧进程只回 markdown。slices 缺了就不再把页分过去，避免成功结果里坐标是空的。
+        # An old process returns markdown only. Skip it when slices is missing, so a successful result is not left with empty coordinates.
         if url and int(row.get("slices") or 0) >= 1:
             found[url] = (max(1, int(row.get("slots") or 8)), bool(row.get("upright_choice")))
     return found
@@ -361,7 +362,7 @@ def _opener():
 
 
 def _remote_layout(url: str, png_bytes: bytes, upright=None) -> str:
-    """送到远程做摆正和版面。返回票据，切片还在对方的队列里。"""
+    """Send the page to a remote machine for rotation adaptation and layout. Returns a ticket; crops stay on that machine's queue."""
     headers = {"Content-Type": "image/png"}
     if upright is False:
         headers["X-OCR-Upright"] = "0"
@@ -398,7 +399,7 @@ def _remote_markdown(url: str, ticket: str) -> str:
 
 
 class _Inflight:
-    """页名额一直占到 markdown 回来。"""
+    """The page slot stays taken until the markdown comes back."""
 
     def __init__(self, fleet: "PageFleet", slot: _Slot, payload) -> None:
         self._fleet = fleet
@@ -464,7 +465,7 @@ def _payload_from_body(body: Dict) -> Dict:
 
 
 def _public_slices(result: Dict, layout: Dict) -> Dict:
-    """页结果收成对外的切片。图块没有识别文本，坐标就是这块图在页面上的框。"""
+    """Turn a page result into the public crops. A figure block has no recognized text; its coordinates are that figure's box on the page."""
     layout = layout or {}
     by_crop = {
         block.get("crop_filename", ""): block
@@ -502,7 +503,7 @@ def _public_slices(result: Dict, layout: Dict) -> Dict:
 
 
 def _png_size(png_bytes: bytes):
-    """摆正前那张图的像素。只读文件头。"""
+    """Pixel size of the image before rotation adaptation. Reads the file header only."""
     import io
     from PIL import Image
     with Image.open(io.BytesIO(png_bytes)) as image:
@@ -510,7 +511,7 @@ def _png_size(png_bytes: bytes):
 
 
 def _public_rotation(layout: Dict):
-    """摆正记录收成客户端能复现的角度。没有记录时返回 None。"""
+    """Turn the rotation-adaptation record into angles the client can reproduce. Returns None when there is no record."""
     raw = (layout or {}).get("upright")
     if not raw:
         return None
@@ -562,7 +563,7 @@ def _own_ip() -> str:
 
 
 def advertise(port: int) -> None:
-    """工人进程把地址写到共享目录，本机按这个目录发现它。"""
+    """A worker writes its address into the shared directory, and this machine discovers it from there."""
     PAGE_REGISTRY.mkdir(parents=True, exist_ok=True)
     host = socket.gethostname()
     path = PAGE_REGISTRY / f"{host}-{port}.json"

@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import type { DocumentFileRules } from '../utils/documentUpload';
 import { applyPreparedDocument } from '../utils/imageGroupPdf';
 
-/** 空工作台仍支持文件粘贴，输入框与编辑器保留自己的剪贴板行为。多张图片会合成一份。 */
+/** An empty workspace still supports pasting a file; inputs and the editor keep their own clipboard behavior. Several images are composed into one document. */
 export function useImageParseWorkspacePaste(
   enabled: boolean,
   onPick: (file: File) => void,

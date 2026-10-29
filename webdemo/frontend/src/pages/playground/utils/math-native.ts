@@ -5,14 +5,14 @@ interface NativeMathOptions {
 }
 
 /**
- * 选择比正文美元符更长的行内围栏，避免 remark 与编辑器截断 LaTeX 正文。
- * @param latex 不包含外层定界符的公式
- * @returns 安全的 Markdown 行内公式；不含美元符时保持标准单美元符
+ * Choose an inline fence longer than dollar signs in the body, so remark and the editor do not truncate LaTeX body text.
+ * @param latex formula without the outer delimiters
+ * @returns a safe Markdown inline formula; when it contains no dollar sign, keep the standard single dollar sign
  */
 export function inlineMathMarkdown(latex: string): string {
   const runs = latex.match(/\$+/g) ?? [];
   const length = runs.reduce((maximum, run) => Math.max(maximum, run.length + 1), 1);
-  // 双美元符由编辑器块级 tokenizer 所有；含美元符的行内公式使用至少三个。
+  // Double dollar signs belong to the editor's block tokenizer; an inline formula that contains a dollar sign uses at least three.
   const marker = '$'.repeat(length === 1 ? 1 : Math.max(3, length));
   return marker + latex + marker;
 }
@@ -24,7 +24,7 @@ interface NativeMathRange {
   display: boolean;
 }
 
-/** 跳过 verb 的逐字正文，避免其中的定界符提前结束外层公式。 */
+/** Skip the verbatim body of verb, so a delimiter inside it does not end the outer formula early. */
 function verbEnd(text: string, start: number): number | undefined {
   const command = text.slice(start, start + 7).match(/^\\verb\*?([^A-Za-z\s])/);
   if (!command) return undefined;
@@ -33,7 +33,7 @@ function verbEnd(text: string, start: number): number | undefined {
   return close < 0 ? text.length : close + 1;
 }
 
-/** 查找外层闭合标记；成对反斜杠和 verb 正文不参与定界符匹配。 */
+/** Find the outer closing marker; paired backslashes and verb body text do not take part in delimiter matching. */
 function nativeMathEnd(text: string, from: number, closing: string): number {
   let cursor = from;
   while (cursor < text.length) {
@@ -53,10 +53,10 @@ function nativeMathEnd(text: string, from: number, closing: string): number {
 }
 
 /**
- * 单次扫描原生公式边界，不重写 LaTeX 正文或已有数学/代码范围。
- * @param text 尚未转换原生定界符的文字
- * @param protectedRanges 按源码顺序的保护范围
- * @returns 完整原生公式的源码范围与原始正文；不包含未闭合公式
+ * Scan native-formula boundaries once, without rewriting LaTeX body text or existing math/code ranges.
+ * @param text text whose native delimiters have not been converted yet
+ * @param protectedRanges protected ranges in source order
+ * @returns source ranges and original body of complete native formulas; unclosed formulas are not included
  */
 export function nativeMathRanges(
   text: string,
@@ -82,7 +82,7 @@ export function nativeMathRanges(
       continue;
     }
     const close = nativeMathEnd(text, cursor + 2, opening === '(' ? ')' : ']');
-    // 未闭合时停止扫描，避免大量起始标记反复搜索同一段剩余文本。
+    // When one is unclosed, stop scanning, so a large number of opening markers do not search the same remainder over and over.
     if (close < 0) break;
     if (close === cursor + 2) {
       cursor = close + 2;
@@ -100,10 +100,10 @@ export function nativeMathRanges(
 }
 
 /**
- * 将原生公式外层标记转换为 Markdown 定界符，保留公式正文。
- * @param text 原始 Markdown 文本
- * @param options 保护范围与行内边界回调
- * @returns 供 remark-math 使用的文本
+ * Convert the outer markers of a native formula to Markdown delimiters, keeping the formula body.
+ * @param text original Markdown text
+ * @param options protected ranges and the inline-boundary callback
+ * @returns text for remark-math
  */
 export function replaceNativeMathDelimiters(
   text: string,

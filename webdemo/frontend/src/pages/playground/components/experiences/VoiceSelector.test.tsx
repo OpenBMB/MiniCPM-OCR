@@ -15,7 +15,7 @@ const SAVED_VOICE = {
 };
 
 beforeAll(() => {
-  // Radix Select 在真实浏览器依赖 Pointer Capture；jsdom 没有该 API，需要最小兼容垫片。
+  // Radix Select depends on Pointer Capture in a real browser; jsdom does not have that API, so a minimal compatibility shim is needed.
   HTMLElement.prototype.hasPointerCapture = () => false;
   HTMLElement.prototype.setPointerCapture = () => undefined;
   HTMLElement.prototype.releasePointerCapture = () => undefined;

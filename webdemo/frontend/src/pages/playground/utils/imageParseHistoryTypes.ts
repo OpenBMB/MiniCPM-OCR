@@ -5,57 +5,57 @@ import type { ImageParseLayoutBlock } from './imageParseSample';
 import type { ImageParseRotationInfo } from './imageParseSample';
 import type { PdfPageResult } from './pdfImageParse';
 
-/** PDF 缓存只保存已结束任务的页结果及阅读位置，不包含解析器或网络请求。 */
+/** A PDF cache stores only page results of finished tasks and the reading position, with no parser or network request. */
 export interface PdfImageParseSnapshot {
   page: number;
   pages: number;
   results: Record<number, PdfPageResult>;
 }
 
-/** 完成任务的可恢复快照；本地缓存含 dataUrl，云端新记录可只保存稳定 fileId。 */
+/** Restorable snapshot of a finished task; the local cache includes a dataUrl, and a new cloud record may save only the stable fileId. */
 export interface ImageParseSnapshot {
   attachment: Attachment;
   mode: ImageParseMode;
-  /** 关键信息抽取字段；仅 kie 模式保存，恢复后用于重新识别。 */
+  /** Key information extraction fields; saved only in kie mode, and used to run recognition again after restore. */
   fields?: readonly string[];
   markdown: string;
   layout: readonly ImageParseLayoutBlock[];
-  /** 保留服务端原始识别范围；有效期只限制重生成，不影响历史查看。 */
+  /** Keep the original recognition range from the server; expiry only limits regeneration and does not affect viewing history. */
   source?: ImageParseSource;
-  /** 服务端旋转摆正信息；用于恢复原图与识别框的对齐。 */
+  /** Server rotation-adaptation info; used to restore alignment between the original image and recognition boxes. */
   rotation?: ImageParseRotationInfo;
-  /** 本页识别的 request_id；多页示例据此请求跨页表格合并。 */
+  /** request_id of this page's recognition; a multi-page example uses it to request a cross-page table merge. */
   requestId?: string;
   pdf?: PdfImageParseSnapshot;
 }
 
-/** OCR 完整任务快照，用于云端恢复和兼容旧浏览器记录。 */
+/** Full OCR task snapshot, used for cloud restore and compatibility with old browser records. */
 export interface ImageParseHistoryEntry {
   id: string;
   createdAt: number;
   snapshot: ImageParseSnapshot;
 }
 
-/** 云端列表只读取摘要，原始文件和正文在打开记录时按需获取。 */
+/** The cloud list reads only a summary; the original file and body are fetched on demand when a record is opened. */
 export interface ImageParseHistorySummary {
   id: string;
   createdAt: number;
   attachmentId: string;
   name: string;
-  /** 记录所属识别模式；摘要仅用于展示与调试，不参与权限判断。 */
+  /** Recognition mode the record belongs to; the summary is only for display and debugging and does not take part in permission checks. */
   mode?: ImageParseMode;
 }
 
-/** 用户与项目必须同时存在，避免匿名或跨项目缓存复用。 */
+/** User and project must both be present, so an anonymous or cross-project cache is not reused. */
 export interface ImageParseHistoryScope {
   userId: string;
   projectId: string;
 }
 
-/** 侧栏历史入口任务；standard 兼容全部非 KIE 历史模式。 */
+/** Sidebar history entry task; standard is compatible with every non-KIE history mode. */
 export type ImageParseHistoryTask = 'standard' | 'kie';
 
-/** 本地持久化边界；失败由调用 hook 消化，不能阻断 OCR。 */
+/** Local persistence boundary; failure is absorbed by the calling hook and must not block OCR. */
 export interface ImageParseHistoryStorage {
   list: (scope: ImageParseHistoryScope) => Promise<ImageParseHistoryEntry[]>;
   save: (
@@ -66,16 +66,16 @@ export interface ImageParseHistoryStorage {
   remove: (scope: ImageParseHistoryScope, id: string) => Promise<void>;
 }
 
-/** 身份就绪后读写云端个人历史，snapshot 为已完成且非演示的结果。 */
+/** Once identity is ready, read and write cloud personal history. snapshot is a finished, non-demo result. */
 export interface UseImageParseHistoryOptions {
   userId?: string | null;
   projectId?: string | null;
-  /** 当前入口任务；standard 显示非 KIE 历史，kie 只显示关键信息抽取。 */
+  /** Current entry task; standard shows non-KIE history, and kie shows only key information extraction. */
   task?: ImageParseHistoryTask;
   snapshot?: ImageParseSnapshot | null;
 }
 
-/** 轻量列表与按需恢复入口，任何存档失败都不阻断识别。 */
+/** Lightweight list and on-demand restore entry. Any archive failure must not block recognition. */
 export interface UseImageParseHistoryResult {
   items: ImageParseHistorySummary[];
   loading: boolean;

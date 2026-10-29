@@ -1,6 +1,6 @@
 import type { ImageParseTextRange } from './imageParseBlocks';
 
-/** 找出一次替换的准确范围；源码编辑采用公共前后缀，不重新猜测重复文字的位置。 */
+/** Find the exact range of one replacement; source editing uses the common prefix and suffix and does not guess the position of repeated text again. */
 function replacementRange(
   before: string,
   after: string,
@@ -32,8 +32,8 @@ function replacementRange(
 }
 
 /**
- * 按一次替换更新原图区块范围，保留编辑块及其后所有区块的联动。
- * 跨多个识别块的有歧义替换仅丢弃受影响范围，不关闭整份文档定位。
+ * Update original-image block ranges from one replacement, keeping the edited block and every block after it linked.
+ * An ambiguous replacement that spans several recognition blocks drops only the affected ranges and does not turn off positioning for the whole document.
  */
 export function imageParseDraftRanges(
   before: string,

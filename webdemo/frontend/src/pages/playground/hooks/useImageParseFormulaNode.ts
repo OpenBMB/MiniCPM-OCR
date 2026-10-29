@@ -6,7 +6,7 @@ import { ImageParseFormulaEditContext } from '../utils/imageParseFormulaEditCont
 import { isSupportedKatex } from '../utils/math-katex';
 import { SAFE_KATEX_OPTIONS } from '../utils/math-options';
 
-/** 管理公式原位输入和节点事务；只有显式双击或键盘操作才从展示切换到输入。 */
+/** Manage in-place formula input and the node transaction; only an explicit double-click or keyboard action switches from display to input. */
 export function useImageParseFormulaNode({
   editor,
   node,

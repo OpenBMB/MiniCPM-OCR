@@ -13,8 +13,8 @@ function labelOf(block: ImageParseLayoutBlock): string {
 }
 
 /**
- * 判断块是否为页眉、页脚或页码。
- * 没标 label 的旧块按 kind 判断，页码的 kind 是 footer。
+ * Whether a block is a header, footer, or page number.
+ * Old blocks with no label are judged by kind; a page number's kind is footer.
  */
 export function isImageParseHeaderFooterBlock(block: ImageParseLayoutBlock): boolean {
   const label = labelOf(block);
@@ -27,8 +27,8 @@ function recognized(block: ImageParseLayoutBlock): boolean {
 }
 
 /**
- * 同一公式已经有显示公式块时，不再把另一块裸 LaTeX 写进预览。
- * 显示公式块本身都保留，两块原图公式不会被合成一块。
+ * When the same formula already has a display-formula block, do not write another block's bare LaTeX into the preview.
+ * Display-formula blocks themselves are all kept; two original-image formulas are not merged into one block.
  */
 function bareFormulaDuplicate(
   block: ImageParseLayoutBlock,
@@ -40,12 +40,12 @@ function bareFormulaDuplicate(
   return Boolean(comparable) && displays.has(comparable);
 }
 
-/** 将一个识别块转成预览片段；空文本、失败块和重复公式返回 null。 */
+/** Turn one recognition block into a preview fragment; empty text, failed blocks, and duplicate formulas return null. */
 function piece(block: ImageParseLayoutBlock, displays: ReadonlySet<string>): string | null {
   const label = labelOf(block);
   const text = block.text ?? '';
   if (PLACEHOLDER_LABELS.has(label)) return IMAGE_PLACEHOLDER;
-  // 印章文字不是正文内容；没有识别出文字时保留原图占位符，避免结果区出现空白。
+  // Seal text is not body content; when no text was recognized, keep the original-image placeholder so the result area is not blank.
   if (label === 'seal') return text.trim() ? text : IMAGE_PLACEHOLDER;
   if (TEXT_OR_PLACEHOLDER_LABELS.has(label)) return text.trim() ? text : IMAGE_PLACEHOLDER;
   if (!recognized(block) || !text.trim() || bareFormulaDuplicate(block, displays)) return null;
@@ -58,11 +58,11 @@ function piece(block: ImageParseLayoutBlock, displays: ReadonlySet<string>): str
 }
 
 /**
- * 按识别块的 order 生成预览正文，并记下每块在正文里的起止位置。
- * 不读取服务端聚合 Markdown；没写进正文的块保留下来，范围留空。
- * @param blocks 已完成校验的识别块
- * @param options omitHeaderFooter 为 true 时跳过页眉、页脚与页码
- * @returns 重新组合的正文与块映射
+ * Build preview body text from recognition blocks' order, and record each block's start and end in the body.
+ * Do not read the server's aggregated Markdown; a block that was not written into the body is kept, with an empty range.
+ * @param blocks recognition blocks that have finished validation
+ * @param options when omitHeaderFooter is true, skip header, footer, and page number
+ * @returns the recomposed body and the block map
  */
 export function composeImageParseBlockMarkdown(
   blocks: readonly ImageParseLayoutBlock[],
@@ -100,7 +100,7 @@ export function composeImageParseBlockMarkdown(
   return { markdown, blocks: next };
 }
 
-/** 跨页合并后的重写入口：表格已写回块里，正文只按块再生成一次。 */
+/** Rewrite entry after a cross-page merge: the table has been written back into the block, and the body is generated from blocks once more. */
 export function composeImageParsePreview(
   _markdown: string,
   blocks: readonly ImageParseLayoutBlock[],

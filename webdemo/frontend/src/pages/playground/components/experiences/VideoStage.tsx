@@ -1,9 +1,7 @@
 /**
- * 双工视频舞台。
+ * Duplex video stage.
  *
- * 用途：全双工外壳的主视觉区——视频模式用 useEffect 把摄像头流挂到 <video> 预览，纯语音
- * 模式显示环形声纹；舞台底部以浮层显示最新对话字幕（沉浸式，参照豆包/ChatGPT 语音）。左上角
- * LIVE 徽标与会话时长。video 模式下摄像头帧会按 ~1fps 上行给模型做视频理解。纯展示组件。
+ * Purpose: the main visual area of the full-duplex shell — video mode uses useEffect to attach the camera stream to a <video> preview, and voice-only mode shows a ring voiceprint. A floating layer at the bottom of the stage shows the latest conversation captions (immersive, in the manner of Doubao/ChatGPT voice). A LIVE badge and the session duration sit at the top left. In video mode camera frames go upstream at ~1fps for the model to understand the video. Pure display component.
  */
 
 import { useEffect, useRef, type RefObject } from 'react';
@@ -22,19 +20,19 @@ import { VoiceOrb } from './VoiceOrb';
 import type { VizFrame, VoiceMessage } from '../../hooks/useRealtimeSession';
 
 interface VideoStageProps {
-  /** 是否视频模式（音频源含视频） */
+  /** Whether this is video mode (the audio source includes video) */
   videoMode: boolean;
-  /** 摄像头视频流（null 表示未开启） */
+  /** Camera video stream (null means not started) */
   stream: MediaStream | null;
-  /** 频谱帧的可变引用，透传给声纹画布（不进 React 状态，见 VizFrame） */
+  /** Mutable ref for a spectrum frame, passed through to the voiceprint canvas (not React state; see VizFrame) */
   viz: RefObject<VizFrame>;
-  /** 声纹是否活跃（聆听/播放） */
+  /** Whether the voiceprint is active (listening/playing) */
   active: boolean;
-  /** 是否在通话中（显示 LIVE） */
+  /** Whether a call is in progress (show LIVE) */
   live: boolean;
-  /** 会话时长（秒） */
+  /** Session duration (seconds) */
   elapsed: number;
-  /** 对话消息（底部浮层显示最新几条） */
+  /** Conversation messages (the bottom overlay shows the latest few) */
   messages: VoiceMessage[];
   rounds: number;
   onOpenRecord: () => void;
@@ -51,7 +49,7 @@ interface VideoStageProps {
 }
 
 /**
- * 视频舞台。
+ * Video stage.
  */
 export function VideoStage({
   videoMode,
@@ -78,7 +76,7 @@ export function VideoStage({
   const videoRef = useRef<HTMLVideoElement>(null);
   const showVideo = videoMode && stream != null;
 
-  // 流或 video 元素（重新挂载）变化时都重挂 srcObject，避免切换音频源后画面空白
+  // Reattach srcObject whenever the stream or the video element (remount) changes, so the picture is not blank after switching audio sources
   useEffect(() => {
     if (videoRef.current) videoRef.current.srcObject = stream;
   }, [stream, showVideo]);
@@ -87,7 +85,7 @@ export function VideoStage({
 
   return (
     <div className="relative flex min-h-[18rem] w-full flex-1 items-center justify-center overflow-hidden bg-gradient-to-b from-primary/[0.06] to-card">
-      {/* 背景呼吸氛围光 */}
+      {/* Background breathing ambient light */}
       <span
         aria-hidden
         className="pointer-events-none absolute h-64 w-64 rounded-full bg-primary/15 blur-3xl motion-safe:animate-[map-breathe_4.5s_ease-in-out_infinite]"
@@ -158,7 +156,7 @@ export function VideoStage({
         </div>
       )}
 
-      {/* 实时字幕浮层：最新两条对话 */}
+      {/* Realtime caption overlay: the latest two conversation turns */}
       {subtitles && latest.length > 0 && (
         <div
           className="absolute inset-x-0 bottom-0 flex flex-col justify-end gap-1.5 px-4 pb-4 pt-10"
@@ -220,7 +218,7 @@ function TooltipIcon({
   );
 }
 
-/** 秒 → m:ss */
+/** Seconds → m:ss */
 function fmtTime(sec: number): string {
   const m = Math.floor(sec / 60);
   const s = Math.floor(sec % 60);

@@ -22,9 +22,9 @@ interface ImageParseDisplaySettingsProps {
 }
 
 /**
- * 图片和 PDF 共用的显示设置，收拢识别框、阅读顺序、页眉页脚和双栏联动。
- * @param props 识别框与双栏联动受控状态
- * @returns 支持键盘和触屏的设置菜单
+ * Display settings shared by images and PDFs, gathering recognition boxes, reading order, header/footer, and two-column linkage.
+ * @param props Controlled state for recognition boxes and two-column linkage
+ * @returns A settings menu that supports keyboard and touch
  */
 export function ImageParseDisplaySettings({
   showBlocks = false,

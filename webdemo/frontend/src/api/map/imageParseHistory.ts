@@ -10,10 +10,10 @@ import type {
 } from '@/pages/playground/utils/imageParseHistoryTypes';
 import { sanitizeImageParseSnapshot } from '@/pages/playground/utils/imageParseHistorySnapshot';
 
-/** 单次历史存档上限；fileId 记录不再包含原始 base64。 */
+/** Per-save history size limit; fileId records no longer include the original base64. */
 export const IMAGE_PARSE_HISTORY_MAX_BODY_BYTES = 128 * 1024 * 1024;
 
-/** 已登录用户的轻量分页历史。 */
+/** Lightweight paged history for a logged-in user. */
 export interface ImageParseHistoryPage {
   list: ImageParseHistorySummary[];
   hasMore: boolean;
@@ -54,7 +54,7 @@ function isImageParseMode(value: unknown): value is ImageParseMode {
   );
 }
 
-/** 校验云端分页响应，防止网关异常数据进入组件后破坏历史列表。 */
+/** Validate the cloud page response so bad gateway data cannot enter a component and break the history list. */
 function parseImageParseHistoryPage(value: unknown): ImageParseHistoryPage {
   if (
     !isRecord(value) ||
@@ -84,7 +84,7 @@ function historyPath(
   return `/image-parse/history${id ? `/${encodeURIComponent(id)}` : ''}?${query}`;
 }
 
-/** 用户 ID 只用于客户端隔离；服务端从登录态决定实际归属，不接收 owner 参数。 */
+/** The user ID is only for client-side isolation; the server decides real ownership from the login session and does not accept an owner parameter. */
 export function listImageParseHistory(
   scope: ImageParseHistoryScope,
   offset = 0,
@@ -105,7 +105,7 @@ function isSignedFileURL(value: string): boolean {
   }
 }
 
-/** 打开 fileId 历史时重新鉴权签链，原件下载由预览处理，不阻塞已保存结果。 */
+/** When opening fileId history, re-authenticate and sign the link. Original-file download is handled by preview and does not block the saved result. */
 async function hydrateImageParseSnapshot(
   snapshot: ImageParseSnapshot,
   signal?: AbortSignal,
@@ -121,7 +121,7 @@ async function hydrateImageParseSnapshot(
   }
 }
 
-/** 获取本人记录并重新校验完整快照，不信任网络返回的附件扩展字段。 */
+/** Fetch the current user's record and re-validate the full snapshot; do not trust attachment extension fields returned over the network. */
 export async function getImageParseHistory(
   scope: ImageParseHistoryScope,
   id: string,
@@ -154,7 +154,7 @@ export async function getImageParseHistory(
   };
 }
 
-/** 幂等保存完成结果；恢复记录用 PUT，旧缓存迁移只插入、不覆盖云端版本。 */
+/** Idempotently save a finished result; restored records use PUT, and old-cache migration only inserts and does not overwrite the cloud version. */
 export function saveImageParseHistory(
   scope: ImageParseHistoryScope,
   value: ImageParseSnapshot,
@@ -178,7 +178,7 @@ export function saveImageParseHistory(
   return mapRequest(historyPath(scope, id), { method: id ? 'PUT' : 'POST', body });
 }
 
-/** 删除只能作用于当前登录用户的记录，公开案例不调用此接口。 */
+/** Delete applies only to the currently logged-in user's records; public examples do not call this API. */
 export async function deleteImageParseHistory(
   scope: ImageParseHistoryScope,
   id: string,

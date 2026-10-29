@@ -1,4 +1,4 @@
-/** 追加页面：选择校验、PDF 合成、过期响应隔离与错误提示。 */
+/** Append pages: selection checks, PDF composition, stale-response isolation, and error notices. */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@map/ui';
@@ -15,7 +15,7 @@ import { isPdfAttachment } from '../utils/documentUpload';
 import type { useImageParse } from './useImageParse';
 import { uploadImageParseDocument } from '../utils/imageParseUpload';
 
-/** 公网 http 页面里 crypto.randomUUID 会抛错，追加页编号需要能在该页面生成。 */
+/** On a public http page crypto.randomUUID throws; appended-page numbers have to be generable on that page. */
 function appendId(): string {
   try {
     return `append-${crypto.randomUUID()}`;
@@ -33,9 +33,9 @@ const KNOWN_ERRORS = new Set([
 ]);
 
 /**
- * 管理当前文档的追加页面任务。
- * @param parse 当前工作台状态与 appendDocument 入口
- * @returns 追加中状态、文件入口及取消方法
+ * Manage append-page tasks for the current document.
+ * @param parse current workspace state and the appendDocument entry
+ * @returns appending state, the file entry, and the cancel method
  */
 export function useImageParseAppend(parse: ReturnType<typeof useImageParse>) {
   const { t } = useTranslation('playground');
@@ -47,7 +47,7 @@ export function useImageParseAppend(parse: ReturnType<typeof useImageParse>) {
   const generation = useRef(0);
   const latest = useRef(parse);
 
-  // 切换识别档位或附件时先同步复位 UI，再在 effect 中中止外部任务。
+  // When the recognition tier or attachment changes, reset the UI synchronously first, then abort the external task in an effect.
   if (resetScope !== scope) {
     setResetScope(scope);
     setAppending(false);
@@ -68,7 +68,7 @@ export function useImageParseAppend(parse: ReturnType<typeof useImageParse>) {
     setAppending(false);
   }, [abort]);
 
-  // 切换识别档位或附件时必须中止尚未完成的合成，不能写回旧文档。
+  // When the recognition tier or attachment changes, a composition that has not finished must be aborted and must not be written back onto the old document.
   useEffect(() => {
     abort();
   }, [abort, scope]);

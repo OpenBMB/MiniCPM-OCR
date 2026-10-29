@@ -1,6 +1,6 @@
 import type { QueryClient, QueryKey } from '@tanstack/react-query';
 
-/** 保存或删除后仅失效该记录及其附件别名，其他详情保留短缓存。 */
+/** After a save or delete, invalidate only that record and its attachment aliases; other details keep a short cache. */
 export async function invalidateImageParseHistoryRecord(
   client: QueryClient,
   queryKey: QueryKey,

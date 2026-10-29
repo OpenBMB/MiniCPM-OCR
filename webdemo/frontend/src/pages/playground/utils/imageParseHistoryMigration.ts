@@ -19,24 +19,24 @@ async function migrate(scope: ImageParseHistoryScope): Promise<MigrationResult> 
   try {
     entries = await imageParseHistoryStorage.list(scope);
   } catch {
-    // 浏览器存储不可用不影响云端历史，也不再降级为临时持久化。
+    // Browser storage being unavailable does not affect cloud history, and it no longer falls back to temporary persistence.
     return result;
   }
   for (const entry of [...entries].reverse()) {
     try {
       await saveImageParseHistory(scope, entry.snapshot, undefined, true);
       result.changed = true;
-      // 只有服务端确认持久化后才移除这一个账号/项目的旧缓存。
+      // Remove the old cache for this one account/project only after the server confirms it was persisted.
       await imageParseHistoryStorage.remove(scope, entry.id);
     } catch {
-      // 单条超限或已删除不能阻断其它有效记录；失败的副本留在原浏览器。
+      // One record over the limit or already deleted must not block other valid records; the failed copy stays in the original browser.
       result.pending = true;
     }
   }
   return result;
 }
 
-/** 先确认云端可读，再迁移当前账号的旧记录；失败时保留旧缓存并显示可重试提示。 */
+/** Confirm the cloud copy is readable first, then migrate old records for the current account; on failure keep the old cache and show a retryable notice. */
 export async function loadImageParseHistoryPage(
   scope: ImageParseHistoryScope,
   offset: number,

@@ -1,23 +1,23 @@
 /**
- * Playground 多版本回答与反馈态纯函数。
+ * Pure functions for Playground multi-version answers and feedback state.
  *
- * 用途：维护「顶层字段镜像 versions[activeVersion]」不变式；regenerate 准备态、反馈切换、版本翻页。
+ * Purpose: keep the invariant "top-level fields mirror versions[activeVersion]"; regenerate preparing state, feedback toggle, and version paging.
  */
 
 import type { ChatMessage, MessageFeedback } from '../types';
 import { applyVersion, snapshotVersion } from './messages';
 
-/** regenerate 所需的上下文：assistant 之前的可发送历史 + 目标消息 */
+/** Context regenerate needs: sendable history before the assistant, plus the target message */
 export interface RegenerateContext {
   base: ChatMessage[];
   target: ChatMessage;
 }
 
 /**
- * 解析重新生成上下文：目标 assistant 之前的消息须含至少一条可发送 user 轮次。
- * @param messages 当前消息列表
- * @param assistantId 目标 assistant id
- * @returns 上下文或 null（找不到 / 不可发送时）
+ * Resolve regenerate context: messages before the target assistant must include at least one sendable user turn.
+ * @param messages current message list
+ * @param assistantId target assistant id
+ * @returns the context, or null (not found / not sendable)
  */
 export function findRegenerateContext(
   messages: ChatMessage[],
@@ -31,8 +31,8 @@ export function findRegenerateContext(
 }
 
 /**
- * 构造重新生成前的 assistant 消息：保留 versions，清空 live 字段，标 streaming。
- * @param target 当前 assistant 消息
+ * Build the assistant message before regenerate: keep versions, clear live fields, and mark streaming.
+ * @param target current assistant message
  */
 export function prepareRegenerateMessage(target: ChatMessage): ChatMessage {
   const existingVersions = (
@@ -66,10 +66,10 @@ export function prepareRegenerateMessage(target: ChatMessage): ChatMessage {
 }
 
 /**
- * 在列表中替换目标 assistant 为重新生成准备态。
- * @param list 当前消息列表
- * @param assistantId 目标 id
- * @param prepared prepareRegenerateMessage 的结果
+ * Replace the target assistant in the list with the regenerate preparing state.
+ * @param list current message list
+ * @param assistantId target id
+ * @param prepared result of prepareRegenerateMessage
  */
 export function applyRegeneratePrep(
   list: ChatMessage[],
@@ -80,9 +80,9 @@ export function applyRegeneratePrep(
 }
 
 /**
- * 切换单条消息的反馈态（赞/踩互斥，再次点击同项取消），并同步进当前选中版本。
- * @param message 目标 assistant 消息
- * @param kind 赞或踩
+ * Toggle feedback on a single message (like/dislike are exclusive; clicking the same one again clears it), and sync it into the currently selected version.
+ * @param message target assistant message
+ * @param kind like or dislike
  */
 export function toggleFeedbackOnMessage(message: ChatMessage, kind: MessageFeedback): ChatMessage {
   const next = message.feedback === kind ? undefined : kind;
@@ -94,10 +94,10 @@ export function toggleFeedbackOnMessage(message: ChatMessage, kind: MessageFeedb
 }
 
 /**
- * 在列表中切换指定 assistant 的反馈态。
- * @param list 当前消息列表
- * @param assistantId 目标 id
- * @param kind 赞或踩
+ * Toggle feedback for a given assistant in the list.
+ * @param list current message list
+ * @param assistantId target id
+ * @param kind like or dislike
  */
 export function applyFeedbackToggle(
   list: ChatMessage[],
@@ -108,10 +108,10 @@ export function applyFeedbackToggle(
 }
 
 /**
- * 在列表中把指定 assistant 切换到某个显示版本（‹n/N› 翻页）。
- * @param list 当前消息列表
- * @param assistantId 目标 id
- * @param index 版本索引
+ * Switch a given assistant in the list to a display version (‹n/N› paging).
+ * @param list current message list
+ * @param assistantId target id
+ * @param index version index
  */
 export function applyActiveVersionSwitch(
   list: ChatMessage[],

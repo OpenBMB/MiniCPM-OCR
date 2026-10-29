@@ -100,17 +100,10 @@ describe('PlaygroundSidebar 最近对话分页', () => {
     expect(props.onSelectExperience).toHaveBeenCalledWith('image-parse');
   });
 
-  it('不提供关键信息抽取入口', () => {
-    renderSidebar({
-      hasImageParseModels: true,
-      imageParseHistory: {
-        sessions: [...SHARED_EXAMPLES, { id: 'kie-history', title: '发票字段' }],
-        onSelectSession: vi.fn(),
-        onDeleteSession: vi.fn(),
-        onNewChat: vi.fn(),
-      },
-    });
-    expect(screen.queryByRole('button', { name: '关键信息抽取' })).not.toBeInTheDocument();
+  it('有文档解析模型权限时展示关键信息抽取入口', () => {
+    const props = renderSidebar({ hasImageParseModels: true });
+    fireEvent.click(screen.getByRole('button', { name: '关键信息抽取' }));
+    expect(props.onSelectExperience).toHaveBeenCalledWith('field-extract');
   });
 
   it('实时音视频入口使用电话图标', () => {

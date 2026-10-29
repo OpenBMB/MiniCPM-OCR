@@ -1,9 +1,7 @@
 /**
- * 过程时间线上的一次工具调用。
+ * One tool call on the process timeline.
  *
- * 用途：把工具行从「元数据清单」改成「内容行」——搜索行报搜到了多少网页并叠放站点图标，
- * 读页行就地列出读了哪几篇，进行中就地显示正在搜什么。单步耗时与关键词计数一律不展示：
- * 它们对用户没有决策价值，耗时只在过程区顶部报一次总数。
+ * Purpose: turn a tool row from a "metadata list" into a "content row" — a search row reports how many pages were found and stacks site icons, a page-read row lists which pages were read in place, and while in progress it shows what is being searched in place. Per-step duration and keyword counts are never shown: they have no decision value for the user, and duration is reported once as a total at the top of the process area.
  */
 
 import { useTranslation } from 'react-i18next';
@@ -23,23 +21,23 @@ import { InlineSourceLinks } from './InlineSourceLinks';
 import { StackedFavicons } from './StackedFavicons';
 
 interface ProcessToolRowProps {
-  /** 本次工具调用。 */
+  /** This tool call. */
   event: ToolEvent;
-  /** 该行要就地展示的来源（已由 toolRowCitations 解析好）。 */
+  /** Sources this row should show in place (already resolved by toolRowCitations). */
   citations: Citation[];
-  /** 打开来源抽屉；给了才把搜索行的「搜索到 N 个网页 + 站点图标」整块做成可点。 */
+  /** Open the source drawer; only when provided is the search row's whole "found N pages + site icons" block made clickable. */
   onOpenSources?: () => void;
-  /** 是否为时间线最后一项。 */
+  /** Whether this is the last item on the timeline. */
   last?: boolean;
 }
 
 /**
- * 渲染一条工具行。
- * @param event 工具事件
- * @param citations 该行的来源
- * @param onOpenSources 打开来源抽屉
- * @param last 是否为时间线最后一项
- * @returns 工具行
+ * Renders one tool row.
+ * @param event Tool event
+ * @param citations Sources for this row
+ * @param onOpenSources Open the source drawer
+ * @param last Whether this is the last item on the timeline
+ * @returns A tool row
  */
 export function ProcessToolRow({
   event,
@@ -51,7 +49,7 @@ export function ProcessToolRow({
   const failed = event.status === 'failed';
   const running = event.status === 'running';
   const label = toolLabel(event, citations, t);
-  // 搜索完成的那一行：文案与图标合成一个通往来源抽屉的入口
+  // The row for a finished search: copy and icons form one entry to the source drawer
   const searchDone = isSearchTool(event.tool) && !running && !failed;
 
   return (
@@ -83,11 +81,9 @@ export function ProcessToolRow({
 }
 
 /**
- * 搜索行的可点区域：主文案 + 那一叠站点图标整块通往来源抽屉。
+ * Clickable region of a search row: the main copy plus the stack of site icons, as one block leading to the source drawer.
  *
- * 这一行本来就是「这一步碰了这些网页」的摘要，点它去看是哪些网页是最短的路径——否则用户
- * 得先无视眼前这一叠图标，再翻到回答末尾去找胶囊。没有来源或上层没给回调时退回纯文本，
- * 不做一个点了没反应的按钮。
+ * This row is already a summary of "the pages this step touched," and clicking it to see which pages is the shortest path — otherwise the user has to ignore the stack of icons in front of them and then scroll to the end of the answer to find the chip. When there are no sources or the parent did not pass a callback, fall back to plain text, and do not make a button that does nothing when clicked.
  */
 function SourcesTrigger({
   label,
@@ -113,16 +109,14 @@ function SourcesTrigger({
     <button
       type="button"
       onClick={onOpen}
-      /* 图标是 aria-hidden 的装饰，可读名字只能由文案给，再补一句去向 */
+      /* The icon is aria-hidden decoration; a readable name can come only from the copy, plus one phrase about where it goes */
       aria-label={`${label}，${t('openReferences')}`}
       data-testid="tool-row-sources"
       className={cn(
         '-mx-1 -my-0.5 inline-flex max-w-full items-center rounded px-1 py-0.5 text-left align-middle',
         'transition-colors duration-200',
         /*
-          hover 只让文字变深，不铺背景：这一行是时间线里的一段行内文字，给它一块底色会在
-          marker 列旁边凭空多出一个方块，把「一条线」读成「一张卡片」。文字由 muted 提到
-          foreground 已经足够表明可点，负边距与 px/py 留着是给 focus ring 让位。
+          Hover only darkens the text and does not paint a background: this row is a stretch of inline text in the timeline, and giving it a fill would add a square from nowhere beside the marker column, reading "a line" as "a card." Raising the text from muted to foreground is enough to show it is clickable. The negative margin and px/py stay to make room for the focus ring.
         */
         'hover:text-foreground',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40',
@@ -134,7 +128,7 @@ function SourcesTrigger({
   );
 }
 
-/** 进行中的搜索词：紧跟主文案逐个淡入，完成后被「搜索到 N 个网页」取代。 */
+/** In-progress search terms: fade in one by one right after the main copy, and after completion are replaced by "found N pages." */
 function RunningQueries({ queries }: { queries: string[] }) {
   return (
     <span className="text-foreground/70">
@@ -152,12 +146,9 @@ function RunningQueries({ queries }: { queries: string[] }) {
 }
 
 /**
- * 工具行 marker：失败告警，其余按工具语义给固定图标。
+ * Tool-row marker: a failure alert, otherwise a fixed icon by tool meaning.
  *
- * 进行中**不转圈**。转圈只留过程区顶行那一枚：顶行在收起态也在场，且开了联网到首个工具帧
- * 到达之间还有一段时间线为空的空档，动效必须由它承担。两处同时转就是同一件事报两遍，
- * 各转各的更乱。进行中的那一行靠文案区分——`搜索 <关键词>` 对 `搜索到 N 个网页`，
- * 图标反而因此在「进行中 → 完成」之间保持同一枚，不在收尾那一刻跳一下形。
+ * While in progress it **does not spin**. Spinning is left to the one icon on the process-area top row: the top row is present even when collapsed, and there is still a gap between turning web search on and the first tool frame arriving when the timeline is empty, so the motion has to be carried there. Spinning in both places reports the same thing twice, and spinning independently is more confusing. The in-progress row is distinguished by copy — `search <keyword>` versus `found N pages` — so the icon stays the same from "in progress → done" and does not change shape at the moment it finishes.
  */
 function ToolMarker({ event }: { event: ToolEvent }) {
   if (event.status === 'failed') {
@@ -166,7 +157,7 @@ function ToolMarker({ event }: { event: ToolEvent }) {
   if (event.status === 'interrupted') {
     return <CircleAlert className="size-4 text-muted-foreground/60" aria-hidden="true" />;
   }
-  // 进行中的这一行用 primary 着色，让「现在在跑哪一步」仍然一眼可辨
+  // Color this in-progress row with primary, so "which step is running now" is still obvious at a glance
   const className =
     event.status === 'running' ? 'size-4 text-primary' : 'size-4 text-muted-foreground/70';
   if (isSearchTool(event.tool)) return <Search className={className} aria-hidden="true" />;
@@ -176,15 +167,14 @@ function ToolMarker({ event }: { event: ToolEvent }) {
 }
 
 /**
- * 生成工具行主文案。
+ * Builds the main copy of a tool row.
  *
- * 完成态优先报「成果数量」而不是工具名：用户关心的是搜到/读了多少，而不是调用了哪个函数。
- * 数量拿不到时（旧消息、后端没给计数）退回工具名，不编造数字。
+ * The finished state prefers to report "how many results" rather than the tool name: the user cares how many were found or read, not which function was called. When the count is unavailable (old messages, the backend did not send a count), fall back to the tool name and do not invent a number.
  *
- * @param event 工具事件
- * @param citations 该行的来源，用于计数兜底
- * @param t i18n 翻译函数
- * @returns 主文案
+ * @param event Tool event
+ * @param citations Sources for this row, used as a count fallback
+ * @param t i18n translate function
+ * @returns Main copy
  */
 function toolLabel(
   event: ToolEvent,

@@ -1,8 +1,7 @@
 /**
- * 双工对话记录（纯列表）。
+ * Duplex conversation log (a plain list).
  *
- * 用途：展示语音对话的文字气泡，每轮回复后加「本轮结束」分隔（借鉴 MiniCPM-o Omni
- * Conversation）。无外层卡片与标题，供「查看记录」弹窗或其他容器包裹复用。纯展示组件。
+ * Purpose: show the text bubbles of a voice conversation, with a "this turn ended" separator after each reply (borrowed from MiniCPM-o Omni Conversation). No outer card or title, so a "view log" dialog or another container can wrap and reuse it. Pure display component.
  */
 
 import type { SessionMetrics } from '../../utils/realtimeSessionMetrics';
@@ -10,7 +9,7 @@ import type { VoiceEvent, VoiceMessage } from '../../hooks/useRealtimeSession';
 import { useTranslation } from 'react-i18next';
 
 /**
- * 对话记录列表。
+ * Conversation log list.
  */
 export function DuplexConversation({
   messages,

@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { AuthGuard } from '../router/guard';
 
-// 守卫以 getToken()(localStorage['map_token']) 是否有值判断登录态，mock 之以控制场景。
+// The guard treats a non-empty getToken() (localStorage['map_token']) as logged in; mock it to control the scenario.
 const { getTokenMock } = vi.hoisted(() => ({ getTokenMock: vi.fn() }));
 vi.mock('@/api/map', () => ({
   getToken: getTokenMock,

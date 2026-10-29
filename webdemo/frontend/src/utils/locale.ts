@@ -1,16 +1,16 @@
-/** 门户支持的界面语言。 */
+/** UI languages the portal supports. */
 export type PortalLocale = 'zh-CN' | 'en-US';
 
-/** 全局语言状态写入函数。 */
+/** Writer for the global language state. */
 export type LocaleSetter = (locale: PortalLocale) => void;
 
 /**
- * 保存新语言并主动刷新当前页面。
+ * Save the new language and reload the current page.
  *
- * 用途：让依赖初始化文案、图表和第三方组件的页面在同一语言下重新挂载，避免局部中英混排。
- * @param locale 目标语言。
- * @param setLocale 全局语言状态写入函数。
- * @param reload 页面刷新函数，便于单元测试替换。
+ * Purpose: remount pages that depend on copy, charts, and third-party components initialized for one language, so Chinese and English are not mixed in one view.
+ * @param locale Target language.
+ * @param setLocale Writer for the global language state.
+ * @param reload Page reload function, replaceable in unit tests.
  */
 export function switchLocaleAndReload(
   locale: PortalLocale,

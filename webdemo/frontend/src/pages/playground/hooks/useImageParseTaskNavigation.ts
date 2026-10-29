@@ -17,9 +17,9 @@ interface ImageParseTaskNavigationOptions {
 }
 
 /**
- * 同一文件内切换任务时保留各自的结果和草稿身份，不跨账号、项目或附件复用。
- * @param options 当前快照、任务与恢复入口
- * @returns 不自动调用模型的任务切换函数
+ * When switching tasks inside the same file, keep each task's result and draft identity, and do not reuse them across accounts, projects, or attachments.
+ * @param options current snapshot, task, and restore entry
+ * @returns a task-switch function that does not call the model automatically
  */
 export function useImageParseTaskNavigation({
   scope,

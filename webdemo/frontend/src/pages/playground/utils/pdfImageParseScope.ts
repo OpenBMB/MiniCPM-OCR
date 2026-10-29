@@ -1,7 +1,7 @@
 import type { ImageParseMode } from '@/api/map/imageParseSdk';
 import { isImageParseSharedExample } from './imageParseExamples';
 
-/** PDF 识别结果所属的文件和执行参数。 */
+/** File and execution parameters a PDF recognition result belongs to. */
 export interface PdfParseScope {
   id?: string;
   source: string;
@@ -12,10 +12,10 @@ export interface PdfParseScope {
 }
 
 /**
- * 判断 PDF 结果能否用于当前上下文；共享案例不绑定用户的执行参数。
- * @param previous 结果范围
- * @param next 当前范围
- * @returns 结果是否仍有效
+ * Whether a PDF result can be used in the current context; a shared example is not bound to the user's execution parameters.
+ * @param previous result scope
+ * @param next current scope
+ * @returns whether the result is still valid
  */
 export function samePdfScope(previous: PdfParseScope | undefined, next: PdfParseScope): boolean {
   return (

@@ -2,31 +2,31 @@ import type { Ref } from 'react';
 import { cn } from '../../utils';
 
 export interface SwitchProps {
-  /** 是否开启（受控） */
+  /** Whether it is on (controlled). */
   checked: boolean;
-  /** 开关切换回调；disabled 时不触发 */
+  /** Toggle callback; not fired when disabled. */
   onCheckedChange?: (checked: boolean) => void;
-  /** 是否禁用（仅展示、不可操作） */
+  /** Whether it is disabled (display only, not interactive). */
   disabled?: boolean;
-  /** 无可见文案时的可访问名称 */
+  /** Accessible name when there is no visible copy. */
   'aria-label'?: string;
-  /** 额外样式类 */
+  /** Extra style classes. */
   className?: string;
   ref?: Ref<HTMLButtonElement>;
 }
 
 /**
- * 开关原语。
+ * Switch primitive.
  *
- * 用途：提供平台统一的开/关切换外观，语义等价单个布尔项（对应「是否展示思考」这类
- * 二态设置）。以 role="switch" 的 button 实现，键盘/屏幕阅读器可直接识别；disabled
- * 时仅展示当前态、不响应点击。视觉层统一走语义 token，暗色模式自动适配。
+ * Purpose: the platform’s unified on/off appearance, semantically one boolean (the kind of two-state setting
+ * as "whether to show reasoning"). Implemented as a button with role="switch", so keyboard and screen readers can recognize it directly; when disabled
+ * it only shows the current state and ignores clicks. Visuals use semantic tokens and adapt to dark mode.
  *
- * @param checked 当前是否开启
- * @param onCheckedChange 切换回调（disabled 时不触发）
- * @param disabled 是否禁用
- * @param className 额外样式类
- * @returns 语义化开关按钮
+ * @param checked Whether it is currently on.
+ * @param onCheckedChange Toggle callback (not fired when disabled).
+ * @param disabled Whether it is disabled.
+ * @param className Extra style classes.
+ * @returns A semantic switch button.
  */
 function Switch({ checked, onCheckedChange, disabled, className, ref, ...props }: SwitchProps) {
   return (

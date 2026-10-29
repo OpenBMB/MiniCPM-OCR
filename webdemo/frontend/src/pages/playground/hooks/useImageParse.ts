@@ -17,9 +17,9 @@ import { useImageParseTaskNavigation } from './useImageParseTaskNavigation';
 import { useImageParseRecognitionAutoRun } from './useImageParseRecognitionAutoRun';
 import type { PdfImageParseRestoreOptions } from './usePdfImageParseHistory';
 
-/** 编排图片/PDF 识别与历史恢复。
- * @param model 当前账号、项目与模型上下文
- * @returns 识别状态、服务端来源及历史恢复入口 */
+/** Orchestrate image/PDF recognition and history restore.
+ * @param model current account, project, and model context
+ * @returns recognition state, server source, and the history-restore entry */
 export function useImageParse(
   model: ReturnType<typeof usePlaygroundModel>,
   {

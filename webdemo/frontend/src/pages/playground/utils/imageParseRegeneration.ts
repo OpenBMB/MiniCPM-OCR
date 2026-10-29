@@ -8,10 +8,10 @@ import {
   type ImageParseTextRange,
 } from './imageParseBlocks';
 
-/** 每次主动优化的单块请求预算，不展示中间候选。 */
+/** Per-block request budget for one active optimization; intermediate candidates are not shown. */
 export const IMAGE_PARSE_MAX_RETRIES = 5;
 
-/** 只展示稳定错误键，不将 SDK 或上游返回的消息直接暴露到页面。 */
+/** Show only stable error keys, and do not expose SDK or upstream messages on the page directly. */
 export function imageParseRegenerationErrorKey(failure: unknown): string {
   const known = [
     'imageParseRegenerateEdited',
@@ -33,7 +33,7 @@ export function imageParseRegenerationErrorKey(failure: unknown): string {
   return known.includes(message) ? message : 'imageParseRegenerateFailed';
 }
 
-/** 两版对比与可恢复的操作状态；original 始终是首次基础识别。 */
+/** Comparison of the two versions and recoverable operation state; original is always the first base recognition. */
 export interface ImageParseRegeneration {
   original: ImageParseLayoutBlock;
   best: ImageParseLayoutBlock;
@@ -51,7 +51,7 @@ interface RegenerationDraft {
   ranges: ReadonlyMap<string, ImageParseTextRange>;
 }
 
-/** 全部可重算低分目标；未映射或人工改稿不纳入队列，展示分页不影响目标集合。 */
+/** Every low-score target that can be recomputed; unmapped blocks and manual edits are not queued, and display paging does not affect the target set. */
 export function imageParseRegenerationIds(
   blocks: readonly ImageParseLayoutBlock[],
   draft: RegenerationDraft,
@@ -80,7 +80,7 @@ interface RegenerateMappedBlockInput {
   onApply: (next: string, range: ImageParseTextRange) => void;
 }
 
-/** 每轮及写入前检查实时映射，目标块有人工修改时不继续请求或覆盖。 */
+/** Check the live mapping each round and before writing; if the target block has a manual edit, do not keep requesting or overwrite it. */
 export async function regenerateMappedImageParseBlock({
   id,
   original,
@@ -118,7 +118,7 @@ export async function regenerateMappedImageParseBlock({
   return result;
 }
 
-/** v4 按服务端轮次结束；旧 SDK 最多五次单轮，仅采纳评分严格更高的候选。 */
+/** v4 ends on the server round; the old SDK does at most five single rounds, and only a candidate with a strictly higher score is accepted. */
 export async function optimizeImageParseBlock(
   original: ImageParseLayoutBlock,
   generate: (attempt: number, best: ImageParseLayoutBlock) => Promise<ImageParseRegenerateResult>,
@@ -136,7 +136,7 @@ export async function optimizeImageParseBlock(
     } catch (failure) {
       signal.throwIfAborted();
       if (!rounds) throw failure;
-      // 后续网络故障不能丢弃此前已评分的候选，但界面仍需说明优化未完整执行。
+      // A later network failure must not discard candidates already scored, but the UI still has to say the optimization did not run to completion.
       return {
         original,
         best,
@@ -193,7 +193,7 @@ export async function optimizeImageParseBlock(
   };
 }
 
-/** 以公共前后文隔离差异区域，线性复杂度避免长表格造成二次方开销。 */
+/** Isolate the differing region by the common prefix and suffix; linear complexity avoids quadratic cost on a long table. */
 export function imageParseTextDifference(before: string, after: string) {
   const left = Array.from(before);
   const right = Array.from(after);

@@ -10,11 +10,11 @@ interface LocaleSwitcherProps {
 }
 
 /**
- * 门户语言切换控件。
- * 用途：在不刷新页面的前提下切换中英文界面，并保证鼠标、触摸和键盘均可操作。
- * @param variant 控件呈现形式；文档页使用文字形式避免孤立图标难以辨识。
- * @param className 追加到按钮的样式类。
- * @returns 语言切换按钮与说明 Tooltip。
+ * Portal language switcher.
+ * Purpose: switch the Chinese and English UI without reloading the page, and keep it usable with mouse, touch, and keyboard.
+ * @param variant How the control is presented; docs pages use text so a lone icon is not hard to recognize.
+ * @param className Classes appended to the button.
+ * @returns The language button and its explanatory tooltip.
  */
 export function LocaleSwitcher({ variant = 'icon', className }: LocaleSwitcherProps) {
   const locale = useAppStore((state) => state.locale);

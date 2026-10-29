@@ -31,11 +31,11 @@ interface ErrorBoundaryViewProps extends Props {
 }
 
 /**
- * 国际化错误边界。
+ * Internationalized error boundary.
  *
- * 用途：在路由或应用渲染异常时保留重试入口，并让已显示的降级界面响应语言切换。
- * @param props 子节点、可选自定义降级界面与渲染级别。
- * @returns 捕获子树渲染异常的边界组件。
+ * Purpose: keep a retry entry when a route or the app fails to render, and let an already shown fallback respond to language changes.
+ * @param props Children, an optional custom fallback, and the render level.
+ * @returns A boundary that catches render errors in its subtree.
  */
 export function ErrorBoundary({ children, fallback, level }: Props) {
   const { t } = useTranslation('status');

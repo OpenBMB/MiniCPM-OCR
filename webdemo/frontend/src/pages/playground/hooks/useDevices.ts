@@ -1,21 +1,21 @@
 /**
- * 音频设备枚举 Hook。
+ * Audio-device enumeration hook.
  *
- * 用途：为「实时语音」提供麦克风/扬声器设备列表与刷新（对齐 MiniCPM-o demo 的设备选择）。
- * 挂载即自动枚举一次，并监听设备热插拔自动刷新；仍暴露 refresh 供「刷新设备」按钮与
- * 通话授权后补全 label 调用。设备 label 需在麦克风授权后才完整可见（浏览器隐私限制）。
+ * Purpose: provide the microphone and speaker device list and a refresh for "realtime voice" (aligned with device selection in the MiniCPM-o demo).
+ * Enumerate once on mount, and listen for hot-plug to refresh automatically; refresh is still exposed for the "refresh devices" button and for
+ * filling in labels after the call is authorized. Device labels are fully visible only after microphone permission (a browser privacy limit).
  */
 
 import { useCallback, useEffect, useState } from 'react';
 
-/** 设备项 */
+/** One device item */
 export interface DeviceOption {
   id: string;
   label: string;
 }
 
 /**
- * 枚举音频输入/输出设备。
+ * Enumerate audio input and output devices.
  */
 export function useDevices() {
   const [mics, setMics] = useState<DeviceOption[]>([]);
@@ -25,8 +25,8 @@ export function useDevices() {
     if (!navigator.mediaDevices?.enumerateDevices) return;
     try {
       const list = await navigator.mediaDevices.enumerateDevices();
-      // 过滤浏览器的 default/communications 别名项：它们语义即「系统默认」，与下拉里手写的
-      // 「系统默认」(value=default) 重复，且 deviceId 固定，会撞车导致选项重复、标签拼接
+      // Filter the browser's default/communications alias items: they mean "system default", which duplicates the handwritten
+      // "system default" (value=default) in the dropdown, and their deviceId is fixed, so they collide, duplicate options, and concatenate labels
       const real = (kind: MediaDeviceKind) =>
         list.filter(
           (d) =>
@@ -45,12 +45,12 @@ export function useDevices() {
         })),
       );
     } catch {
-      // 枚举失败静默降级
+      // Enumeration failure degrades silently
     }
   }, []);
 
-  // 挂载即自动枚举一次，并监听热插拔自动刷新（enumerate 不申请权限，未授权时 label 退化为占位名）。
-  // refresh 是异步的，setState 发生在 await 之后（非渲染同步阶段），不会引发级联渲染，故此处豁免规则。
+  // Enumerate once on mount, and listen for hot-plug to refresh automatically (enumerate does not request permission; without permission, label falls back to a placeholder name).
+  // refresh is async, and setState happens after await (not in the synchronous render phase), so it does not cause a cascading render; the rule is waived here.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();

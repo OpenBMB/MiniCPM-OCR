@@ -3,13 +3,13 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
-/** 前端源码根目录，供 `@/` 路径别名解析 */
+/** Frontend source root, used to resolve the `@/` path alias. */
 const srcDir = fileURLToPath(new URL('./src', import.meta.url));
 
 /**
- * 解析站点静态标题（<title> 与 og:title），在构建期定死写入 index.html。
- * 链接预览爬虫不执行 JS、只读原始 HTML，故标题无法靠运行时 i18n 切换，必须在构建期按环境注入。
- * 优先级：显式 VITE_APP_TITLE > 构建期默认标题。
+ * Resolve the static site title (<title> and og:title) and write it into index.html at build time.
+ * Link-preview crawlers do not run JS and only read the raw HTML, so the title cannot switch with runtime i18n and must be injected per environment at build time.
+ * Priority: an explicit VITE_APP_TITLE, then the build-time default title.
  */
 function resolveAppTitle(): string {
   const explicit = process.env.VITE_APP_TITLE?.trim();
@@ -18,8 +18,8 @@ function resolveAppTitle(): string {
 }
 
 /**
- * html-app-title：把 index.html 里的 %VITE_APP_TITLE% 占位替换为构建期解析出的标题。
- * order:'pre' 确保先于 Vite 内置的 %ENV% 替换执行，替换结果唯一确定。
+ * html-app-title: replace the %VITE_APP_TITLE% placeholder in index.html with the title resolved at build time.
+ * order: 'pre' runs before Vite’s built-in %ENV% replacement, so the result is determined in one place.
  */
 function htmlAppTitlePlugin() {
   const title = resolveAppTitle();
@@ -34,7 +34,7 @@ function htmlAppTitlePlugin() {
   };
 }
 
-// 免登录演示：独立部署在根路径，打开后直接进入 Playground。
+// Login-free demo: deployed on its own at the root path, and opens straight into the Playground.
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, fileURLToPath(new URL('.', import.meta.url)), '');
   for (const [key, value] of Object.entries(env)) {
@@ -45,7 +45,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       htmlAppTitlePlugin(),
-      // PDF 的 CJK 字体映射与解码资源同源部署，预览不依赖第三方 CDN。
+      // PDF CJK font maps and decode assets are served from the same origin, so preview does not depend on a third-party CDN.
       viteStaticCopy({
         targets: ['cmaps', 'standard_fonts', 'wasm'].map((directory) => ({
           src: fileURLToPath(new URL(`./node_modules/pdfjs-dist/${directory}`, import.meta.url)),
@@ -64,6 +64,14 @@ export default defineConfig(({ mode }) => {
           target: process.env.VITE_OCR_TARGET ?? 'http://127.0.0.1:8966',
           changeOrigin: true,
         },
+        '/api/image-parse': {
+          target: process.env.VITE_OCR_TARGET ?? 'http://127.0.0.1:8966',
+          changeOrigin: true,
+        },
+        '/api/kie': {
+          target: process.env.VITE_OCR_TARGET ?? 'http://127.0.0.1:8966',
+          changeOrigin: true,
+        },
         '/v1': {
           target: process.env.VITE_OCR_TARGET ?? 'http://127.0.0.1:8966',
           changeOrigin: true,
@@ -75,6 +83,14 @@ export default defineConfig(({ mode }) => {
       port: 10111,
       proxy: {
         '/api/document-parse': {
+          target: process.env.VITE_OCR_TARGET ?? 'http://127.0.0.1:8966',
+          changeOrigin: true,
+        },
+        '/api/image-parse': {
+          target: process.env.VITE_OCR_TARGET ?? 'http://127.0.0.1:8966',
+          changeOrigin: true,
+        },
+        '/api/kie': {
           target: process.env.VITE_OCR_TARGET ?? 'http://127.0.0.1:8966',
           changeOrigin: true,
         },
@@ -91,15 +107,15 @@ export default defineConfig(({ mode }) => {
       cssCodeSplit: true,
       rollupOptions: {
         output: {
-          // 手动拆分第三方依赖：稳定的运行时(react 全家桶)与重型可视化库(recharts)
-          // 各自独立成 chunk，既提升长期缓存命中率，又能与业务 chunk 并行下载。
+          // Split third-party dependencies by hand: the stable runtime (the React family) and the heavy chart library (recharts)
+          // each become their own chunk, which improves long-term cache hits and can download in parallel with app chunks.
           manualChunks(id) {
             if (!id.includes('node_modules')) return undefined;
-            // recharts 及其依赖的 d3-* / victory-* 体积大且仅图表页用，单独成块
+            // recharts and its d3-* / victory-* dependencies are large and only the chart pages use them, so they get their own chunk.
             if (/[\\/]node_modules[\\/](recharts|d3-|victory-|internmap|decimal\.js)/.test(id)) {
               return 'chart-vendor';
             }
-            // React 运行时三件套放同一 chunk，避免跨块初始化顺序问题
+            // The three React runtime packages share one chunk, so initialization order does not break across chunks.
             if (
               /[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(
                 id,
@@ -107,7 +123,7 @@ export default defineConfig(({ mode }) => {
             ) {
               return 'react-vendor';
             }
-            // 服务端状态库独立，便于单独缓存
+            // The server-state library stands alone, so it can be cached separately.
             if (/[\\/]node_modules[\\/]@tanstack[\\/]/.test(id)) {
               return 'query-vendor';
             }

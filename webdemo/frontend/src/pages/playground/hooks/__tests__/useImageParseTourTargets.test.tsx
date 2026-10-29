@@ -12,7 +12,7 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }));
 
-/** 使用真实 driver.js 验证选择平台示例后的目标挂载与自动前进，不调用 OCR。 */
+/** Use real driver.js to verify target mounting and automatic advance after choosing a platform example, without calling OCR. */
 function TourWorkspace({
   existing = false,
   settingsReady = true,
@@ -115,7 +115,7 @@ describe('文档解析引导真实目标回归', () => {
     expect(screen.getByRole('switch', { name: /imageParseUpright/ })).toBeVisible();
     expect(document.body).toHaveClass('map-tour-settings-showcase');
     expect(screen.getByRole('button', { name: 'imageParseTourNext' })).toBeVisible();
-    // 示例步骤的目标已卸载，回退按钮应禁用，避免落到无目标的居中遮罩。
+    // The example step's target has unmounted; the back button should be disabled, so it does not land on a centered mask with no target.
     await waitFor(() => expect(document.querySelector('.driver-popover-prev-btn')).toBeDisabled());
     fireEvent.click(document.querySelector('.driver-popover-prev-btn')!);
     await expectStep(
@@ -219,7 +219,7 @@ describe('文档解析引导真实目标回归', () => {
     const overlay = () => document.querySelector('.driver-overlay path')!.getAttribute('d');
     const popover = document.querySelector<HTMLElement>('.driver-popover')!;
     await waitFor(() => expect(overlay()).toContain('M102,96 h156'));
-    // 等 driver 的 400ms 切步动画与一次性 refresh 结束，避免它掩盖后续布局偏移。
+    // Wait for driver.js's 400ms step-change animation and the one-shot refresh to finish, so they do not hide a later layout shift.
     await act(async () => new Promise((resolve) => window.setTimeout(resolve, 500)));
     const initialPosition = popover.style.cssText;
 

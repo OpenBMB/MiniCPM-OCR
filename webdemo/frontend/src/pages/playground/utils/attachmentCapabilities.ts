@@ -9,9 +9,9 @@ const CAPABILITY_BY_KIND: Record<AttachmentKind, string> = {
 };
 
 /**
- * 返回模型明确支持的附件模态。
- * @param capabilities 当前模型的能力配置
- * @returns 可上传的附件模态
+ * Return the attachment modalities the model explicitly supports.
+ * @param capabilities capability config of the current model
+ * @returns attachment modalities that can be uploaded
  */
 export function supportedAttachmentKinds(
   capabilities: Record<string, boolean> | undefined,
@@ -23,10 +23,10 @@ export function supportedAttachmentKinds(
 }
 
 /**
- * 判断模型是否支持指定附件模态。
- * @param capabilities 当前模型的能力配置
- * @param kind 待校验的附件模态
- * @returns 是否支持
+ * Whether the model supports the given attachment modality.
+ * @param capabilities capability config of the current model
+ * @param kind attachment modality to check
+ * @returns whether it is supported
  */
 export function supportsAttachmentKind(
   capabilities: Record<string, boolean> | undefined,
@@ -36,9 +36,9 @@ export function supportsAttachmentKind(
 }
 
 /**
- * 按模型能力生成文件选择器 accept 值，避免给不支持的模态展示上传选项。
- * @param capabilities 当前模型的能力配置
- * @returns 文件选择器 accept 值
+ * Build the file-picker accept value from model capabilities, so upload options are not shown for unsupported modalities.
+ * @param capabilities capability config of the current model
+ * @returns file-picker accept value
  */
 export function attachmentAcceptForCapabilities(
   capabilities: Record<string, boolean> | undefined,
@@ -49,9 +49,9 @@ export function attachmentAcceptForCapabilities(
 }
 
 /**
- * 生成附件不支持时的中文提示。
- * @param kind 文件识别出的附件模态
- * @returns 用户可读错误信息
+ * Build the Chinese message shown when an attachment is unsupported.
+ * @param kind attachment modality recognized from the file
+ * @returns user-readable error message
  */
 export function unsupportedAttachmentMessage(kind: AttachmentKind): string {
   const labels: Record<AttachmentKind, string> = {
@@ -64,10 +64,10 @@ export function unsupportedAttachmentMessage(kind: AttachmentKind): string {
 }
 
 /**
- * 根据文件 MIME 和模型能力校验附件是否可上传。
- * @param capabilities 当前模型的能力配置
- * @param mime 文件 MIME
- * @returns 通过时返回 undefined，否则返回错误信息
+ * Check whether an attachment can be uploaded from the file MIME and the model capabilities.
+ * @param capabilities capability config of the current model
+ * @param mime file MIME
+ * @returns undefined when it passes, otherwise an error message
  */
 export function validateAttachmentCapability(
   capabilities: Record<string, boolean> | undefined,

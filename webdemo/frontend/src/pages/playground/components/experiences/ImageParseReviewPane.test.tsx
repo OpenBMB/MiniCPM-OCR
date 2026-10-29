@@ -345,7 +345,7 @@ describe('块复核列表边界', () => {
     expect(collapse).toHaveAttribute('aria-expanded', 'true');
     fireEvent.click(collapse);
     expect(container.querySelector('[data-regeneration-comparison]')).toBeNull();
-    // 收起只影响对比，卡头与分数仍留在列表里。
+    // Collapse affects only the comparison; the card header and score stay in the list.
     expect(container.querySelector('[data-review-block-id="low"]')).not.toBeNull();
 
     const expand = screen.getByRole('button', { name: 'imageParseComparisonExpand' });

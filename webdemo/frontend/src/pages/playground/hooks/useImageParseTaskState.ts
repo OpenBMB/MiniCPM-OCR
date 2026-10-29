@@ -16,9 +16,9 @@ interface ImageParseTaskStateOptions {
 }
 
 /**
- * 维护任务、抽取字段、摆正、印章和图表展示选项。
- * @param options 自动识别标记、取消入口与共享案例状态
- * @returns 当前任务状态与受控切换函数
+ * Maintain the task, extraction fields, rotation adaptation, and seal and chart display options.
+ * @param options the automatic-recognition flag, the cancel entry, and shared-example state
+ * @returns the current task state and the controlled switch functions
  */
 export function useImageParseTaskState({
   pendingAutoRef,
@@ -31,7 +31,7 @@ export function useImageParseTaskState({
   const [upright, setUpright] = useState(true);
   const [recognizeSeal, setRecognizeSeal] = useState(true);
   const [recognizeChart, setRecognizeChart] = useState(true);
-  // 信息抽取必须至少有一个合法字段；无字段时不自动发起必然失败的请求。
+  // Key information extraction must have at least one legal field; with no fields, do not automatically start a request that is bound to fail.
   useEffect(() => {
     if (mode === 'kie' && imageParseKieFieldsError(fields)) {
       pendingAutoRef.current = false;
@@ -40,7 +40,7 @@ export function useImageParseTaskState({
   const selectMode = useCallback(
     (next: ImageParseMode) => {
       if (next === mode || sharedExample) return;
-      // 点击当下同步中止，避免切换模式后旧回调在 effect 执行前写入。
+      // Abort synchronously at the moment of the click, so an old callback does not write before the effect runs after the mode switches.
       cancel();
       setMode(next);
     },

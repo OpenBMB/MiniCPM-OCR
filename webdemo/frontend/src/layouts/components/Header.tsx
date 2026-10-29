@@ -20,9 +20,9 @@ interface HeaderProps {
 
 export function Header({ isMobile, onMenuToggle, topNav, showLogo }: HeaderProps) {
   const { t } = useTranslation('shell');
-  // 首帧即可从 localStorage 同步读出登录态，据此决定右侧渲染，避免刷新时先闪「登录」按钮
+  // The first frame can read login state synchronously from localStorage and decide the right-side render, so a refresh does not flash the "Log in" button first.
   const hasToken = Boolean(getToken());
-  // 当前用户信息：照搬老 portal，登录后查 /me（仅在有 token 时启用）
+  // Current user: mirrors the old portal, and queries /me after login (enabled only when a token exists).
   const meQuery = useQuery({
     queryKey: mapKeys.me(),
     queryFn: mapAuthApi.me,
@@ -82,7 +82,7 @@ export function Header({ isMobile, onMenuToggle, topNav, showLogo }: HeaderProps
               </button>
             )}
 
-            {/* Logo — top 模式始终显示；mixed 模式在无侧栏时显示（有二级菜单时 Logo 在侧栏） */}
+            {/* Logo — always shown in top mode; in mixed mode, shown when there is no sidebar (when there is a second-level menu, the logo is in the sidebar). */}
             {!isMobile && showLogo && (
               <Link to="/" className="flex items-center gap-2 shrink-0 mr-1">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shadow-sm shadow-primary/25">
@@ -144,7 +144,7 @@ export function Header({ isMobile, onMenuToggle, topNav, showLogo }: HeaderProps
           {/* Right */}
           <div className="flex items-center gap-1">
             <LocaleSwitcher />
-            {/* 三态：已拿到用户 → 用户菜单；有 token 且 /me 未失败 → 骨架占位（无抖动，不闪登录）；否则 → 登录按钮 */}
+            {/* Three states: user loaded → user menu; token present and /me has not failed → skeleton (no jump, no login flash); otherwise → Log in button. */}
             {renderUserSlot()}
           </div>
         </div>
@@ -152,7 +152,7 @@ export function Header({ isMobile, onMenuToggle, topNav, showLogo }: HeaderProps
     </>
   );
 
-  /** 用户区三态渲染：用户菜单 / 占位骨架 / 登录按钮（抽出避免 JSX 内嵌套三元） */
+  /** Three-state render for the user area: user menu, placeholder skeleton, or Log in button (pulled out so JSX does not nest ternaries). */
   function renderUserSlot() {
     if (user) {
       return (
@@ -178,7 +178,7 @@ export function Header({ isMobile, onMenuToggle, topNav, showLogo }: HeaderProps
 }
 
 /**
- * 用户区占位骨架：在 /me 返回前展示，尺寸与 UserDropdown 触发器一致，避免登录态切换时的布局抖动与「登录」闪烁。
+ * Placeholder skeleton for the user area: shown until /me returns, sized like the UserDropdown trigger, so login-state changes do not shift the layout or flash "Log in".
  */
 function UserPlaceholder() {
   return (
@@ -283,7 +283,7 @@ function UserDropdown({
                 type="button"
                 onClick={() => {
                   closeDropdown();
-                  // 管理台是独立部署于 /admin-console/ 的 SPA，整页跳转而非 SPA 路由
+                  // The admin console is a separately deployed SPA at /admin-console/, so this is a full page navigation rather than an SPA route.
                   window.location.assign('/admin-console/');
                 }}
                 className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground cursor-pointer"

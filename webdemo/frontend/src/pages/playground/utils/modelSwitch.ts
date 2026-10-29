@@ -1,6 +1,6 @@
 /**
- * 判断用户主动切换语言模型时是否必须开启新会话。
- * 同一模型、空白会话和恢复历史会话的模型回填均不需要清空当前上下文。
+ * Whether the user switching language models on purpose must start a new conversation.
+ * The same model, a blank conversation, and filling the model back in when restoring a history conversation do not need to clear the current context.
  */
 export function shouldStartNewConversationOnModelChange(
   currentModelId: string,

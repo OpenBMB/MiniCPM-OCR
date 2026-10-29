@@ -8,7 +8,7 @@ import { NavItemButton } from './nav-item-button';
 import type { AppRoute } from '@map/types';
 
 interface TopNavProps {
-  /** top：纯顶部导航，带图标与 hover 下拉；mixed：仅一级切换，二级由侧栏承担 */
+  /** top: top navigation only, with icons and a hover dropdown; mixed: first level only, and the second level lives in the sidebar. */
   variant?: 'top' | 'mixed';
   onRouteClick?: (route: AppRoute) => void;
 }
@@ -24,7 +24,7 @@ const navItemClass = (active: boolean) => `
 `;
 
 /**
- * 顶部导航图标容器，固定 16px 不参与行高计算。
+ * Top-nav icon container, fixed at 16px and excluded from line-height.
  */
 function NavIcon({ icon, active }: { icon?: string; active: boolean }) {
   const renderIcon = getIcon(icon);
@@ -38,7 +38,7 @@ function NavIcon({ icon, active }: { icon?: string; active: boolean }) {
 }
 
 /**
- * 顶部一级导航：top 模式带图标与 hover 下拉；mixed 模式仅文字 tab，二级走侧栏。
+ * Top-level navigation: top mode has icons and a hover dropdown; mixed mode is a text tab only, and the second level lives in the sidebar.
  */
 export function TopNav({ variant = 'top', onRouteClick }: TopNavProps) {
   const location = useLocation();

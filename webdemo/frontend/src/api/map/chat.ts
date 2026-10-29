@@ -1,10 +1,10 @@
 /**
- * MAP 体验中心（Playground）的流式对话 API。
+ * Streaming chat API for the MAP experience center (Playground).
  *
- * 用途：直连 L2 的 OpenAI 兼容 `/v1/chat/completions`（SSE 流式），以用户明文 API Key 作
- * `Bearer` 鉴权。**不复用** `mapRequest`：后者解 L3 统一信封并抛 BizError，不适合 SSE 原始流。
+ * Purpose: call L2’s OpenAI-compatible `/v1/chat/completions` directly (SSE streaming), using the user’s plaintext API Key as
+ * `Bearer` auth. Do **not** reuse `mapRequest`: it unwraps the L3 envelope and throws BizError, which does not fit a raw SSE stream.
  *
- * 安全：secret（明文 lis_sk_xxx）仅由调用方内存传入，本模块不持久化、不打印。
+ * Security: secret (plaintext lis_sk_xxx) is passed in memory by the caller only. This module does not persist or print it.
  */
 
 import { getToken } from './request';
@@ -20,10 +20,10 @@ import {
 } from '@/pages/playground/utils/sse';
 
 /**
- * chat 端点基址：部署时优先使用 `VITE_CHAT_BASE_URL` 按环境注入。
- * 该值缺失时按 `VITE_AUTH_PROFILE` 回退：GCP 使用 `https://api.modelbest.ai`，
- * legacy 使用 `https://api.modelbest.cn`，避免两套云环境域名交叉。
- * 注意 `/api` 是 L3 控制面前缀（无 `/v1/chat/completions`，直连会 405），对话必须走 L2。
+ * Chat endpoint base URL: at deploy time prefer `VITE_CHAT_BASE_URL` injected per environment.
+ * When that value is missing, fall back by `VITE_AUTH_PROFILE`: GCP uses `https://api.modelbest.ai`,
+ * and legacy uses `https://api.modelbest.cn`, so the two cloud hostnames do not cross.
+ * Note that `/api` is the L3 control-plane prefix (it has no `/v1/chat/completions`, and a direct call returns 405). Chat must go through L2.
  */
 const configuredChatAPIBase = import.meta.env.VITE_CHAT_BASE_URL?.trim();
 export const CHAT_API_BASE =
@@ -32,7 +32,7 @@ export const CHAT_API_BASE =
     ? 'https://api.modelbest.ai'
     : 'https://api.modelbest.cn');
 
-/** token 用量 */
+/** Token usage */
 export interface TokenUsage {
   prompt_tokens: number;
   completion_tokens: number;
@@ -40,10 +40,10 @@ export interface TokenUsage {
 }
 
 /**
- * OpenAI 兼容的多模态 content 分段。媒体类优先使用对象存储 URL，兼容保留 data URL/file_data。
- * - image_url / video_url：URL 形态（Qwen-VL 等 OpenAI 兼容视觉模型用 video_url 承载视频）
- * - input_audio：OpenAI Chat Completions 音频入参（data 为**去前缀**的裸 base64 + format）
- * - file：OpenAI 文件入参（file_data 为完整 data URL，filename 供上游识别类型）
+ * OpenAI-compatible multimodal content parts. Media prefers object-storage URLs, and data URL/file_data remain for compatibility.
+ * - image_url / video_url: URL form (OpenAI-compatible vision models such as Qwen-VL carry video in video_url)
+ * - input_audio: OpenAI Chat Completions audio input (data is raw base64 **without** the prefix, plus format)
+ * - file: OpenAI file input (file_data is a full data URL; filename is for upstream type recognition)
  */
 export type ChatContentPart =
   | { type: 'text'; text: string }
@@ -52,15 +52,15 @@ export type ChatContentPart =
   | { type: 'input_audio'; input_audio: { data: string; format: string } }
   | { type: 'file'; file: { filename: string; file_data?: string; file_url?: string } };
 
-/** 发往后端的一条对话消息；content 为字符串或多模态分段数组 */
+/** One chat message sent to the backend; content is a string or an array of multimodal parts */
 export interface ChatRequestMessage {
   role: 'system' | 'user' | 'assistant';
   content: string | ChatContentPart[];
 }
 
 /**
- * 对话补全参数。除 model/messages 外均为可选，后端原样透传到 LIS。
- * 用索引签名预留 tools / web_search / response_format 等未显式声明字段。
+ * Chat completion parameters. Everything except model/messages is optional, and the backend passes them through to LIS as-is.
+ * An index signature reserves undeclared fields such as tools / web_search / response_format.
  */
 export interface ChatCompletionParams {
   model: string;
@@ -70,56 +70,56 @@ export interface ChatCompletionParams {
   max_tokens?: number;
   reasoning_effort?: 'low' | 'medium' | 'high';
   thinking?: { type: 'enabled' | 'disabled' } | Record<string, unknown>;
-  /** MiniCPM/LIS 思考开关：chat_template_kwargs.enable_thinking（默认 true） */
+  /** MiniCPM/LIS reasoning switch: chat_template_kwargs.enable_thinking (default true) */
   chat_template_kwargs?: { enable_thinking?: boolean } & Record<string, unknown>;
-  /** MiniCPM-V-4.7 图片压缩参数；仅用户显式选择时发送。 */
+  /** MiniCPM-V-4.7 image compression parameters; sent only when the user selects them explicitly. */
   mm_processor_kwargs?: { downsample_mode?: '4x' | '16x' } & Record<string, unknown>;
-  /** 保留兼容字段类型；Playground hosted web search 不再由前端下发该字段 */
+  /** Kept as a compatibility field type; Playground hosted web search no longer sends this field from the frontend */
   web_search_options?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
-/** 联网搜索引用来源（归一化后的 url_citation） */
+/** Web-search citation source (normalized url_citation) */
 export interface Citation {
-  /** 后端分配的全局来源编号（1 起）；见 pages/playground/types.ts 的同名字段。 */
+  /** Global source number assigned by the backend (starting at 1); see the field of the same name in pages/playground/types.ts. */
   ref?: number;
   url: string;
   title?: string;
   snippet?: string;
 }
 
-/** Playground 请求携带的浏览器运行时上下文提示。 */
+/** Browser runtime context hints carried on a Playground request. */
 export interface PlaygroundRuntimeContext {
   timezone?: string;
   locale: 'zh-CN' | 'en-US';
   utc_offset_minutes: number;
-  /** 用户手动设置的当前位置（如"北京市"），用于 datetime 工具回答地点相关问题。 */
+  /** Current location set manually by the user (for example "Beijing"), used by the datetime tool to answer location questions. */
   location?: string;
 }
 
-/** 流式回调集合 */
+/** Streaming callback set */
 export interface StreamCallbacks {
-  /** 正文增量（choices[].delta.content） */
+  /** Body delta (choices[].delta.content) */
   onContent: (delta: string) => void;
-  /** 思考增量（reasoning_content / reasoning / thinking） */
+  /** Reasoning delta (reasoning_content / reasoning / thinking) */
   onReasoning?: (delta: string) => void;
-  /** 联网搜索引用来源（url_citation annotations，流式下可能多次到达，取并集） */
+  /** Web-search citation sources (url_citation annotations; they may arrive more than once while streaming, so take the union) */
   onCitations?: (citations: Citation[]) => void;
-  /** hosted web search 工具状态事件 */
+  /** Hosted web search tool status event */
   onToolStatus?: (status: ToolStatusEvent) => void;
-  /** 当前回答对应的平台 L2 请求 ID */
+  /** Platform L2 request ID for the current answer */
   onRequestId?: (requestId: string) => void;
-  /** 当前回答由输入安审服务代答，当前问答轮不得再进入后续模型上下文。 */
+  /** The current answer was produced by the input content-safety service, and this turn must not enter later model context. */
   onModerationAnswer?: () => void;
-  /** 尾块 usage（后端已强制注入 include_usage） */
+  /** Trailing usage chunk (the backend already forces include_usage) */
   onUsage?: (usage: TokenUsage) => void;
-  /** 上游结束原因，供文档识别区分完整结果与输出限长。 */
+  /** Upstream finish reason, so document recognition can tell a complete result from an output-length limit. */
   onFinishReason?: (reason: string) => void;
-  /** 正常收尾（收到 [DONE]） */
+  /** Normal completion (received [DONE]) */
   onDone?: () => void;
 }
 
-/** hosted web search 工具状态事件 */
+/** Hosted web search tool status event */
 export interface ToolStatusEvent {
   event_id?: string;
   step?: number;
@@ -133,10 +133,10 @@ export interface ToolStatusEvent {
 }
 
 /**
- * 生成体验中心对话的客户端关联 ID。
+ * Generate the client correlation ID for an experience-center conversation.
  *
- * 用途：直连调用经 `X-Request-Id` 传入 L2，联网调用传给 L3 记录最终调用映射；
- * 两者都只作为 `client_request_id`。平台仍自行生成并返回权威的 `req_xxx`。
+ * Purpose: direct calls pass it to L2 via `X-Request-Id`, and web calls pass it to L3 to record the final call mapping;
+ * both are only a `client_request_id`. The platform still generates and returns the authoritative `req_xxx` itself.
  */
 export function createPlaygroundClientRequestID(): string {
   const bytes = new Uint8Array(16);
@@ -144,7 +144,7 @@ export function createPlaygroundClientRequestID(): string {
   return `map_playground_${Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('')}`;
 }
 
-/** 携带 HTTP 状态码的对话错误，便于上层区分 401/404/429 */
+/** Chat error that carries an HTTP status code, so the caller can distinguish 401/404/429 */
 export class ChatError extends Error {
   status: number;
   code?: string;
@@ -156,14 +156,14 @@ export class ChatError extends Error {
   }
 }
 
-/** 读取当前登录 token（用于走 /api 同源代理时附带门户登录态，不影响 L2 的 Bearer 鉴权语义） */
+/** Read the current login token (attach portal auth when going through the /api same-origin proxy, without changing L2 Bearer auth) */
 function buildUrl(): string {
   return `${CHAT_API_BASE}/v1/chat/completions`;
 }
 
 /**
- * 把正文增量经 `<think>` 拆分后分发：think 段落改路由到思考通道，正文保持干净。
- * 见 sse.ts：部分模型（联网路径带 tools 时上游不再分离 reasoning）把思考内联在 content。
+ * Split a body delta on `<think>` and dispatch it: route think segments to the reasoning channel and keep the body clean.
+ * See sse.ts: some models (on the web path with tools, upstream no longer separates reasoning) inline reasoning in content.
  */
 function emitContentDelta(
   state: ThinkSplitState,
@@ -175,7 +175,7 @@ function emitContentDelta(
   if (split.reasoning) callbacks.onReasoning?.(split.reasoning);
 }
 
-/** 流结束时清空 `<think>` 拆分残留，兜底分发，避免半标签或未闭合 think 吞字。 */
+/** When the stream ends, flush leftover `<think>` split state and dispatch it, so a partial tag or an unclosed think does not swallow text. */
 function drainThink(state: ThinkSplitState, callbacks: StreamCallbacks): void {
   const rest = flushThinkDelta(state);
   if (rest.content) callbacks.onContent(rest.content);
@@ -183,14 +183,14 @@ function drainThink(state: ThinkSplitState, callbacks: StreamCallbacks): void {
 }
 
 /**
- * 发起一次流式对话，逐块回调。
+ * Start one streaming chat and callback chunk by chunk.
  *
- * @param params 对话参数（本函数内部强制置 stream=true）
- * @param secret 明文 API Key（Bearer），仅内存传入，不落盘
- * @param callbacks 流式回调
- * @param signal AbortController.signal，用于「停止生成」
- * @throws ChatError 当上游返回非 2xx（含 401 key 失效 / 404 链路问题 / 429 限流）
- * @throws DOMException(AbortError) 当调用方主动中断——上层应视为正常停止，不报错
+ * @param params Chat parameters (this function forces stream=true)
+ * @param secret Plaintext API Key (Bearer), passed in memory only and not written to disk
+ * @param callbacks Streaming callbacks
+ * @param signal AbortController.signal, used for Stop generating
+ * @throws ChatError when upstream returns non-2xx (including 401 for an invalid key, 404 for a path problem, and 429 for rate limiting)
+ * @throws DOMException(AbortError) when the caller aborts — the caller should treat that as a normal stop, not an error
  */
 export async function streamChat(
   params: ChatCompletionParams,
@@ -256,8 +256,8 @@ export async function streamChat(
           continue;
         }
         if (event.type === 'moderation') {
-          // 撤回帧必须立即中断本轮：抛出后上层会取消打字机队列并清空已渲染内容，
-          // 保证 revoke 之后不再有任何模型正文上屏。
+          // A revoke frame must interrupt this turn immediately: after the throw, the caller cancels the typewriter queue and clears rendered content,
+          // so no model body appears on screen after revoke.
           if (isModerationRevokeEvent(event.data)) {
             throw new ChatError(0, moderationRevokeMessage(event.data), 'content_policy_violation');
           }
@@ -285,12 +285,12 @@ export async function streamChat(
     }
     throw new ChatError(0, '对话流意外中断，请重试');
   } finally {
-    // 中断/异常时取消底层读取，避免连接泄漏
+    // On abort or error, cancel the underlying read to avoid a connection leak
     void reader.cancel().catch(() => undefined);
   }
 }
 
-/** 透传上游真实结束原因，不改变既有聊天完成语义。 */
+/** Pass through the real upstream finish reason without changing existing chat-completion semantics. */
 function emitFinishReason(data: unknown, callbacks: StreamCallbacks): void {
   if (!data || typeof data !== 'object' || !('choices' in data)) return;
   if (!Array.isArray(data.choices)) return;
@@ -302,10 +302,10 @@ function emitFinishReason(data: unknown, callbacks: StreamCallbacks): void {
 }
 
 /**
- * 发起一次 Playground hosted web search 流式对话。
- * @param params 对话参数（本函数内部强制置 stream=true）
- * @param apiKeyId 服务端可校验的 API Key ID；为空时后端按默认规则选择
- * @param callbacks 流式回调
+ * Start one Playground hosted web search streaming chat.
+ * @param params Chat parameters (this function forces stream=true)
+ * @param apiKeyId API Key ID the server can verify; when empty, the backend chooses by its default rule
+ * @param callbacks Streaming callbacks
  * @param signal AbortController.signal
  */
 export async function streamPlaygroundWebSearch(
@@ -324,7 +324,7 @@ export async function streamPlaygroundWebSearch(
       Authorization: token ? `Bearer ${token}` : '',
       'Content-Type': 'application/json',
       Accept: 'text/event-stream',
-      // 与直连链路一致：运行时上下文走受限请求头，不暴露在托管请求体里。
+      // Same as the direct path: runtime context goes in restricted request headers and is not exposed in the hosted request body.
       ...playgroundRuntimeContextHeaders(runtimeContext, { includeLocation: true }),
     },
     body: JSON.stringify({
@@ -366,8 +366,8 @@ export async function streamPlaygroundWebSearch(
           callbacks.onDone?.();
           return;
         }
-        // 带内错误帧：BFF 在 SSE 已开始后无法改 HTTP 状态码，用 event: error 承载。
-        // 抛出交由上层 catch 落错误态，避免被当作普通状态在 [DONE] 后被清除。
+        // In-band error frame: after SSE has started the BFF cannot change the HTTP status, so it carries the error in event: error.
+        // Throw so the caller’s catch records the error state, instead of treating it as ordinary status that is cleared after [DONE].
         if (event.type === 'error') {
           const failure = hostedErrorDetails(event.data);
           throw new ChatError(0, failure.message, failure.code);
@@ -382,8 +382,8 @@ export async function streamPlaygroundWebSearch(
           continue;
         }
         if (event.type === 'moderation') {
-          // 撤回帧必须立即中断本轮：抛出后上层会取消打字机队列并清空已渲染内容，
-          // 保证 revoke 之后不再有任何模型正文上屏。
+          // A revoke frame must interrupt this turn immediately: after the throw, the caller cancels the typewriter queue and clears rendered content,
+          // so no model body appears on screen after revoke.
           if (isModerationRevokeEvent(event.data)) {
             throw new ChatError(0, moderationRevokeMessage(event.data), 'content_policy_violation');
           }
@@ -408,7 +408,7 @@ export async function streamPlaygroundWebSearch(
   }
 }
 
-/** 非流式对话结果：完整正文 + 可选思考 + 可选 usage + 可选引用来源 */
+/** Non-streaming chat result: full body plus optional reasoning, optional usage, and optional citation sources */
 export interface ChatCompletionResult {
   content: string;
   reasoning: string;
@@ -419,13 +419,13 @@ export interface ChatCompletionResult {
 }
 
 /**
- * 发起一次非流式对话，一次性返回完整结果（stream=false）。
+ * Start one non-streaming chat and return the full result at once (stream=false).
  *
- * @param params 对话参数（本函数内部强制置 stream=false）
- * @param secret 明文 API Key（Bearer），仅内存传入，不落盘
- * @param signal AbortController.signal，用于「停止生成」
- * @throws ChatError 当上游返回非 2xx
- * @throws DOMException(AbortError) 当调用方主动中断
+ * @param params Chat parameters (this function forces stream=false)
+ * @param secret Plaintext API Key (Bearer), passed in memory only and not written to disk
+ * @param signal AbortController.signal, used for Stop generating
+ * @throws ChatError when upstream returns non-2xx
+ * @throws DOMException(AbortError) when the caller aborts
  */
 export async function requestChat(
   params: ChatCompletionParams,
@@ -462,7 +462,7 @@ export async function requestChat(
   return result;
 }
 
-/** 将 Playground 运行时上下文转换为直连 L2 的受限请求头。 */
+/** Convert Playground runtime context into restricted request headers for a direct L2 call. */
 function playgroundRuntimeContextHeaders(
   runtimeContext?: PlaygroundRuntimeContext,
   options?: { includeLocation?: boolean },
@@ -478,14 +478,14 @@ function playgroundRuntimeContextHeaders(
   };
 }
 
-/** 从 L2 响应头读取平台元数据。 */
+/** Read platform metadata from L2 response headers. */
 function emitResponseMetadata(res: Response, callbacks: StreamCallbacks): void {
   const requestID = platformRequestID(res.headers.get('X-Request-Id'));
   if (requestID) callbacks.onRequestId?.(requestID);
   if (isModerationAnswerResponse(res)) callbacks.onModerationAnswer?.();
 }
 
-/** 从 hosted web search 的专用 SSE 事件读取最终模型调用 request_id。 */
+/** Read the final model-call request_id from the hosted web search SSE event. */
 function extractRequestID(data: unknown): string {
   if (!data || typeof data !== 'object') return '';
   const value = (data as Record<string, unknown>).request_id;
@@ -503,10 +503,10 @@ function isModerationAnswerEvent(data: unknown): boolean {
 }
 
 /**
- * 判定输出安审撤回帧。
+ * Detect an output content-safety-review revoke frame.
  *
- * 背景：L2 对流式输出按分片审核，分片过审即下发以保证流式观感；若全文终审判违规，
- * 会补发 `event: moderation` + `action: revoke`，要求客户端撤回本轮已渲染的全部内容。
+ * Background: L2 reviews streaming output in chunks and forwards a chunk once it passes, to keep streaming responsive; if the final full-text review finds a violation,
+ * it sends `event: moderation` + `action: revoke`, telling the client to revoke everything already rendered for this turn.
  */
 function isModerationRevokeEvent(data: unknown): boolean {
   return Boolean(
@@ -514,20 +514,20 @@ function isModerationRevokeEvent(data: unknown): boolean {
   );
 }
 
-/** 撤回帧的用户可见文案，缺省回退通用提示。 */
+/** User-visible copy for a revoke frame; fall back to the generic notice when absent. */
 function moderationRevokeMessage(data: unknown): string {
   const fallback = '内容不合规，本次回答已撤回';
   if (!data || typeof data !== 'object') return fallback;
   return pickString(data as Record<string, unknown>, 'message') || fallback;
 }
 
-/** 仅接受 MAP 平台生成的 request_id 格式，避免把未知事件或客户端标识写入会话。 */
+/** Accept only the request_id format generated by the MAP platform, so an unknown event or a client id is not written into the conversation. */
 function platformRequestID(value: string | null): string {
   const requestID = value?.trim() ?? '';
   return requestID.startsWith('req_') ? requestID : '';
 }
 
-/** 从未知值安全取字符串字段 */
+/** Safely read a string field from an unknown value */
 function pickString(obj: Record<string, unknown>, key: string): string {
   const v = obj[key];
   return typeof v === 'string' ? v : '';
@@ -591,14 +591,14 @@ function normalizeToolStatus(data: unknown): ToolStatusEvent {
   };
 }
 
-/** 判断响应是否为 SSE；L3 统一信封即使 HTTP 200 也不能进入流式解析。 */
+/** Decide whether the response is SSE; an L3 envelope must not enter streaming parse even on HTTP 200. */
 function isEventStreamResponse(res: Response): boolean {
   return res.headers.get('Content-Type')?.toLowerCase().includes('text/event-stream') ?? false;
 }
 
 /**
- * 从非流式 OpenAI 兼容响应抽取正文/思考/usage。
- * 正文取 `choices[0].message.content`；思考按 reasoning_content → reasoning → thinking 兜底。
+ * Extract body, reasoning, and usage from a non-streaming OpenAI-compatible response.
+ * The body is `choices[0].message.content`; reasoning falls back through reasoning_content → reasoning → thinking.
  */
 function extractCompletion(data: unknown): ChatCompletionResult {
   const out: ChatCompletionResult = { content: '', reasoning: '' };
@@ -619,7 +619,7 @@ function extractCompletion(data: unknown): ChatCompletionResult {
         pickString(m, 'reasoning_content') ||
         pickString(m, 'reasoning') ||
         pickString(m, 'thinking');
-      // 正文可能内联 <think>…</think>（见 sse.ts）：一次性拆出，思考并入 reasoning 通道。
+      // The body may inline <think>…</think> (see sse.ts): split it once and merge reasoning into the reasoning channel.
       const think = createThinkSplitState();
       const split = splitThinkDelta(think, pickString(m, 'content'));
       const tail = flushThinkDelta(think);
@@ -646,7 +646,7 @@ function extractCompletion(data: unknown): ChatCompletionResult {
   return out;
 }
 
-/** 把上游状态码与原始文本映射为可读中文错误 */
+/** Map an upstream status code and raw text to a readable Chinese error */
 function mapErrorMessage(status: number, raw: string): string {
   const detail = extractUpstreamMessage(raw);
   if (status === 401) return detail || '密钥无效或已过期，请重新选择 API Key';
@@ -658,7 +658,7 @@ function mapErrorMessage(status: number, raw: string): string {
   return detail || `请求失败（HTTP ${status}）`;
 }
 
-/** 尝试从 OpenAI 风格错误体 `{error:{message}}` 取出可读信息 */
+/** Try to read a readable message from an OpenAI-style error body `{error:{message}}` */
 function extractUpstreamMessage(raw: string): string {
   if (!raw) return '';
   try {
@@ -670,7 +670,7 @@ function extractUpstreamMessage(raw: string): string {
   }
 }
 
-/** 提取 OpenAI 风格错误码，用于将内容安全拦截渲染为普通助手回复。 */
+/** Extract an OpenAI-style error code so a content-safety block can be rendered as a normal assistant reply. */
 function extractUpstreamCode(raw: string): string | undefined {
   if (!raw) return undefined;
   try {
@@ -681,7 +681,7 @@ function extractUpstreamCode(raw: string): string | undefined {
   }
 }
 
-/** Playground 可用工具描述。 */
+/** Description of a tool available in Playground. */
 export interface PlaygroundTool {
   name: string;
   description: string;
@@ -689,7 +689,7 @@ export interface PlaygroundTool {
   kind: 'search' | 'reader' | 'generic';
 }
 
-/** 获取 Playground 可用工具列表（含内置 + MCP generic 工具）。 */
+/** Fetch the Playground tool list (built-in tools plus MCP generic tools). */
 export async function getPlaygroundTools(): Promise<PlaygroundTool[]> {
   const token = getToken();
   const res = await fetch('/api/playground/tools', {

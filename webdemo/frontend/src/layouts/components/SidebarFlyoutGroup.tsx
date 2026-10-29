@@ -14,14 +14,14 @@ interface SidebarFlyoutGroupProps {
 }
 
 /**
- * 收起态侧栏的悬浮飞出菜单（hover 触发，子菜单浮层显示）。
+ * Hover flyout for the collapsed sidebar (the submenu floats open).
  *
- * 内部维护 open 态与浮层定位：根据触发器位置与视口高度，
- * 避免子菜单超出视口底部；离开时延迟 120ms 关闭以容许鼠标移动。
- * @param route 父路由
- * @param isActive 父级是否激活
- * @param pathname 当前路径，用于子项高亮
- * @param onNavigate 点击子项后的回调
+ * Tracks open state and flyout position from the trigger and the viewport height,
+ * so the submenu does not run past the bottom of the viewport; closing is delayed 120ms on leave so the pointer can move.
+ * @param route Parent route.
+ * @param isActive Whether the parent is active.
+ * @param pathname Current path, used to highlight children.
+ * @param onNavigate Callback after a child is clicked.
  */
 export function SidebarFlyoutGroup({
   route,

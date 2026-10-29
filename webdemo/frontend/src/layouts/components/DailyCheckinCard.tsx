@@ -11,10 +11,10 @@ interface DailyCheckinCardProps {
 }
 
 /**
- * 用户门户侧边栏的每日签到入口：展示今日奖励，并以现有幂等接口领取积分。
+ * Daily check-in entry in the user portal sidebar: shows today's reward and claims points through the existing idempotent API.
  *
- * @param props 签到状态、侧边栏状态与领取回调
- * @returns 可领取、领取中、已领取或隐藏状态对应的权益卡
+ * @param props Check-in status, sidebar state, and the claim callback.
+ * @returns The benefit card for claimable, claiming, claimed, or hidden.
  */
 export function DailyCheckinCard({
   collapsed,
@@ -102,7 +102,7 @@ export function DailyCheckinCard({
   );
 }
 
-/** 将签到积分展示为紧凑整数；若活动配置了小数奖励则保留最多两位有效小数。 */
+/** Show check-in points as a compact integer; if the campaign configured a fractional reward, keep at most two significant decimal places. */
 function formatDailyPoints(value: string, locale: string): string {
   const amount = Number(value);
   if (!Number.isFinite(amount)) return value;

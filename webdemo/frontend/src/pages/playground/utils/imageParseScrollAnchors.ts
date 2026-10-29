@@ -13,7 +13,7 @@ function internal(anchor: Anchor): boolean {
   return anchor.origin > 0 && anchor.origin < 1 && anchor.result > 0 && anchor.result < 1;
 }
 
-/** 使用可见原文和预览的同一块构建滚动锚点；无真实映射时不推断定位。 */
+/** Build scroll anchors from the same block in the visible original and the preview; do not infer a position when there is no real mapping. */
 export function imageParseScrollAnchors(
   origin: HTMLElement | null,
   result: HTMLElement,
@@ -29,7 +29,7 @@ export function imageParseScrollAnchors(
     return imageParsePdfScrollAnchors(origin, result, blocks);
   const currentPage = Number(origin.dataset.pdfCurrentPage);
   const activeCanvas = isPdf ? origin.querySelector<HTMLElement>('canvas[role="img"]') : null;
-  // 页面骨架始终存在；离屏画布卸载时也不能退回整份 PDF 的滚动范围。
+  // The page skeleton is always present; when an offscreen canvas unmounts, do not fall back to the scroll range of the whole PDF.
   const raster = isPdf
     ? (origin.querySelector<HTMLElement>(`[data-pdf-page="${currentPage}"]`) ??
       activeCanvas?.closest<HTMLElement>('[data-pdf-page]') ??
@@ -99,8 +99,8 @@ export function imageParseScrollAnchors(
           ];
     })
     .sort((a, b) => a.origin - b.origin);
-  // 图片端点对应整张图片；PDF 结果只对应当前页，首尾不能跨到其他页面。
-  // 旋转、合并段落可能产生重复或逆序锚点；只插值严格单调的真实对应关系。
+  // Image endpoints correspond to the whole image; a PDF result corresponds only to the current page, and the ends must not cross onto other pages.
+  // Rotation and merged paragraphs can produce duplicate or out-of-order anchors; interpolate only strictly monotonic real correspondences.
   const ordered: Anchor[] = [];
   for (const anchor of anchors) {
     if (
@@ -116,7 +116,7 @@ export function imageParseScrollAnchors(
   return anchors.length || isPdf ? [endpoints[0], ...ordered, endpoints[1]] : [];
 }
 
-/** 在相邻块锚点间插值并限制在当前结果范围；反向映射复用同一组锚点。 */
+/** Interpolate between anchors of adjacent blocks and clamp to the current result range; the reverse mapping reuses the same anchors. */
 export function imageParseMappedProgress(
   anchors: readonly Anchor[],
   progress: number,

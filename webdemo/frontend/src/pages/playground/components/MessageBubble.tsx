@@ -1,8 +1,7 @@
 /**
- * 单条对话消息气泡。
+ * A single conversation message bubble.
  *
- * 用途：用户消息右对齐实心气泡；助手消息左对齐，自上而下为过程时间线（思考与工具交错的
- * 单一折叠区）+ markdown 正文 + 来源胶囊 + 流式光标 + usage/错误标注 + 操作栏。
+ * Purpose: user messages are a right-aligned solid bubble; assistant messages are left-aligned, top to bottom: process timeline (one disclosure where reasoning and tools interleave) + markdown body + source chip + streaming cursor + usage/error marks + action bar.
  */
 
 import { useCallback, useMemo, useState } from 'react';
@@ -19,36 +18,36 @@ import { normalizeAssistantReply } from '../utils/thinkSplit';
 
 interface MessageBubbleProps {
   message: ChatMessage;
-  /** 重新生成该条 assistant 消息（截断重发） */
+  /** Regenerate this assistant message (truncate and resend) */
   onRegenerate?: (assistantId: string) => void;
-  /** 切换该条 assistant 消息的反馈态（赞/踩） */
+  /** Toggle this assistant message's feedback state (up/down) */
   onFeedback?: (assistantId: string, kind: MessageFeedback) => void;
-  /** 切换该条 assistant 消息显示的回答版本（‹n/N› 翻页） */
+  /** Switch the answer version shown for this assistant message (‹n/N› paging) */
   onSwitchVersion?: (assistantId: string, index: number) => void;
-  /** 是否正在生成（生成中禁用重新生成按钮） */
+  /** Whether generation is in progress (the regenerate button is disabled while generating) */
   loading?: boolean;
-  /** 是否为最后一条 assistant 消息：仅此条展示「重新生成」，避免对中间轮次重发误删其后对话 */
+  /** Whether this is the last assistant message: only this one shows "regenerate," so resending a middle turn does not delete the conversation after it */
   isLastAssistant?: boolean;
-  /** 当前模型是否允许展示思考（false 时不渲染思考折叠区，含历史会话已存的 reasoning） */
+  /** Whether the current model may show reasoning (when false, do not render the reasoning disclosure, including reasoning already stored on historical sessions) */
   showReasoning?: boolean;
   /**
-   * 打开布局级引用侧栏。
-   * 第三参 activeUrl 由正文角标点击带上，让面板滚到该条并高亮；「查看全部」不带，表示只开面板。
+   * Open the layout-level citation sidebar.
+   * The third argument, activeUrl, is carried by a body-badge click so the panel scrolls to that item and highlights it; "view all" omits it, meaning only open the panel.
    */
   onOpenCitations?: (messageId: string, citations: Citation[], activeUrl?: string) => void;
-  /** 当前消息是否正在展示引用侧栏。 */
+  /** Whether this message is currently showing the citation sidebar. */
   citationsOpen?: boolean;
 }
 
 /**
- * 渲染一条消息。
- * @param message 消息数据
- * @param onRegenerate 重新生成回调
- * @param onFeedback 反馈回调
- * @param onSwitchVersion 版本切换回调
- * @param loading 是否生成中
- * @param isLastAssistant 是否为最后一条 assistant
- * @param showReasoning 是否允许展示思考
+ * Renders one message.
+ * @param message Message data
+ * @param onRegenerate Regenerate callback
+ * @param onFeedback Feedback callback
+ * @param onSwitchVersion Version-switch callback
+ * @param loading Whether generation is in progress
+ * @param isLastAssistant Whether this is the last assistant message
+ * @param showReasoning Whether reasoning may be shown
  */
 export function MessageBubble({
   message,
@@ -62,19 +61,19 @@ export function MessageBubble({
   citationsOpen = false,
 }: MessageBubbleProps) {
   const { t } = useTranslation('playground');
-  // 点击放大预览的图片（用户消息内）
+  // Image opened in the enlarge preview (inside a user message)
   const [preview, setPreview] = useState<string | null>(null);
 
-  // 展示层兜底：剥离正文中残留的内联 think 标签，合并进 reasoning 折叠区
+  // Display-layer fallback: strip leftover inline think tags from the body and merge them into the reasoning disclosure
   const display = useMemo(
     () => normalizeAssistantReply(message.content, message.reasoning),
     [message.content, message.reasoning],
   );
-  // 改写过的思考与工具事件里记的字符偏移对不上，时间线要据此退化为「思考整块置顶」
+  // Rewritten reasoning does not match the character offsets recorded on tool events, so the timeline falls back to "reasoning as one block on top"
   const reasoningRewritten = display.reasoning !== (message.reasoning ?? '');
 
-  // 必须 useCallback：这个回调会进 MarkdownRenderer 的 memo 比较与 components 的 useMemo 依赖，
-  // 每渲染新建会让流式期间每一帧都重解析整篇 Markdown。
+  // Must be useCallback: this callback enters MarkdownRenderer's memo comparison and the components useMemo dependencies,
+  // and a new one on every render re-parses the whole Markdown on every streaming frame.
   const activateCitation = useCallback(
     (citation: Citation) => {
       onOpenCitations?.(message.id, message.citations ?? [], citation.url);
@@ -104,9 +103,9 @@ export function MessageBubble({
     );
   }
 
-  // 等待首增量：已有过程区（联网块或思考块）时由它承担状态反馈，避免其下方重复出现悬空等待点。
+  // Waiting for the first increment: when a process area already exists (a web-search block or a reasoning block), it carries the status feedback, so a floating waiting dot is not repeated under it.
   const showCursor = message.streaming && !display.content && !display.reasoning;
-  // 与 AnswerProcessTimeline 的渲染条件保持一致：过程区在场就由它承担等待反馈
+  // Stay consistent with AnswerProcessTimeline's render condition: when the process area is present, it carries the waiting feedback
   const hasAnswerProcess = Boolean(
     (showReasoning && display.reasoning.trim()) ||
     message.toolEvents?.length ||
@@ -129,7 +128,7 @@ export function MessageBubble({
           searchStep={message.searchStep}
           searchActiveTool={message.searchActiveTool}
           searchStatus={message.searchStatus}
-          /* 过程里的搜索行与回答末尾的胶囊通往同一个抽屉，不带 activeUrl 表示只开面板 */
+          /* The search row in the process and the chip at the end of the answer lead to the same drawer; omitting activeUrl means only open the panel */
           onOpenSources={onOpenCitations ? () => onOpenCitations(message.id, citations) : undefined}
           hasAnswer={Boolean(display.content)}
         />
@@ -144,7 +143,7 @@ export function MessageBubble({
         )}
         {!display.content && !hasAnswerProcess && showCursor && <ThinkingDots />}
 
-        {/* 来源胶囊：正文落地后再出现，避免流式期间反复重排 */}
+        {/* Source chip: appear only after the body has landed, so streaming does not reflow repeatedly */}
         {!message.streaming && (
           <SourcesChip
             citations={citations}
@@ -171,8 +170,8 @@ export function MessageBubble({
           <MessageMetrics metrics={message.metrics} usage={message.usage} />
         )}
 
-        {/* 操作栏：已完成的 assistant 消息展示。失败(仅 error 无正文)时只保留「重新生成」，
-            由 MessageActions 内部按 content 是否为空决定是否渲染复制/点赞/点踩；多版本消息显示 ‹n/N›。 */}
+        {/* Action bar: shown for a completed assistant message. On failure (error only, no body) keep only "regenerate."
+            MessageActions decides from whether content is empty whether to render copy / thumbs-up / thumbs-down; multi-version messages show ‹n/N›. */}
         {!message.streaming &&
           !message.contextExcluded &&
           (display.content || message.error || message.interrupted) &&
@@ -195,7 +194,7 @@ export function MessageBubble({
   );
 }
 
-/** 等待首个增量时的「正在生成」动画 */
+/** "Generating" animation while waiting for the first increment */
 function ThinkingDots() {
   const { t } = useTranslation('playground');
   return (

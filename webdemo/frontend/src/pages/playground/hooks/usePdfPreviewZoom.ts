@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { WHEEL_STEP } from '../utils/imageZoom';
 
-/** 在缩放提交后修正滚动位置，让指针指向的内容保持在原视口位置。 */
+/** After a zoom commit, correct the scroll position so the content under the pointer stays at its original viewport position. */
 function applyZoomScrollAnchor(
   viewport: HTMLElement,
   ratio: number,
@@ -12,10 +12,10 @@ function applyZoomScrollAnchor(
 }
 
 /**
- * PDF 缩放控制：普通滚轮保留原生阅读，Ctrl/Meta 滚轮按帧合并缩放。
- * @param viewport PDF 阅读视口。
- * @param enabled 文档加载成功后才接管缩放手势。
- * @returns 当前倍数、按钮缩放与还原操作。
+ * PDF zoom control: an ordinary wheel keeps native reading, and a Ctrl/Meta wheel merges zoom by frame.
+ * @param viewport PDF reading viewport.
+ * @param enabled take over the zoom gesture only after the document has loaded successfully.
+ * @returns the current scale, button zoom, and the reset action.
  */
 export function usePdfPreviewZoom(viewport: HTMLElement | null, enabled: boolean) {
   const [scale, setScale] = useState(1);
@@ -66,7 +66,7 @@ export function usePdfPreviewZoom(viewport: HTMLElement | null, enabled: boolean
       if (event.deltaMode === 1) unit = 16;
       else if (event.deltaMode === 2) unit = Math.max(1, viewport.clientHeight);
       delta += event.deltaY * unit;
-      // PDF 重绘开销较大，连续滚轮每帧只提交一次倍率更新。
+      // PDF redraw is expensive, so a continuous wheel submits only one scale update per frame.
       if (frame === undefined) frame = window.requestAnimationFrame(flush);
     };
     viewport.addEventListener('wheel', onWheel, { passive: false });

@@ -42,11 +42,11 @@ function hasSeenTour(values: string[], tourId: string, userId?: string): boolean
 }
 
 /**
- * 读取并写入当前用户绑定的引导已读记录。
- * 历史记录可能带版本号；同一用户看过同族引导的任一版本即视为已读，避免发布后重复弹出。
- * @param tourId 引导标识
- * @param userId 当前用户 ID
- * @returns 是否已读与写入已读的方法
+ * Read and write the tour-seen record bound to the current user.
+ * A history record may carry a version number; if the same user has seen any version of the same family of tour, it counts as seen, so it does not pop again after a release.
+ * @param tourId tour id
+ * @param userId current user ID
+ * @returns whether it has been seen, and the method that writes seen
  */
 export function useImageParseTourSeen(tourId: string, userId?: string) {
   const seenId = JSON.stringify([tourId, userId]);
@@ -59,7 +59,7 @@ export function useImageParseTourSeen(tourId: string, userId?: string) {
     try {
       setPlaygroundPrefs({ seenTours: Array.from(new Set([...current, seenId])) });
     } catch {
-      // Zustand 先更新内存再持久化；浏览器拒绝写入时不妨碍关闭及本次会话的已读判断。
+      // Zustand updates memory first and then persists; when the browser refuses the write, that does not block closing or this session's seen judgment.
     }
   }, [seenId, setPlaygroundPrefs]);
   return { seen, markSeen };

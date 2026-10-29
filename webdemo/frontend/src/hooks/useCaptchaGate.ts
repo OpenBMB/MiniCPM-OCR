@@ -4,17 +4,17 @@ import type { SlideCaptchaChallenge } from '@map/ui';
 import { useTranslation } from 'react-i18next';
 import { mapAuthApi } from '@/api/map';
 
-/** 等待人机验证结果的 resolver */
+/** Resolver waiting for the captcha result. */
 interface Resolver {
   resolve: (captchaId: string) => void;
   reject: (err: unknown) => void;
 }
 
-/** useCaptchaGate 返回值 */
+/** Return value of useCaptchaGate. */
 export interface CaptchaGate {
-  /** 是否启用人机验证（后端配置探测） */
+  /** Whether captcha is enabled (probed from backend config). */
   enabled: boolean;
-  /** 传给 CaptchaDialog 的受控属性 */
+  /** Controlled props passed to CaptchaDialog. */
   dialogProps: {
     open: boolean;
     challenge: SlideCaptchaChallenge | null;
@@ -26,17 +26,17 @@ export interface CaptchaGate {
     onOpenChange: (open: boolean) => void;
   };
   /**
-   * 用人机验证「门」包裹一个动作：未启用时直接执行（captchaId=''）；
-   * 启用时弹出滑块，验证通过后用拿到的一次性凭证执行 action；用户取消则 reject。
+   * Wrap an action in a captcha gate: when captcha is off, run it directly (captchaId='');
+   * when it is on, open the slider, and after verification run the action with the one-time token; if the user cancels, reject.
    */
   runWithCaptcha: <T>(action: (captchaId: string) => Promise<T>) => Promise<T>;
 }
 
 /**
- * 人机验证编排 hook（发码/登录前置）。
+ * Captcha orchestration hook (before sending a code or logging in).
  *
- * 用途：把「取题 → 弹窗滑块 → 校验落点 → 拿一次性凭证 → 执行受保护动作」的流程收敛到一处，
- * 供登录、找回密码、绑定邮箱等发码/登录调用点复用。仅编排逻辑，不渲染 UI（视图见 CaptchaDialog）。
+ * Purpose: gather "fetch a challenge → show the slider → check the drop point → take a one-time token → run the protected action" in one place,
+ * for login, password recovery, email binding, and other code or login call sites. Logic only; it does not render UI (see CaptchaDialog).
  */
 export function useCaptchaGate(): CaptchaGate {
   const { t } = useTranslation('status');
@@ -60,7 +60,7 @@ export function useCaptchaGate(): CaptchaGate {
   const challengeRequestRef = useRef(0);
   const completionTimerRef = useRef<number | null>(null);
 
-  /** 取一道新题并填充到弹窗 */
+  /** Fetch a new challenge and fill it into the dialog. */
   const loadChallenge = useCallback(async (session: number) => {
     const request = ++challengeRequestRef.current;
     setStatus('default');
@@ -110,7 +110,7 @@ export function useCaptchaGate(): CaptchaGate {
     async <T,>(action: (captchaId: string) => Promise<T>): Promise<T> => {
       if (!enabled) return action('');
       if (resolverRef.current) {
-        // 已有验证流程进行中，避免重复弹窗
+        // A verification flow is already in progress; do not open another dialog.
         return Promise.reject(new Error('captcha in progress'));
       }
       const captchaId = await new Promise<string>((resolve, reject) => {
@@ -124,7 +124,7 @@ export function useCaptchaGate(): CaptchaGate {
     [enabled, loadChallenge],
   );
 
-  /** 用户拖动释放：校验落点。通过则保持滑块停留并短暂展示成功态后再关闭放行；失败则换一题重试。 */
+  /** User releases the drag: check the drop point. On success, leave the slider in place, show the success state briefly, then close and continue; on failure, load a new challenge and retry. */
   const onConfirm = useCallback(
     async (point: { x: number; y: number }, reset: () => void) => {
       if (verifyingRef.current || completingRef.current) return;
@@ -133,7 +133,7 @@ export function useCaptchaGate(): CaptchaGate {
       try {
         const res = await mapAuthApi.verifyCaptcha({ id: idRef.current, x: point.x, y: point.y });
         if (session !== sessionRef.current || !resolverRef.current) return;
-        // 成功：标记成功态，滑块停在缺口处不复位，停留约 0.6s 让用户看到反馈后再关闭放行。
+        // Success: mark the success state, leave the slider in the gap without resetting, wait about 0.6s so the user sees the feedback, then close and continue.
         completingRef.current = true;
         setStatus('success');
         completionTimerRef.current = window.setTimeout(() => {
@@ -147,7 +147,7 @@ export function useCaptchaGate(): CaptchaGate {
         }, 600);
       } catch {
         if (session !== sessionRef.current || !resolverRef.current) return;
-        // 校验失败（落点不对/题目过期）：先闪红，短暂停留后复位并换一道新题。
+        // Check failed (wrong drop point or expired challenge): flash red, pause briefly, then reset and load a new challenge.
         setStatus('error');
         window.setTimeout(() => {
           if (session !== sessionRef.current || !resolverRef.current) return;
@@ -166,7 +166,7 @@ export function useCaptchaGate(): CaptchaGate {
     void loadChallenge(sessionRef.current);
   }, [loadChallenge]);
 
-  /** 关闭弹窗视为取消，reject 等待中的动作 */
+  /** Closing the dialog counts as cancel and rejects the waiting action. */
   const onOpenChange = useCallback((next: boolean) => {
     if (next) return;
     sessionRef.current += 1;

@@ -3,15 +3,15 @@ import { experiencePath } from '../utils/experienceRoute';
 import { writeCurrentImageParseId } from '../utils/imageParseCurrent';
 import type { ImageParseHistoryEntry } from '../utils/imageParseHistoryTypes';
 
-/** 两个文档入口分别保存当前指针；全文入口沿用原有存储范围。 */
+/** The two document entries each save the current pointer; the full-text entry keeps the original storage scope. */
 function taskScope(userId: unknown, projectId: unknown, task: 'standard' | 'kie') {
   return JSON.stringify(task === 'kie' ? [userId, projectId, task] : [userId, projectId]);
 }
 
 /**
- * 将历史跳转到对应任务入口，只传隔离范围，不把文件或正文写入路由状态。
- * @param options 当前身份、固定任务及侧栏新建意图
- * @returns 当前存储范围、恢复意图与入口跳转命令
+ * Jump history to the matching task entry, passing only the isolation scope, and do not write the file or the body into route state.
+ * @param options current identity, the fixed task, and the sidebar's new-item intent
+ * @returns the current storage scope, restore intent, and the entry-jump command
  */
 export function useImageParseEntryNavigation({
   userId,

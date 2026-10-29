@@ -37,12 +37,12 @@ function blockRange(
 }
 
 /**
- * 将原始 OCR 结果转换为图片/文字展示结果；关闭印章或图表文字时只替换对应正文。
- * @param result 原始识别结果或用户编辑后的结果
- * @param showSealText 是否展示印章识别文字
- * @param showChartText 是否展示图表识别文字
- * @param ranges 用户编辑后仍有效的块范围
- * @returns 仅用于预览的派生结果，不修改原始识别结果
+ * Turn a raw OCR result into an image/text display result; when seal or chart text is off, replace only the matching body text.
+ * @param result raw recognition result, or the result after the user edited it
+ * @param showSealText whether to show seal recognition text
+ * @param showChartText whether to show chart recognition text
+ * @param ranges block ranges that are still valid after the user edited
+ * @returns a derived result for preview only; the raw recognition result is not modified
  */
 export function imageParseSealDisplayResult(
   result: Pick<ImageParseSdkResult, 'markdown' | 'blocks'> &
@@ -107,12 +107,12 @@ export function imageParseSealDisplayResult(
 }
 
 /**
- * 按当前印章/图表展示模式筛选已生成的裁图；裁图数组按全部图片块顺序缓存。
- * @param blocks 当前预览使用的版面块
- * @param crops 按全部图片块生成的裁图
- * @param showSealText 是否展示印章识别文字
- * @param showChartText 是否展示图表识别文字
- * @returns 与当前 Markdown 占位符一一对应的裁图
+ * Filter already generated crops by the current seal/chart display mode; the crop array is cached in the order of every image block.
+ * @param blocks layout blocks used by the current preview
+ * @param crops crops generated for every image block
+ * @param showSealText whether to show seal recognition text
+ * @param showChartText whether to show chart recognition text
+ * @returns crops in one-to-one correspondence with the current Markdown placeholders
  */
 export function imageParseSealDisplayCrops(
   blocks: readonly ImageParseLayoutBlock[],

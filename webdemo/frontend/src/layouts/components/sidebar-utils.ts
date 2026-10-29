@@ -1,13 +1,13 @@
 import type { AppRoute } from '@map/types';
 
 /**
- * 判断路由是否处于激活态。
+ * Decide whether a route is active.
  *
- * 通配父路由（`/*`）用前缀匹配；叶子路由仅精确匹配，
- * 避免 `/eval` 在 `/eval/create` 下被误高亮。
- * @param route 待判断的路由
- * @param pathname 当前 location.pathname
- * @returns 是否激活
+ * Wildcard parents (`/*`) match by prefix; leaf routes match exactly,
+ * so `/eval` is not highlighted under `/eval/create`.
+ * @param route Route to test.
+ * @param pathname Current location.pathname.
+ * @returns Whether it is active.
  */
 export function isRouteActive(route: AppRoute, pathname: string): boolean {
   const basePath = route.path.replace('/*', '');

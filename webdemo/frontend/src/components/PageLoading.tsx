@@ -1,13 +1,13 @@
 import { useTranslation } from 'react-i18next';
 
 /**
- * 页面级加载占位。
+ * Page-level loading placeholder.
  *
- * 用途：作为受保护路由（AdminLayout 内）懒加载页面的 Suspense fallback，
- * 在 chunk 拉取期间填充内容区，避免布局塌陷与白屏闪烁。
+ * Purpose: Suspense fallback for lazy pages inside protected routes (AdminLayout),
+ * filling the content area while the chunk loads so the layout does not collapse or flash white.
  *
- * 设计：纯语义 token（不写裸色值），仅三个呼吸点，与登录页 LoginFallback 风格统一；
- * 尊重 prefers-reduced-motion 由全局动画策略兜底。
+ * Design: semantic tokens only (no raw color values), just three breathing dots, matching the login page LoginFallback;
+ * prefers-reduced-motion is handled by the global motion policy.
  */
 export function PageLoading() {
   const { t } = useTranslation('status');

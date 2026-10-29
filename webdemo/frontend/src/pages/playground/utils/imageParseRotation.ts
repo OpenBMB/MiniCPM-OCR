@@ -6,10 +6,10 @@ import type {
 } from './imageParseSample';
 
 /**
- * 按顺时针 90 度步长旋转一个归一化矩形。
- * @param region 原坐标系中的矩形
- * @param angle 已归一化的顺时针角度
- * @returns 旋转后坐标系中的矩形
+ * Rotate a normalized rectangle in clockwise 90-degree steps.
+ * @param region rectangle in the original coordinate system
+ * @param angle normalized clockwise angle
+ * @returns rectangle in the rotated coordinate system
  */
 function rotateRegion(
   region: ImageParseLayoutRegion,
@@ -28,10 +28,10 @@ function rotateRegion(
 }
 
 /**
- * 将原图归一化坐标投影到顺时针旋转后的页面，不修改识别数据。
- * @param blocks 原图方向的识别块，已包含 PDF 自带旋转的影响
- * @param rotation 工具栏额外旋转角度，以 90 度为步长
- * @returns 预览坐标和稳定标识，分数及内容保持不变
+ * Project normalized coordinates of the original image onto the page after a clockwise rotation, without modifying recognition data.
+ * @param blocks recognition blocks in the original-image orientation, already including the PDF's own rotation
+ * @param rotation extra toolbar rotation angle, in 90-degree steps
+ * @returns preview coordinates and a stable id; score and content stay unchanged
  */
 export function rotateImageParseBlocks(
   blocks: readonly ImageParseLayoutBlock[],
@@ -41,12 +41,12 @@ export function rotateImageParseBlocks(
   if (angle === 0) return blocks;
   const direction = angle as 90 | 180 | 270;
   return blocks.map((block, order) => {
-    // 无服务标识的块必须沿用原始坐标生成的 ID，否则旋转会断开结果定位。
+    // A block with no service id must keep the id generated from the original coordinates, or rotation would disconnect result positioning.
     const original = { ...block, id: imageParseBlockId(block, order) };
     return {
       ...original,
       ...rotateRegion(block, direction),
-      // PDF 原方向恢复必须连同 regions 投影，否则合并块仍会画在服务端摆正坐标。
+      // Restoring the PDF's original orientation must project regions as well, or a merged block would still be drawn in server rotation-adaptation coordinates.
       ...(block.regions?.length
         ? { regions: block.regions.map((region) => rotateRegion(region, direction)) }
         : {}),
@@ -55,10 +55,10 @@ export function rotateImageParseBlocks(
 }
 
 /**
- * 将服务端摆正后的 PDF 坐标投回原始页面方向。
- * @param blocks 服务端摆正坐标系中的识别块
- * @param rotation 服务端旋转元数据
- * @returns 原始 PDF 预览方向中的识别块；未摆正时复用原数组
+ * Project PDF coordinates after server rotation adaptation back to the original page orientation.
+ * @param blocks recognition blocks in the server rotation-adaptation coordinate system
+ * @param rotation server rotation metadata
+ * @returns recognition blocks in the original PDF preview orientation; reuse the original array when rotation adaptation was not applied
  */
 export function restoreImageParseBlocksToOriginal(
   blocks: readonly ImageParseLayoutBlock[],
@@ -69,8 +69,8 @@ export function restoreImageParseBlocksToOriginal(
 }
 
 /**
- * 这一页预览要转回摆正方向的角度。
- * 单图用 totalAngle 直接转原图；PDF 的框已经按 orientationAngle 投回原页，页面必须转同一个角度，框才会跟着落在文字上。
+ * Angle this page's preview must rotate back toward the rotation-adaptation orientation.
+ * A single image uses totalAngle to rotate the original directly; PDF boxes have already been projected back to the original page by orientationAngle, so the page must rotate by the same angle for the boxes to land on the text.
  */
 export function imageParseServerDisplayAngle(rotation: ImageParseRotationInfo | undefined): number {
   if (!rotation?.enabled || !rotation.applied || !Number.isFinite(rotation.orientationAngle))
@@ -79,7 +79,7 @@ export function imageParseServerDisplayAngle(rotation: ImageParseRotationInfo | 
   return turns === 0 ? 0 : rotation.orientationAngle;
 }
 
-/** 原页面绕中心旋转后的外接矩形。0° 和 180° 的占位尺寸不变。 */
+/** Bounding box of the original page after rotation about its center. The placeholder size is unchanged at 0° and 180°. */
 export function rotatedPageBounds(
   width: number,
   height: number,

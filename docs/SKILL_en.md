@@ -1,6 +1,6 @@
 ---
 name: minicpmvocr-sdk
-description: Install, deploy and verify the MiniCPM-OCR 1.0 document parsing SDK with vLLM, SGLang or llama.cpp, including DSpark, PDF/image to Markdown and installation troubleshooting. Use SKILL_jev_en.md for Jev scoring services.
+description: Install, deploy and verify the MiniCPM-OCR 1.0 document parsing SDK with vLLM, SGLang or llama.cpp, including DSpark, PDF/image to Markdown, the local Web Demo and installation troubleshooting. Use SKILL_jev_en.md for Jev scoring services.
 ---
 
 # MiniCPM-OCR 1.0 installation, deployment and verification
@@ -17,6 +17,7 @@ The SDK (command `minicpmvocr`, distribution `minicpm-ocr`) detects layout, crop
 | Linux x86_64 + NVIDIA, SGLang selected | `.venv-sglang`, DSpark available | `sglang` | [SGLang guide](./sglang_deploy.md) |
 | CPU, local GPU or Apple Silicon, llama.cpp selected | `sources/llama.cpp/build`, GGUF weights, DSpark available | `llamacpp` | [llama.cpp guide](./llamacpp_deploy.md) |
 | Existing compatible inference service | Reuse it; install only the SDK | Select by protocol | Section 7 below |
+| Section 7 full-page parse already works, and a local page is needed | Reuse `.minicpm-ocr` and the running recognition service | Match the recognition service | [Web Demo deployment tutorial](./webdemo_deploy.md) and section 9 below |
 
 - Use `--backend sglang` for SGLang. The SDK internally maps `sglang` to the `openai`-compatible client; `list-backends` does not list SGLang separately. Select `llamacpp` for llama.cpp and avoid vLLM-specific request fields.
 - A llama.cpp Metal server does not require CUDA. Full parsing also needs an SDK environment that can run PP-DocLayoutV3. If PaddlePaddle has no matching local wheel, use a compatible SDK host; a working Metal server alone does not validate the entire SDK.
@@ -415,3 +416,30 @@ Report vLLM DSpark as active only when draft / accepted-token metrics increase w
 Report the actual backend, source SHAs/package versions, model files, device, endpoint and the separate outcomes of installation checks, health checks, image requests and one-page parsing. Installation success, service readiness, correct recognition and active DSpark are distinct conclusions. Do not delete user environments, reset source or conceal version mismatches with unverified temporary patches.
 
 See [SDK configuration](./minicpm_ocr_sdk_api_en.md) for parameter and API details. For Jev scoring, use the [Jev Skill](./SKILL_jev_en.md); its weights, classification architecture and validation criteria are separate.
+
+## 9. Optional: local Web Demo
+
+Start the local page only after the full-page parse in section 7 has passed. Follow the commands and comments in the [Web Demo deployment tutorial](./webdemo_deploy.md). Do not invent a second startup procedure.
+
+On the `.minicpm-ocr` environment that already parses pages, add the page server packages and prepare the rotation-adaptation models:
+
+```bash
+source .minicpm-ocr/bin/activate
+python -m pip install fastapi uvicorn python-multipart
+bash webdemo/backend/prepare_upright_models.sh
+```
+
+Keep the `minicpm-ocr` recognition service from sections 4–6 running at `http://127.0.0.1:18499`. Set the backend `OCR_ENGINE_TYPE` from that service: `vllm` for vLLM, `openai` for SGLang, and `llamacpp` for llama.cpp. Ollama is covered in the deployment tutorial. The backend listens on `8966` by default. Rotation adaptation is on by default and uses `models/paddle_upright`. `curl -f http://127.0.0.1:8966/health` returning `{"status":"ok"}` means the process is up.
+
+The frontend needs Node.js 22 or later. After installing dependencies with Corepack and starting the dev server in `webdemo/frontend`, open `http://localhost:5173/playground/document-parse`. Key information extraction is at `http://localhost:5173/playground/field-extract`.
+
+The backend also provides an API. The endpoints are listed below.
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/document-parse/jobs` | Async image or PDF. HTTP 200 returns a job |
+| `GET /api/document-parse/jobs/{id}` | HTTP 200 returns progress and results |
+| `DELETE /api/document-parse/jobs/{id}` | Cancel the job. HTTP 200 returns the job status |
+| `POST /api/kie` | Sync single image. HTTP 200 returns one page |
+
+Document parsing creates a job for both images and PDFs. The response `status` is `Running`. Key information extraction uses `POST /api/kie` and accepts one image: a JSON body with `image` and `fields`. That call does not create a job and does not accept a PDF. The async form of key information extraction can be adapted by following document parsing.

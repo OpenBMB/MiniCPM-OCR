@@ -1,9 +1,9 @@
 /**
- * 体验中心对话反馈编排 hook。
+ * Hook that orchestrates conversation feedback in the experience center.
  *
- * 用途：把「点赞直接静默上报 / 点踩弹框选原因后上报 / 本地高亮态切换」收敛为一处，喂给页面。
- * 本地高亮态仍由 useChat.setFeedback 持有（即时反馈）；本 hook 负责上报后端与点踩弹框状态。
- * 不含 JSX。上报为 fire-and-forget：失败仅 toast，不回退本地高亮（简单账本式处理）。
+ * Purpose: collapse "a like reports silently / a dislike opens a dialog to pick a reason and then reports / local highlight-state toggle" into one place, and feed the page.
+ * Local highlight state is still held by useChat.setFeedback (immediate feedback); this hook is responsible for reporting to the backend and for dislike-dialog state.
+ * No JSX. Reporting is fire-and-forget: failure only toasts, and does not roll back the local highlight (a simple ledger-style handling).
  */
 
 import { useCallback, useState } from 'react';
@@ -25,25 +25,25 @@ interface FeedbackSnapshot {
 }
 
 interface Args {
-  /** 当前消息列表（取问答快照） */
+  /** Current message list (used to take the question-answer snapshot) */
   messages: ChatMessage[];
-  /** 当前模型 id（= public_model） */
+  /** Current model id (= public_model) */
   model: string;
-  /** 当前会话 id（新对话未保存时为 undefined） */
+  /** Current conversation id (undefined when a new conversation has not been saved) */
   conversationId?: string;
-  /** 切换本地高亮态（赞/踩互斥、再点取消） */
+  /** Toggle the local highlight state (like/dislike are exclusive; clicking again clears it) */
   setLocalFeedback: (assistantId: string, kind: MessageFeedback) => void;
 }
 
 interface Return {
-  /** 点击赞/踩：赞直接上报，踩打开弹框 */
+  /** Click like or dislike: a like reports directly, and a dislike opens the dialog */
   onFeedback: (assistantId: string, kind: MessageFeedback) => void;
-  /** 点踩弹框是否打开 */
+  /** Whether the dislike dialog is open */
   dialogOpen: boolean;
   setDialogOpen: (open: boolean) => void;
-  /** 上报中 */
+  /** Reporting in progress */
   submitting: boolean;
-  /** 提交点踩弹框（带原因/正文） */
+  /** Submit the dislike dialog (with a reason and body) */
   submitDown: (payload: { reasons: string[]; comment: string }) => void;
 }
 
@@ -53,7 +53,7 @@ export function useMessageFeedback(args: Args): Return {
   const { t } = useTranslation('playground');
   const submitMut = useSubmitFeedbackMutation();
   const [dialogOpen, setDialogOpen] = useState(false);
-  // 待提交点踩的反馈快照：弹框期间会话/版本可能切换，提交必须使用点击当刻的问答与归属。
+  // Feedback snapshot of a dislike waiting to be submitted: the conversation or version may switch while the dialog is open, so submit must use the question, answer, and ownership from the moment of the click.
   const [pending, setPending] = useState<FeedbackSnapshot | null>(null);
 
   const makeSnapshot = useCallback(
@@ -115,17 +115,17 @@ export function useMessageFeedback(args: Args): Return {
   const onFeedback = useCallback(
     (assistantId: string, kind: MessageFeedback) => {
       const wasActive = messages.find((m) => m.id === assistantId)?.feedback === kind;
-      // 取消高亮（再次点击同项）：直接切掉本地态，不上报、不弹框
+      // Clearing the highlight (clicking the same item again): switch the local state off directly, with no report and no dialog
       if (wasActive) {
         setLocalFeedback(assistantId, kind);
         return;
       }
       if (kind === 'up') {
-        // 点赞即时反馈：切高亮 + 静默上报
+        // Immediate feedback for a like: switch the highlight and report silently
         setLocalFeedback(assistantId, 'up');
         report(makeSnapshot(assistantId), 'up', [], '');
       } else {
-        // 点踩：先冻结问答快照并打开弹框；提交成功才落高亮，取消则不留痕迹。
+        // A dislike: freeze the question-answer snapshot first and open the dialog; the highlight lands only after a successful submit, and cancel leaves no trace.
         setPending(makeSnapshot(assistantId));
         setDialogOpen(true);
       }
@@ -136,7 +136,7 @@ export function useMessageFeedback(args: Args): Return {
   const submitDown = useCallback(
     (payload: { reasons: string[]; comment: string }) => {
       if (pending) {
-        // 若弹框期间已经切换会话，不再改当前页面高亮，但仍按点击当刻快照上报。
+        // If the conversation has already switched while the dialog was open, do not change the highlight on the current page, but still report from the snapshot at the moment of the click.
         if (isCurrentPendingTarget(pending)) {
           setLocalFeedback(pending.assistantId, 'down');
         }

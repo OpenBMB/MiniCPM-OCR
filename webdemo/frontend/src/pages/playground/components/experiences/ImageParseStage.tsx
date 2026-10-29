@@ -1,13 +1,9 @@
 /**
- * 图像解析原图栏（有图后的工作台）。
+ * Image-parse original-image column (the workspace once there is an image).
  *
- * 用途：核对 OCR 结果要能凑近看清小字、印章、手写，所以这一栏是个真的看图器——
- * 默认滚轮纵向阅读、Ctrl/Meta 滚轮锚点缩放、受限平移、旋转、还原与全屏。
- * 视图控制常显：缩放旋转是核对时的主操作，做成悬停出现等于没有。
+ * Purpose: checking an OCR result has to get close enough to read small type, seals, and handwriting, so this column is a real viewer — wheel scrolls vertically by default, Ctrl/Meta wheel zooms anchored at the cursor, pan is constrained, plus rotate, reset, and fullscreen. View controls stay visible: zoom and rotation are the main actions while checking, and making them appear only on hover is the same as not having them.
  *
- * 解析中要在图上叠扫描与版面框，所以图框尺寸必须精确——包裹层用图片真实宽高比
- * 铺满视口宽度，长文档顶部先展示，覆盖层 inset-0 与原图使用同一坐标系。
- * 原图按目标尺寸绘制，覆盖层使用同一坐标系；框线和编号保持固定大小。
+ * While parsing, a scan and layout boxes are stacked on the image, so the image frame size has to be exact — the wrapper uses the image's real aspect ratio to fill the viewport width, a long document shows the top first, and the overlay's inset-0 shares a coordinate system with the original. The original is drawn at the target size and the overlay uses the same coordinate system; box strokes and numbers stay a fixed size.
  */
 
 import {
@@ -33,13 +29,13 @@ import { ImageParseStageToolbar } from './ImageParseStageToolbar';
 
 interface ImageParseStageProps {
   attachment: Attachment;
-  /** 已解析出的可显示地址 */
+  /** Displayable address already resolved */
   previewSrc: string;
   disabled?: boolean;
   onPreview: (src: string) => void;
   onClear: () => void;
   blocks: readonly ImageParseLayoutBlock[];
-  /** 服务端旋转摆正信息；bbox/regions 坐标已基于摆正后的图。 */
+  /** Server rotation-adaptation info; bbox/regions coordinates are already based on the image after rotation adaptation. */
   rotation?: ImageParseRotationInfo;
   progress: ImageParseProgressSnapshot | null;
   parsing: boolean;
@@ -61,13 +57,13 @@ interface ImageParseStageProps {
 }
 
 /**
- * 原图看图器。
- * @param attachment 当前图片附件
- * @param previewSrc 图片地址
- * @param onPreview 打开全屏预览
- * @param blocks 版面块，空数组表示不画框
- * @param progress 解析进度快照
- * @param parsing 是否正在解析
+ * Original-image viewer.
+ * @param attachment Current image attachment
+ * @param previewSrc Image address
+ * @param onPreview Open the fullscreen preview
+ * @param blocks Layout blocks; an empty array means draw no boxes
+ * @param progress Parse progress snapshot
+ * @param parsing Whether parsing is in progress
  */
 export function ImageParseStage({
   attachment,
@@ -94,7 +90,7 @@ export function ImageParseStage({
   onScrollProgress,
 }: ImageParseStageProps) {
   const { t } = useTranslation('playground');
-  // 保存原始图尺寸；服务端摆正后包裹层按旋转后的外接框定尺。
+  // Save the original image size; after server rotation adaptation the wrapper is sized to the rotated bounding box.
   const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
   const zoom = useImageZoom({ fitWidth: true });
   const lastFocus = useRef<{ src: string; request: number } | null>(null);
@@ -123,7 +119,7 @@ export function ImageParseStage({
   const ratio = rotatedLayout ? rotatedLayout.width / rotatedLayout.height : null;
   const imageWidthPercent =
     naturalSize && rotatedLayout ? (naturalSize.width / rotatedLayout.width) * 100 : 100;
-  // 两个 ref 回调先解构出来：把 zoom 的属性直接塞进 ref 属性，lint 会把整个 zoom 当成 ref。
+  // Destructure the two ref callbacks first: stuffing zoom's properties straight into the ref prop makes lint treat the whole zoom object as the ref.
   const { reset, setViewport, setContent, focusBlock, scrollToProgress } = zoom;
   const attachViewport = useCallback(
     (node: HTMLElement | null) => {
@@ -134,7 +130,7 @@ export function ImageParseStage({
     [setViewport, originScrollRef],
   );
 
-  // 换图后回到初始视图，否则新图会带着上一张的倍数与角度。
+  // After changing images, return to the initial view, or the new image carries the previous one's scale and angle.
   useEffect(() => {
     reset();
   }, [previewSrc, reset]);
@@ -142,7 +138,7 @@ export function ImageParseStage({
   useLayoutEffect(() => {
     if (pendingProgress.current?.src !== previewSrc) pendingProgress.current = undefined;
     if (scrollProgress === undefined || !Number.isFinite(scrollProgress)) {
-      // 外部请求消费后只结束其自身确认，不清除适合宽度切换时仍待确认的点击定位。
+      // After an external request is consumed, only end its own confirmation, and do not clear a click location that is still pending confirmation across a fit-width switch.
       if (pendingProgress.current?.source === 'scroll') pendingProgress.current = undefined;
       return;
     }
@@ -160,7 +156,7 @@ export function ImageParseStage({
   useEffect(() => {
     if (!zoom.raster.width || !zoom.raster.height) return;
     const actual = zoom.scrollProgress;
-    // 确认实际位置并消费请求；程序定位只禁止反向回写，不能吞掉位置确认。
+    // Confirm the actual position and consume the request; programmatic location only forbids writing back the other way, and must not swallow position confirmation.
     if (pendingProgress.current !== undefined) {
       if (Math.abs(actual - pendingProgress.current.progress) < 0.001) {
         pendingProgress.current = undefined;
@@ -193,7 +189,7 @@ export function ImageParseStage({
       })
     )
       lastFocus.current = { src: previewSrc, request: focusRequest };
-    // 收起的图片栏测不到尺寸；重新展开后首次测量完成时执行未完成的定位。
+    // A collapsed image column cannot be measured; run unfinished location on the first measurement after it expands again.
   }, [blocks, focusBlock, focusRequest, previewSrc, selectedBlockId]);
 
   return (
@@ -249,7 +245,7 @@ export function ImageParseStage({
             onPointerUp={zoom.onPointerUp}
             onPointerCancel={zoom.onPointerUp}
             className={cn(
-              // touch-none：触屏上要拿到 pointermove 才能平移，否则会被当成页面滚动吞掉
+              // touch-none: on a touch screen, pointermove has to be received before panning works, or it is swallowed as page scrolling
               'flex h-full min-h-0 w-full touch-none items-center justify-center overflow-hidden',
               stageCursor(zoom),
             )}
@@ -257,11 +253,11 @@ export function ImageParseStage({
             <span
               ref={setContent}
               style={{ aspectRatio: ratio ? String(ratio) : undefined }}
-              // min-h-0：服务端 90/270 度摆正后宽高比与原图相反，aspect-ratio 默认的
-              // min-height:auto 会被按原图比例排版的测量图撑高，框层随之被纵向拉伸。
+              // min-h-0: after server rotation adaptation of 90/270 degrees the aspect ratio is the opposite of the original, and aspect-ratio's default
+              // min-height:auto is stretched by the measurement image laid out at the original ratio, and the box layer is stretched vertically with it.
               className="relative flex min-h-0 w-full shrink-0 items-center justify-center"
             >
-              {/* 仅用于测量原图尺寸；拿到比例后脱离文档流，容器高度只由摆正后的比例决定。 */}
+              {/* Used only to measure the original image size; once the ratio is known it leaves document flow, and the container height is decided only by the ratio after rotation adaptation. */}
               <img
                 src={previewSrc}
                 alt=""
@@ -285,7 +281,7 @@ export function ImageParseStage({
                   height: zoom.raster.height || '100%',
                   transform: `translate(-50%, -50%) ${zoom.raster.transform}`,
                 }}
-                // 边界校正立即生效，避免 resize 后位移过渡短暂露出图片外的空白。
+                // Boundary correction takes effect immediately, so a translation transition after resize does not briefly show blank space outside the image.
                 className="absolute left-1/2 top-1/2"
               >
                 <span className="absolute inset-0 flex items-center justify-center overflow-visible">
@@ -325,7 +321,7 @@ export function ImageParseStage({
   );
 }
 
-/** 视口光标：文档可以在边界内拖动，按下时切换为抓取状态。 */
+/** Viewport cursor: the document can be dragged inside the bounds, and pressing switches to the grabbing state. */
 function stageCursor(zoom: ImageZoom): string {
   return zoom.dragging ? 'cursor-grabbing' : 'cursor-grab';
 }

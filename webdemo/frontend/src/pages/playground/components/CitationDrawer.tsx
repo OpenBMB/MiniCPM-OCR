@@ -1,9 +1,7 @@
 /**
- * 回答引用来源面板。
+ * Source panel for an answer's citations.
  *
- * 用途：集中浏览本轮回答的全部来源；点击任一来源在新窗口打开原文。
- * 桌面端由 PlaygroundLayout 以非模态并排形式呈现（正文仍可读可点），窄屏退化为覆盖式抽屉。
- * 正文角标点击后会带着 activeUrl 进来，本组件负责把那一条滚入视野并保持选中态。
+ * Purpose: browse every source used by this answer in one place; clicking a source opens the original in a new window. On desktop, PlaygroundLayout presents it as a non-modal side-by-side pane (the body stays readable and clickable); on a narrow screen it degrades to an overlay drawer. After a body badge is clicked, activeUrl comes in with it, and this component scrolls that item into view and keeps it selected.
  */
 
 import { useEffect, useRef } from 'react';
@@ -22,25 +20,25 @@ import {
 import { CitationFavicon } from './CitationFavicon';
 
 interface CitationDrawerProps {
-  /** 回答使用的全部来源。 */
+  /** All sources used by the answer. */
   citations: Citation[];
-  /** 需要定位并高亮的来源地址；来自正文角标点击，缺省表示不高亮任何一条。 */
+  /** Source address to locate and highlight; comes from a body-badge click. Omitted means highlight nothing. */
   activeUrl?: string;
-  /** 关闭面板。 */
+  /** Close the panel. */
   onClose: () => void;
 }
 
 /**
- * 渲染 Playground 主布局内的引用来源工作区。
- * @param citations 回答使用的全部来源
- * @param activeUrl 需要定位并高亮的来源地址
- * @param onClose 关闭面板
- * @returns 来源面板内容
+ * Renders the citation workspace inside the Playground main layout.
+ * @param citations All sources used by the answer
+ * @param activeUrl Source address to locate and highlight
+ * @param onClose Close the panel
+ * @returns Source panel content
  */
 export function CitationDrawer({ citations, activeUrl, onClose }: CitationDrawerProps) {
   const { t } = useTranslation('playground');
   const title = t('referencesTitle', { count: citations.length });
-  // 用归一化后的 key 比对：模型正文里的链接常与来源数据差一个末尾斜杠或查询参数顺序。
+  // Compare with the normalized key: links in the model body often differ from source data by a trailing slash or query-parameter order.
   const activeKey = activeUrl ? citationURLKey(activeUrl) : undefined;
   const itemRefs = useRef(new Map<string, HTMLLIElement>());
 
@@ -48,7 +46,7 @@ export function CitationDrawer({ citations, activeUrl, onClose }: CitationDrawer
     if (!activeKey) return;
     const node = itemRefs.current.get(activeKey);
     if (!node) return;
-    // block:'nearest' —— 目标已在视野内时不滚动，避免每点一个角标列表都弹一下。
+    // block:'nearest' — do not scroll when the target is already in view, so the list does not jump on every badge click.
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
     node.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
   }, [activeKey]);
@@ -88,7 +86,7 @@ export function CitationDrawer({ citations, activeUrl, onClose }: CitationDrawer
               <span
                 className={cn(
                   'pt-0.5 text-xs font-medium tabular-nums',
-                  // 序号跟着变色：选中态不能只靠背景色传达（颜色不是唯一信号）
+                  // The index changes color with the selection: the selected state cannot be conveyed by background color alone (color is not the only signal)
                   isActive ? 'text-primary' : 'text-muted-foreground/60',
                 )}
               >
@@ -105,9 +103,7 @@ export function CitationDrawer({ citations, activeUrl, onClose }: CitationDrawer
                   {sourceTitle}
                 </span>
                 {/*
-                  同 CitationPreview：摘要不能带 block 等 display 工具类，Tailwind 3.4 的
-                  display 排在 line-clamp 之后会把 display:-webkit-box 覆盖掉，clamp 失效后
-                  每条来源都会展开成整篇网页正文。line-clamp-2 自身即块级盒。
+                  Same as CitationPreview: the summary must not carry display utilities such as block. In Tailwind 3.4, display comes after line-clamp and overrides display:-webkit-box. Once clamp fails, every source expands into the full page body. line-clamp-2 is itself a block box.
                 */}
                 {citation.snippet ? (
                   <span className="mt-0.5 line-clamp-2 text-xs leading-5 text-muted-foreground/90">
@@ -125,9 +121,7 @@ export function CitationDrawer({ citations, activeUrl, onClose }: CitationDrawer
           const rowClassName = cn(
             'grid min-h-16 grid-cols-[1.5rem_minmax(0,1fr)_1rem] gap-2.5 rounded-xl px-2.5 py-2.5 sm:px-3',
             /*
-              选中态用 primary 淡染 + 内描边，不把底色加深：同 SourcesChip 的推导，
-              muted 系混进面板底色会掉饱和、显脏。比 hover 重一档，才分得清「我点中的是这条」
-              和「鼠标正掠过这条」。
+              The selected state uses a light primary wash plus an inner stroke, and does not darken the background: same reasoning as SourcesChip, mixing the muted family into the panel background drops saturation and looks dirty. One step heavier than hover, so "the one I clicked" is distinct from "the one the pointer is passing over."
             */
             isActive ? 'bg-primary/[0.12] ring-1 ring-inset ring-primary/30' : 'bg-background/20',
           );

@@ -1,32 +1,32 @@
 /**
- * 摄像头预览 Hook。
+ * Camera preview hook.
  *
- * 用途：为「实时语音」的全双工通话提供真实的摄像头预览——请求 getUserMedia 视频流并以
- * state 暴露，由组件用 useEffect 挂到自己的 <video>（避免「设 srcObject 时元素尚未挂载」
- * 的时序问题）。video 模式下该流既作本地预览，也由会话按 ~1fps 抽帧上行给模型做视频理解。
- * start() 同时返回流，供开始通话时同步取用；组件卸载或 stop 时释放视频轨。
+ * Purpose: provide a real camera preview for full-duplex calls in "realtime voice" — request a getUserMedia video stream and expose it as
+ * state, and the component attaches it to its own <video> in useEffect (avoiding the timing problem of "setting srcObject before the element is mounted").
+ * In video mode that stream is both the local preview and the frames the session grabs at ~1fps and sends up for the model to understand the video.
+ * start() also returns the stream, so the call can take it synchronously when it starts; the video track is released when the component unmounts or stop is called.
  */
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface UseCameraResult {
-  /** 当前视频流（供组件挂到 <video>），未开启为 null */
+  /** Current video stream (for the component to attach to <video>); null when it is off */
   stream: MediaStream | null;
-  /** 摄像头是否已开启 */
+  /** Whether the camera is on */
   active: boolean;
-  /** 用户可见错误文案 */
+  /** User-visible error copy */
   error?: string;
-  /** 开启摄像头（需用户手势触发）；成功返回流，失败返回 null */
+  /** Turn the camera on (must be triggered by a user gesture); return the stream on success, or null on failure */
   start: () => Promise<MediaStream | null>;
-  /** 切换前后摄像头；未开启时无操作 */
+  /** Switch between front and back cameras; no-op when the camera is off */
   flip: () => Promise<MediaStream | null>;
-  /** 关闭摄像头 */
+  /** Turn the camera off */
   stop: () => void;
 }
 
 /**
- * 摄像头预览。
+ * Camera preview.
  */
 export function useCamera(): UseCameraResult {
   const { t } = useTranslation('playground');

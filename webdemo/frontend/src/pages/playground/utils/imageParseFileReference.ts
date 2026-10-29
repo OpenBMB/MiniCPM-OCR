@@ -3,12 +3,12 @@ import { uploadPlaygroundFile } from '@/api/map/fileUploads';
 import type { Attachment } from '../types';
 import { isDocumentImageDataURL, isPdfAttachment } from './documentUpload';
 
-/** OCR 工作台唯一的原件引用是文件服务 fileId。 */
+/** The only original reference in the OCR workspace is the file-service fileId. */
 export interface ImageParseFileReference {
   fileId: string;
 }
 
-/** 把 OCR 本地预览还原为可上传文件；仅用于补齐缺失的 OBS 文件引用。 */
+/** Turn an OCR local preview back into an uploadable file; used only to fill in a missing OBS file reference. */
 function imageDataURLToFile(attachment: Attachment): File {
   const comma = attachment.dataUrl.indexOf(',');
   if (comma < 0) throw new Error('imageParseFileReferenceRequired');
@@ -24,10 +24,10 @@ function imageDataURLToFile(attachment: Attachment): File {
 }
 
 /**
- * 把运行时附件还原为可上传文件；图片使用本地 data URL，PDF 允许短时预览链接。
- * @param attachment 当前展示的原件
- * @param signal 取消信号
- * @returns 可交给文件服务的 File
+ * Turn a runtime attachment back into an uploadable file; images use a local data URL, and PDFs may use a short-lived preview link.
+ * @param attachment original currently on display
+ * @param signal cancellation signal
+ * @returns a File that can be handed to the file service
  */
 export async function imageParseAttachmentFile(
   attachment: Attachment,
@@ -59,10 +59,10 @@ interface EnsureImageParseFileReferenceOptions {
 }
 
 /**
- * 返回可用于 OCR 的 OBS 文件引用。
- * 新上传通常已有 fileId；旧历史或文件服务临时失败时，从本地预览补传一次。
- * @param options 当前附件、项目与取消信号
- * @returns 文件服务 fileId；无法补传时抛出稳定错误键
+ * Return an OBS file reference that can be used for OCR.
+ * A new upload usually already has a fileId; old history, or a temporary file-service failure, re-uploads once from the local preview.
+ * @param options current attachment, project, and cancellation signal
+ * @returns file-service fileId; throws a stable error key when it cannot be re-uploaded
  */
 export async function ensureImageParseFileReference({
   attachment,
@@ -91,7 +91,7 @@ export async function ensureImageParseFileReference({
   } catch (error) {
     signal.throwIfAborted();
     if (error instanceof DOMException && error.name === 'AbortError') throw error;
-    // 上传错误可能包含上游签链或内部地址，只向界面暴露稳定文案。
+    // An upload error may contain an upstream signed URL or an internal address; the UI is shown only stable copy.
     throw Object.assign(new Error('imageParseFileReferenceUploadFailed'), { cause: error });
   }
 }

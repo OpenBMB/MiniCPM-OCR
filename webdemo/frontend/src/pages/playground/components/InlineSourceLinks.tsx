@@ -1,8 +1,7 @@
 /**
- * 过程时间线上内联的来源标题链接。
+ * Inline source-title links on the process timeline.
  *
- * 用途：网页读取行就地列出「读了哪几篇」，让展开过程看到的是内容而不是元数据。
- * 链接随工具行主文案同行流动并自动换行，不单独占一行。
+ * Purpose: a page-read row lists "which pages were read" in place, so the expanded process shows content rather than metadata. Links flow on the same line as the tool row's main copy and wrap automatically; they do not take a line of their own.
  */
 
 import { ArrowUpRight } from 'lucide-react';
@@ -19,27 +18,26 @@ import {
 } from '../utils/citations';
 
 interface InlineSourceLinksProps {
-  /** 该工具行涉及的来源。 */
+  /** Sources involved in this tool row. */
   citations: Citation[];
-  /** 最多内联几条，超出部分计入 +N。 */
+  /** How many to inline at most; the overflow counts toward +N. */
   max?: number;
-  /** 单条链接的无障碍文案，需说清点下去会打开什么。 */
+  /** Accessible label for one link; it must say what a click will open. */
   linkLabel: (title: string) => string;
-  /** 溢出计数的无障碍文案。 */
+  /** Accessible label for the overflow count. */
   overflowLabel: (count: number) => string;
 }
 
 /**
- * 渲染内联的来源标题链接。
+ * Renders inline source-title links.
  *
- * 宽度预算按「抽屉推开主区后」的窄布局取：单条最宽 12rem 截断，这样面板开合两种状态下
- * 都不会把工具行撑出横向滚动。
+ * The width budget is taken from the narrow layout "after the drawer pushes the main area open": a single item truncates at 12rem, so in both the open and closed panel states the tool row is not forced into horizontal scrolling.
  *
- * @param citations 来源列表
- * @param max 最多内联数量，默认 MAX_ROW_TITLES
- * @param linkLabel 单条链接的无障碍文案
- * @param overflowLabel 溢出计数的无障碍文案
- * @returns 内联链接；没有可安全打开的来源时不渲染
+ * @param citations Source list
+ * @param max Maximum inline count; default MAX_ROW_TITLES
+ * @param linkLabel Accessible label for one link
+ * @param overflowLabel Accessible label for the overflow count
+ * @returns Inline links; render nothing when no source can be opened safely
  */
 export function InlineSourceLinks({
   citations,
@@ -71,7 +69,7 @@ export function InlineSourceLinks({
               'transition-colors hover:text-foreground focus-visible:text-foreground',
             )}
             onClick={(event) => {
-              // 修饰键点击、中键等交回浏览器；其余走统一的新窗口打开，行为与角标、抽屉一致
+              // Modifier-clicks, middle-click, and the like are handed back to the browser; everything else uses the shared new-window open, consistent with badges and the drawer
               if (isNativeOpenIntent(event)) return;
               event.preventDefault();
               openCitationWindow(citation.url);

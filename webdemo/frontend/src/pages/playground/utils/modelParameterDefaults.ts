@@ -7,9 +7,9 @@ interface ResolvedModelParameterDefaults {
 }
 
 /**
- * 解析模型默认参数，用于数值回显与思考请求协议选择。
- * @param parameterConfig 管理端模型级默认请求参数
- * @returns 面板可表达的默认值、思考字段存在性与开关协议
+ * Parse model default parameters, used for numeric echo and choosing the reasoning request protocol.
+ * @param parameterConfig model-level default request parameters from the admin console
+ * @returns defaults the panel can express, whether reasoning fields exist, and the switch protocol
  */
 export function resolveModelParameterDefaults(
   parameterConfig?: Record<string, unknown>,
@@ -30,7 +30,7 @@ export function resolveModelParameterDefaults(
     values: {
       temperature: readNumber(parameterConfig.temperature, 0, 2),
       topP: readNumber(parameterConfig.top_p, 0, 1),
-      // 面板只对应 max_tokens；max_completion_tokens 留给 L2 按原字段名注入。
+      // The panel corresponds only to max_tokens; max_completion_tokens is left for L2 to inject under the original field name.
       maxTokens: readNumber(parameterConfig.max_tokens, 0, 32768),
       thinkingDepth: resolveThinkingDepth(
         enableThinking,
@@ -51,25 +51,25 @@ export function resolveModelParameterDefaults(
   };
 }
 
-/** 仅接受面板可表达范围内的有限数字，避免异常配置污染受控输入。 */
+/** Accept only a finite number inside the range the panel can express, so a bad config does not pollute a controlled input. */
 function readNumber(value: unknown, min: number, max: number): number | undefined {
   if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
   if (value < min || value > max) return undefined;
   return value;
 }
 
-/** 仅接受显式布尔值，其他类型继续使用体验中心默认行为。 */
+/** Accept only an explicit boolean; other types keep the experience-center default behavior. */
 function readBoolean(value: unknown): boolean | undefined {
   return typeof value === 'boolean' ? value : undefined;
 }
 
-/** 读取 chat_template_kwargs.enable_thinking。 */
+/** Read chat_template_kwargs.enable_thinking. */
 function readEnableThinking(value: unknown): boolean | undefined {
   if (!isRecord(value)) return undefined;
   return readBoolean(value.enable_thinking);
 }
 
-/** 读取 thinking.type 的 enabled/disabled 状态。 */
+/** Read the enabled/disabled state of thinking.type. */
 function readThinkingEnabled(value: unknown): boolean | undefined {
   if (!isRecord(value)) return undefined;
   if (value.type === 'enabled') return true;
@@ -77,13 +77,13 @@ function readThinkingEnabled(value: unknown): boolean | undefined {
   return undefined;
 }
 
-/** 把模型思考配置映射为开关值，仅用于判断是否需要覆盖 L2 默认参数。 */
+/** Map the model's reasoning config to a switch value, used only to decide whether L2 default parameters need to be overridden. */
 function resolveThinkingDepth(
   enableThinking: boolean | undefined,
   thinkingEnabled: boolean | undefined,
   hasReasoningEffort: boolean,
 ): ThinkingDepth | undefined {
-  // 矛盾的双协议默认值不能判为匹配，必须让客户端显式统一两种开关。
+  // Contradictory defaults from the two protocols cannot be treated as a match; the client must explicitly unify both switches.
   if (
     enableThinking !== undefined &&
     thinkingEnabled !== undefined &&
@@ -97,7 +97,7 @@ function resolveThinkingDepth(
   return undefined;
 }
 
-/** 根据模型配置中存在的思考字段选择对应的面板参数风格。 */
+/** Choose the matching panel parameter style from the reasoning fields present in the model config. */
 function resolveThinkingStyle(
   hasThinkingSwitch: boolean,
   hasReasoningEffort: boolean,
@@ -108,7 +108,7 @@ function resolveThinkingStyle(
   return undefined;
 }
 
-/** 保留模型默认配置实际使用的思考开关协议。 */
+/** Keep the reasoning-switch protocol the model default config actually uses. */
 function resolveThinkingControlFormat(
   hasChatTemplateKwargs: boolean,
   hasThinking: boolean,
@@ -118,12 +118,12 @@ function resolveThinkingControlFormat(
   return 'chat_template_kwargs';
 }
 
-/** 判断未知值是否为可读取字段的普通对象。 */
+/** Whether an unknown value is an ordinary object whose fields can be read. */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** 兼容当前编译目标的自有字段判断。 */
+/** Own-property check compatible with the current compile target. */
 function hasOwn(record: Record<string, unknown>, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(record, key);
 }

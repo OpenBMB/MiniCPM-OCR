@@ -15,7 +15,7 @@ export type {
   ImageParseHistoryStorage,
 } from './imageParseHistoryTypes';
 
-/** 每个用户/项目最多保存 20 个任务；实际可用空间仍由浏览器决定。 */
+/** Each user/project saves at most 20 tasks; usable space is still decided by the browser. */
 export const IMAGE_PARSE_HISTORY_LIMIT = 20;
 const DATABASE = 'map-ocr-history';
 const STORE = 'tasks';
@@ -27,7 +27,7 @@ function unavailableStorage(): Error {
   return failure;
 }
 
-/** 返回最新的有限任务列表，不修改调用方数组。 */
+/** Return the latest bounded task list without modifying the caller's array. */
 export function newestImageParseHistory(
   entries: readonly ImageParseHistoryEntry[],
 ): ImageParseHistoryEntry[] {
@@ -131,7 +131,7 @@ async function transaction<T>(
   });
 }
 
-/** IndexedDB 本地任务存储；写入与淘汰在同一事务内完成，不访问网络。 */
+/** IndexedDB local task store; writes and eviction finish in the same transaction and do not touch the network. */
 export const imageParseHistoryStorage: ImageParseHistoryStorage = {
   list: (scope) =>
     transaction(scope, 'readonly', (store, key, done) => {
@@ -147,7 +147,7 @@ export const imageParseHistoryStorage: ImageParseHistoryStorage = {
       const request = store.get([key, id]);
       request.onsuccess = () => {
         const existing = readEntries([request.result], key)[0];
-        // 恢复必须写回原任务；已删除或身份不匹配时不重新创建记录。
+        // Restore must write back to the original task; do not create a new record when it was deleted or the identity does not match.
         if (entryId && (!existing || existing.snapshot.attachment.id !== snapshot.attachment.id)) {
           abort(new Error('imageParseHistoryEntryUnavailable'));
           return;
@@ -161,7 +161,7 @@ export const imageParseHistoryStorage: ImageParseHistoryStorage = {
         const all = store.index('scopeKey').getAll(key);
         all.onsuccess = () => {
           const rows = all.result as Array<{ id: string; createdAt: number }>;
-          // 原创建时间决定排序；更新结果和阅读位置不将旧任务移到顶部。
+          // Original creation time decides sort order; updating the result and reading position does not move an old task to the top.
           rows.sort((a, b) => b.createdAt - a.createdAt || b.id.localeCompare(a.id));
           for (const row of rows.slice(IMAGE_PARSE_HISTORY_LIMIT)) store.delete([key, row.id]);
           done(entry);
@@ -198,10 +198,10 @@ function storageAccessFailure(failure: unknown): boolean {
 }
 
 /**
- * 创建单个用户/项目的页面历史会话；持久化不可用时保留临时记录，不清空数据库。
- * @param scope 当前用户与项目
- * @param storage 持久化实现
- * @returns 范围绑定的历史操作及是否仅在当前页面保存
+ * Create a page-history session for a single user/project; when persistence is unavailable, keep a temporary record and do not clear the database.
+ * @param scope current user and project
+ * @param storage persistence implementation
+ * @returns scope-bound history operations and whether they are saved only for the current page
  */
 export function createImageParseHistorySession(
   scope: ImageParseHistoryScope,
@@ -222,7 +222,7 @@ export function createImageParseHistorySession(
       if (!temporary) {
         try {
           const persisted = await storage.list(scope);
-          // 降级后不再用晚到的数据库读取覆盖页面内的新结果或删除操作。
+          // After falling back, a late database read must not overwrite a new in-page result or a delete.
           if (!temporary) items = persisted;
         } catch {
           temporary = true;

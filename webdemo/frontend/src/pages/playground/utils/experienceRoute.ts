@@ -1,16 +1,16 @@
 /**
- * 体验中心 URL 与可见模型之间的路由收敛。
+ * Route resolution between experience-center URLs and visible models.
  *
- * 用途：把 `/playground/:experience` 收敛为合法体验键。语音合成 / 实时语音在对应
- * 可见模型为空时回退语言模型，避免直达 URL 停在空白页。
+ * Purpose: collapse `/playground/:experience` to a legal experience key. Speech synthesis and realtime voice fall back
+ * to the language model when their visible model list is empty, so a direct URL does not sit on a blank page.
  */
 
-/** 体验中心可切换的体验类型 */
+/** Experience types the experience center can switch among */
 export type ExperienceKey = 'language' | 'tts' | 'duplex' | 'image-parse' | 'field-extract';
 
 /**
- * URL 体验段到内部体验键的映射。
- * `document-parse` 是对外规范路径，`image-parse` 仅保留为历史书签兼容入口。
+ * Map a URL experience segment to an internal experience key.
+ * `document-parse` is the public canonical path; `image-parse` remains only as a compatibility entry for old bookmarks.
  */
 const EXPERIENCE_PARAMS: Record<string, ExperienceKey> = {
   tts: 'tts',
@@ -20,7 +20,7 @@ const EXPERIENCE_PARAMS: Record<string, ExperienceKey> = {
   'field-extract': 'field-extract',
 };
 
-/** 非语言体验是否对当前用户可见（由对应模型列表是否为空决定） */
+/** Whether a non-language experience is visible to the current user (decided by whether the matching model list is empty) */
 export type ExperienceAvailability = {
   tts: boolean;
   duplex: boolean;
@@ -28,19 +28,19 @@ export type ExperienceAvailability = {
 };
 
 /**
- * 把 URL 参数收敛为合法体验键（非法/缺省回退语言模型）。
- * @param param 路由参数
+ * Collapse URL parameters to a legal experience key (illegal or missing falls back to the language model).
+ * @param param route parameter
  */
 export function normalizeExperience(param?: string): ExperienceKey {
   return (param ? EXPERIENCE_PARAMS[param] : undefined) ?? 'language';
 }
 
 /**
- * 按当前用户可见模型收敛体验键。
- * 语音合成 / 实时语音 / 文档解析无可见模型时回退语言模型。
- * @param experience URL 收敛出的体验键
- * @param loading 模型列表是否仍在加载（加载期间不回退，避免闪跳）
- * @param available 各非语言体验是否有可见模型
+ * Collapse the experience key by the models visible to the current user.
+ * Speech synthesis, realtime voice, and document parsing fall back to the language model when no model is visible.
+ * @param experience experience key resolved from the URL
+ * @param loading whether the model list is still loading (do not fall back while loading, to avoid a flicker)
+ * @param available whether each non-language experience has a visible model
  */
 export function resolveExperience(
   experience: ExperienceKey,
@@ -52,14 +52,14 @@ export function resolveExperience(
   return 'language';
 }
 
-/** 判断是否使用文档工作台，字段提取与全文识别共享模型权限及外壳。 */
+/** Whether to use the document workspace; field extraction and full-text recognition share model permission and the shell. */
 export function isDocumentExperience(experience: ExperienceKey): boolean {
   return experience === 'image-parse' || experience === 'field-extract';
 }
 
 /**
- * 体验入口路径：语言模型落在 `/playground`，其余带体验段。
- * @param key 体验键
+ * Experience entry path: the language model lives at `/playground`; the others carry an experience segment.
+ * @param key experience key
  */
 export function experiencePath(key: ExperienceKey): string {
   if (key === 'language') return '/playground';
@@ -68,8 +68,8 @@ export function experiencePath(key: ExperienceKey): string {
 }
 
 /**
- * 返回体验对应的文档路径。
- * @param experience 当前体验键
+ * Return the document path for an experience.
+ * @param experience current experience key
  */
 export function experienceDocsPath(experience: ExperienceKey): string {
   if (experience === 'tts') return '/docs/models/speech';
@@ -79,7 +79,7 @@ export function experienceDocsPath(experience: ExperienceKey): string {
   return '/docs/models/text';
 }
 
-/** 非语言体验顶栏所需的文案键（图标由页面按键装配，避免 util 引入 React）。 */
+/** Copy keys the non-language experience top bar needs (the icon is assembled by the page from the key, so the util does not import React). */
 export interface ExperienceChromeCopy {
   titleKey: 'ttsExperienceTitle' | 'duplexExperienceTitle' | 'imageParseExperienceTitle';
   subtitleKey:
@@ -89,8 +89,8 @@ export interface ExperienceChromeCopy {
 }
 
 /**
- * 非语言体验顶栏文案键。语言对话走独立顶栏，不经过这里。
- * @param experience 当前体验键
+ * Top-bar copy keys for a non-language experience. Language chat uses its own top bar and does not come through here.
+ * @param experience current experience key
  */
 export function experienceChromeCopy(experience: ExperienceKey): ExperienceChromeCopy {
   if (experience === 'tts') {

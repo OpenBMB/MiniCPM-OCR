@@ -189,7 +189,7 @@ describe('ProTable', () => {
       />,
     );
 
-    // ProTable 同时保留桌面端和移动端 DOM，各自只为可展开行渲染一个按钮。
+    // ProTable keeps both the desktop and mobile DOM, and each renders one button only for expandable rows.
     expect(screen.getAllByRole('button', { name: '展开行' })).toHaveLength(2);
   });
 });

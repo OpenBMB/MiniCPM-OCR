@@ -11,10 +11,10 @@ import {
 } from '../utils/imageParseSealDisplay';
 
 /**
- * 连接结果草稿、原图定位范围和下载数据，确保导出使用当前编辑内容。
- * @param parse 当前识别结果
- * @param examplePageKey 共享案例的逐页身份
- * @returns 草稿、定位范围、质量摘要与下载操作
+ * Connect the result draft, original-image positioning ranges, and download data, so export uses the current edited content.
+ * @param parse current recognition result
+ * @param examplePageKey per-page identity of a shared example
+ * @returns the draft, positioning ranges, quality summary, and download actions
  */
 export function useImageParseResultState(
   parse: ReturnType<typeof useImageParse>,

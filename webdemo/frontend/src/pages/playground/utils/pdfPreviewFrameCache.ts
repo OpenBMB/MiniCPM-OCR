@@ -21,11 +21,11 @@ function discard(entry: CachedFrame) {
 }
 
 /**
- * 将命中的页面帧复制到本次离屏画布；调用方仍通过原子提交更新可见 canvas。
- * @param document 当前 PDF.js 文档
- * @param key 页面、缩放、旋转、分辨率与重试版本
- * @param buffer 本次提交专用缓冲区
- * @returns 命中的页面帧，未命中返回 undefined
+ * Copy a hit page frame onto this offscreen canvas; the caller still updates the visible canvas through an atomic commit.
+ * @param document current PDF.js document
+ * @param key page, zoom, rotation, resolution, and retry version
+ * @param buffer buffer dedicated to this commit
+ * @returns the hit page frame, or undefined on a miss
  */
 export function readPdfPreviewFrame(
   document: PDFDocumentProxy,
@@ -47,10 +47,10 @@ export function readPdfPreviewFrame(
 }
 
 /**
- * 保留固定案例的已完成像素副本；按 LRU 淘汰，最多八帧且像素内存不超过 48 MB。
- * @param document 当前 PDF.js 文档
- * @param key 页面视图身份
- * @param frame PDF.js 成功绘制的帧
+ * Keep finished pixel copies of a fixed example; evict by LRU, at most eight frames and no more than 48 MB of pixel memory.
+ * @param document current PDF.js document
+ * @param key page-view identity
+ * @param frame frame PDF.js drew successfully
  */
 export function rememberPdfPreviewFrame(
   document: PDFDocumentProxy,
@@ -77,7 +77,7 @@ export function rememberPdfPreviewFrame(
   pixels += count;
 }
 
-/** PDF.js 文档销毁时同步释放其全部缓存像素与引用。 */
+/** When a PDF.js document is destroyed, release all of its cached pixels and references at the same time. */
 export function clearPdfPreviewFrames(document: PDFDocumentProxy) {
   for (const entry of frames) {
     if (entry.document === document) discard(entry);

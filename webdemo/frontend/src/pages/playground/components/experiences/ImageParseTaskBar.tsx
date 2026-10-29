@@ -30,7 +30,7 @@ const TASKS = [
 ] as const;
 
 /**
- * 工作台仅展示算法服务支持的文档识别与字段抽取。
+ * The workspace shows only document recognition and field extraction supported by the algorithm service.
  */
 export function ImageParseTaskBar({
   mode,

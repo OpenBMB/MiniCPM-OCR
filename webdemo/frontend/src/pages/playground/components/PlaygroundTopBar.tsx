@@ -1,7 +1,7 @@
 /**
- * 体验中心顶栏。
+ * Experience-center top bar.
  *
- * 用途：左侧模型选择器；右侧参数设置 / 清空对话（真功能）+ 「API 接入」（打开接入抽屉）。
+ * Purpose: model selector on the left; parameter settings / clear conversation (real features) on the right + "API access" (opens the access drawer).
  */
 
 import { Link } from 'react-router-dom';
@@ -22,13 +22,13 @@ interface PlaygroundTopBarProps {
   onOpenSettings: () => void;
   onClear: () => void;
   canClear: boolean;
-  /** 移动端：显示汉堡键以唤出侧栏抽屉 */
+  /** Mobile: show the hamburger to summon the sidebar drawer */
   showMenuButton?: boolean;
   onOpenSidebar?: () => void;
 }
 
 /**
- * 顶栏。
+ * Top bar.
  */
 export function PlaygroundTopBar({
   models,
@@ -113,7 +113,7 @@ export function PlaygroundTopBar({
           <TooltipContent>{t('parameterSettings')}</TooltipContent>
         </Tooltip>
 
-        {/* 真功能：清除上下文（开启全新对话，旧对话保留在「最近对话」） */}
+        {/* Real feature: clear context (start a fresh conversation; the old conversation stays in "recent conversations") */}
         <Tooltip>
           <TooltipTrigger asChild>
             <button

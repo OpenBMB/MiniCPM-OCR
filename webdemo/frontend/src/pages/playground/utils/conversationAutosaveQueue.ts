@@ -1,8 +1,8 @@
 /**
- * Playground 会话自动保存串行队列。
+ * Serial queue for Playground conversation autosave.
  *
- * 用途：隔离 React 生命周期与异步写入状态，保证同一会话只串行保存最新快照，
- * 并在网络失败时指数退避重试，避免旧写入覆盖新内容。
+ * Purpose: isolate React lifecycle from async write state, so one conversation saves only the latest snapshot serially,
+ * and retries with exponential backoff on network failure, so an older write cannot overwrite newer content.
  */
 
 import type { MapSaveConversationInput } from '@/api/map';
@@ -36,8 +36,8 @@ export interface ConversationAutosaveInput {
 }
 
 /**
- * 串行保存队列。
- * React hook 只负责把最新消息转换成 input，本类负责创建会话、写入、重试与代际隔离。
+ * Serial save queue.
+ * The React hook only turns the latest messages into input; this class creates the conversation, writes, retries, and isolates generations.
  */
 export class ConversationAutosaveQueue {
   private activeConversationId?: string;
@@ -59,17 +59,17 @@ export class ConversationAutosaveQueue {
     this.activeConversationId = activeConversationId;
   }
 
-  /** 更新 React 侧最新 API 回调，避免队列捕获过期 mutation。 */
+  /** Update the latest API callbacks on the React side so the queue does not capture a stale mutation. */
   updateHandlers(handlers: ConversationAutosaveHandlers): void {
     this.handlers = handlers;
   }
 
-  /** 同步当前活动会话 ID。 */
+  /** Sync the active conversation ID. */
   setActiveConversationId(id?: string): void {
     this.activeConversationId = id;
   }
 
-  /** 入列最新快照；相同内容不重复写入。 */
+  /** Enqueue the latest snapshot; identical content is not written again. */
   enqueue(input: ConversationAutosaveInput): void {
     if (input.signature === this.savedSignature) return;
     if (this.latest?.generation === this.generation && this.latest.signature === input.signature) {
@@ -86,7 +86,7 @@ export class ConversationAutosaveQueue {
     void this.drain();
   }
 
-  /** 写入仅供刷新恢复的最新草稿；允许比服务端快照多出尚未完成的流式内容。 */
+  /** Write the latest draft for refresh recovery only; it may contain unfinished streaming content beyond the server snapshot. */
   updateDraft(input: ConversationAutosaveInput, interrupted: boolean): void {
     const snapshot: DraftSnapshot = {
       ...input,
@@ -108,7 +108,7 @@ export class ConversationAutosaveQueue {
     }, DRAFT_WRITE_INTERVAL_MS - elapsed);
   }
 
-  /** 页面刷新/隐藏前同步写入内存中的最后一份草稿。 */
+  /** Synchronously write the last in-memory draft before the page refreshes or hides. */
   flushDraft(): void {
     if (!this.latestDraft?.ownerId) return;
     if (this.draftTimer !== undefined) {
@@ -124,7 +124,7 @@ export class ConversationAutosaveQueue {
     this.lastDraftWriteAt = Date.now();
   }
 
-  /** 标记服务端已经持久化的消息签名，并清理对应用户草稿。 */
+  /** Mark the signature of messages the server has already persisted, and clear the matching user draft. */
   markPersisted(signature: string, ownerId?: string): void {
     this.savedSignature = signature;
     this.queued = undefined;
@@ -137,7 +137,7 @@ export class ConversationAutosaveQueue {
     }
   }
 
-  /** 开始新会话或切换账号时废弃当前代际，旧请求完成后不能影响新会话。 */
+  /** Starting a new conversation or switching accounts discards the current generation; a finished old request must not affect the new conversation. */
   reset(ownerId?: string): void {
     this.generation += 1;
     this.activeConversationId = undefined;
@@ -150,7 +150,7 @@ export class ConversationAutosaveQueue {
     if (ownerId) clearConversationDraft(ownerId);
   }
 
-  /** 组件卸载时停止后续重试。 */
+  /** Stop further retries when the component unmounts. */
   dispose(): void {
     this.flushDraft();
     this.disposed = true;
@@ -158,12 +158,12 @@ export class ConversationAutosaveQueue {
     this.clearDraftTimer();
   }
 
-  /** React StrictMode 会先模拟卸载再重新挂载；重新启用同一队列实例。 */
+  /** React StrictMode simulates unmount and then remounts; re-enable the same queue instance. */
   activate(): void {
     this.disposed = false;
   }
 
-  /** 串行排空队列；写入期间的新快照只保留最新一份。 */
+  /** Drain the queue serially; while a write is in flight, keep only the latest new snapshot. */
   private async drain(): Promise<void> {
     if (this.draining || this.disposed) return;
     this.draining = true;
@@ -196,7 +196,7 @@ export class ConversationAutosaveQueue {
     }
   }
 
-  /** 已有会话直接复用；首次保存则创建并立即把 ID 通知 React/URL。 */
+  /** Reuse an existing conversation; on the first save, create one and notify React/URL of the ID immediately. */
   private async resolveConversationId(snapshot: QueueSnapshot): Promise<string> {
     if (this.activeConversationId) return this.activeConversationId;
     const conversation = await this.handlers.createConversation({
@@ -218,7 +218,7 @@ export class ConversationAutosaveQueue {
     return conversation.id;
   }
 
-  /** 最终快照失败后按 1s、2s、4s... 最长 30s 自动重试。 */
+  /** After a final snapshot fails, retry automatically at 1s, 2s, 4s, ... up to 30s. */
   private scheduleRetry(snapshot: QueueSnapshot): void {
     if (this.disposed) return;
     this.queued = { ...snapshot, retryCount: snapshot.retryCount + 1 };
@@ -229,14 +229,14 @@ export class ConversationAutosaveQueue {
     }, delay);
   }
 
-  /** 清理尚未触发的重试定时器。 */
+  /** Clear a retry timer that has not fired yet. */
   private clearRetryTimer(): void {
     if (this.retryTimer === undefined) return;
     window.clearTimeout(this.retryTimer);
     this.retryTimer = undefined;
   }
 
-  /** 清理尚未触发的草稿合并写定时器。 */
+  /** Clear a draft coalesced-write timer that has not fired yet. */
   private clearDraftTimer(): void {
     if (this.draftTimer === undefined) return;
     window.clearTimeout(this.draftTimer);

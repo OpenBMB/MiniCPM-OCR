@@ -7,25 +7,25 @@ import type { ImageParseTextRange } from '../utils/imageParseBlocks';
 import type { ImageParseLinkedRange } from '../utils/imageParseHighlight';
 
 interface UseMarkdownPreparationOptions {
-  /** 原始正文；OCR 范围与编辑块仍以它为权威偏移量。 */
+  /** Original body; OCR ranges and edit blocks still use it as the authoritative offset. */
   sourceContent: string;
-  /** 实际进入 Markdown/数学规范化的文本；对话场景可能已注入引用角标链接。 */
+  /** Text that actually enters Markdown and math normalization; a chat scene may already have injected citation-marker links. */
   renderContent: string;
-  /** 对话场景是否推断裸公式。 */
+  /** Whether the chat scene infers bare formulas. */
   detectBareMath: boolean;
-  /** 是否生成编辑范围。 */
+  /** Whether to generate edit ranges. */
   editableBlocks: boolean;
-  /** 单块高亮范围。 */
+  /** Highlight range of a single block. */
   highlightRange?: ImageParseTextRange;
-  /** OCR 联动范围。 */
+  /** OCR linked range. */
   linkedRanges?: readonly ImageParseLinkedRange[];
 }
 
 /**
- * 缓存 Markdown 预处理；文档范围复用一次规范化映射，不按块重扫文本。
+ * Cache Markdown preprocessing; a document range reuses one normalization map and does not rescan the text per block.
  *
- * `sourceContent` 与 `renderContent` 在 OCR 文档中相同；在对话正文中，引用角标可能先被改写成
- * Markdown 链接。范围映射只在文档场景实际使用，此时两个内容保持一致。
+ * `sourceContent` and `renderContent` are the same in an OCR document; in chat body text, citation markers may first be rewritten as
+ * Markdown links. The range map is actually used only in the document scene, where the two contents stay consistent.
  */
 export function useMarkdownPreparation({
   sourceContent,

@@ -1,13 +1,13 @@
 import { useState } from 'react';
 
 /**
- * 顶栏与复核列表共用筛选和分页；换结果立即重置，切标签保留当前进度。
- * @param resultKey 当前解析结果标识
- * @returns 筛选、展示条数及对应操作
+ * The top bar and the review list share filtering and paging; changing the result resets immediately, and switching tabs keeps the current progress.
+ * @param resultKey current parse-result id
+ * @returns the filter, the number of rows shown, and the matching actions
  */
 export function useImageParseReview(resultKey: string) {
   const [state, setState] = useState({ resultKey, all: false, limit: 40 });
-  // 与结果身份一起重置，避免新文档短暂使用旧筛选，或返回旧文档时恢复过期分页。
+  // Reset together with the result identity, so a new document does not briefly use the old filter, and returning to an old document does not restore an expired page.
   if (state.resultKey !== resultKey) {
     setState({ resultKey, all: false, limit: 40 });
   }

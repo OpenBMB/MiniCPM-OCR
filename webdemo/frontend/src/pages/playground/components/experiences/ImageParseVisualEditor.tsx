@@ -24,12 +24,12 @@ interface ImageParseVisualEditorProps {
   loading: boolean;
   onSave: (value: string, editedRange?: ImageParseTextRange) => void;
   onEditingChange?: (editing: boolean) => void;
-  /** 服务标记为页脚 / 页码的块范围；只在文字仍像页码时弱化展示。 */
+  /** Block ranges the service marked as footer / page number; mute them only while the text still looks like a page number. */
   pageNumberRanges?: ReadonlySet<string>;
   children: React.ReactNode;
 }
 
-/** 双击语义块才创建编辑器；其它块保留预览，失焦保存并释放唯一实例。 */
+/** Create the editor only on a double-click of a semantic block; other blocks keep the preview, and blur saves and releases the single instance. */
 export function ImageParseVisualEditor({
   source,
   loading,

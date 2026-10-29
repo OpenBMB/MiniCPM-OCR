@@ -1,8 +1,7 @@
 /**
- * 图像解析工作台顶栏。
+ * Image-parse workspace top bar.
  *
- * 用途：左侧显示文件名，右侧保留识别与结果操作；识别设置仅在已有文档时显示。
- * 空态保留汉堡键与文档入口，避免再叠一层体验中心标题栏。
+ * Purpose: file name on the left, and recognition and result actions kept on the right; recognition settings are shown only when a document already exists. The empty state keeps the hamburger and the docs entry, so another experience-center title bar is not stacked on top.
  */
 
 import { useRef } from 'react';
@@ -35,18 +34,18 @@ interface ImageParseToolbarProps {
   onNewDocument: () => void;
   showMenuButton?: boolean;
   onOpenSidebar?: () => void;
-  /** 把本次选择的 PDF/图片接到当前识别后面；字段提取任务不提供追加入口。 */
+  /** Append the PDF/image selected this time after the current recognition; field-extraction tasks do not offer an append entry. */
   onAppendPages?: (files: FileList) => void;
-  /** 正在合成追加页时禁用入口并展示进度文案。 */
+  /** While appended pages are being composed, disable the entry and show progress copy. */
   appending?: boolean;
-  /** 字段配置阶段由设置面板提供主操作时隐藏顶栏识别按钮。 */
+  /** During field configuration, hide the top-bar recognition button when the settings panel provides the primary action. */
   showParseAction?: boolean;
-  /** 共享示例没有可直接重跑的来源；由外层先转成个人上传任务。 */
+  /** A shared example has no source that can be rerun directly; the outer layer first turns it into a personal upload task. */
   onReparseExample?: () => void;
 }
 
 /**
- * 对照工作台顶栏。有图后显示文件名与识别操作。
+ * Comparison-workspace top bar. Once there is an image, show the file name and recognition actions.
  */
 export function ImageParseToolbar({
   fileName,
@@ -209,7 +208,7 @@ export function ImageParseToolbar({
   );
 }
 
-/** 顶栏文档入口。文档解析页打开本仓库的部署指南。 */
+/** Docs entry in the top bar. The document-parse page opens this repo's deployment guide. */
 function DocsLink({ experience }: { experience: Exclude<ExperienceKey, 'language'> }) {
   const locale = useAppStore((state) => state.locale);
   const docsTitle = getPortalRouteTitle('/docs', locale, 'API 文档');

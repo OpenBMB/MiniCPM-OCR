@@ -118,7 +118,7 @@ describe('AnswerProcessTimeline', () => {
     );
 
     expect(screen.getByText('搜索到 23 个网页')).toBeVisible();
-    // 完成后不再重复查询词，位置让给叠放的站点图标
+    // After completion, do not repeat the query; that space goes to the stacked site icons
     expect(screen.queryByText('MiniCPM 最新进展')).not.toBeInTheDocument();
     const row = screen.getByText(/搜索到 23 个网页/).closest('li');
     expect(row?.querySelectorAll('img')).toHaveLength(2);
@@ -129,12 +129,12 @@ describe('AnswerProcessTimeline', () => {
       <AnswerProcessTimeline reasoning="只有一段思考。" streaming={false} />,
     );
 
-    // 纯思考完成态默认收起，面板是 inert 的，按 role 取不到 → 直接查 DOM
+    // A finished reasoning-only state is collapsed by default and the panel is inert, so a role query misses it → query the DOM directly
     const row = container.querySelector('li');
     expect(row).not.toBeNull();
-    // 圆点是 marker 列里唯一的装饰元素；只剩一行时它指向空处，没有第二项可对齐
+    // The dot is the only decoration in the marker column; with one row left it points at empty space, with no second item to align to
     expect(row?.querySelector('span[class*="size-1.5"]')).toBeNull();
-    // 列本身要留着：去掉会让正文左移到图标那一列，读起来像与顶行平级
+    // Keep the column itself: removing it shifts the body left into the icon column, so it reads as a peer of the top row
     expect(row).toHaveClass('grid-cols-[1.5rem_minmax(0,1fr)]');
     expect(screen.getByText('只有一段思考。')).toBeInTheDocument();
   });
@@ -149,7 +149,7 @@ describe('AnswerProcessTimeline', () => {
       />,
     );
 
-    // 开了联网但首个工具帧还没到：此刻 items 也只有一项，按当下项数判定就会闪一下圆点
+    // Web search is on but the first tool frame has not arrived: items has only one entry then, and deciding by the current count flashes the dot
     expect(container.querySelector('li span[class*="size-1.5"]')).not.toBeNull();
   });
 
@@ -172,8 +172,8 @@ describe('AnswerProcessTimeline', () => {
 
     expect(screen.getByRole('button', { name: '已思考' })).toBeVisible();
     /*
-      图标刻意保持一枚：一列回答里每条顶行换一个图标会让这竖排变成杂色噪点。
-      按 class 比"两者相同"而不是硬断言某个 lucide 名，是为了图标改名时不假失败。
+      The icon is deliberately kept to one: a different icon on every top row in a column of answers turns the stack into colored noise.
+      Compare by class that "the two match" rather than hard-asserting a lucide name, so a rename does not fail falsely.
     */
     const reasonedIcon = document.querySelector('svg')?.getAttribute('class');
     expect(searchedIcon).toBeTruthy();
@@ -217,7 +217,7 @@ describe('AnswerProcessTimeline', () => {
       />,
     );
 
-    // 开关只代表"允许联网"。标成已联网会让用户以为答案有外部依据，比不标更糟。
+    // The switch only means "web search is allowed." Marking it as already searched makes users think the answer has external evidence, which is worse than no mark.
     expect(screen.getByRole('button', { name: '已思考' })).toBeVisible();
   });
 
@@ -261,7 +261,7 @@ describe('AnswerProcessTimeline', () => {
 
     const row = screen.getByText(/搜索到 10 个网页/).closest('li');
     expect(row?.querySelectorAll('img')).toHaveLength(4);
-    // 那一叠是拿整条消息的来源兜底的近似值，+26 会与「搜索到 10 个网页」直接矛盾
+    // That stack is an approximation filled from the whole message's sources; +26 would directly contradict "found 10 pages"
     expect(row?.textContent).not.toContain('+');
   });
 
@@ -306,12 +306,12 @@ describe('AnswerProcessTimeline', () => {
     await user.click(trigger);
 
     expect(screen.getByText('搜索到 2 个网页')).toBeVisible();
-    // 只剩折叠头那一个按钮
+    // Only the disclosure-header button is left
     expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
   it('顶行的搜索词：还没到就退回静态文案，多个用顿号连，过长截断', () => {
-    // 查询词要等模型把 tool_call 参数生成完才随 running 帧到达，这段空档只能报静态文案
+    // The query waits until the model finishes generating tool_call arguments and arrives with the running frame; that gap can only show static copy
     const { rerender } = render(
       <AnswerProcessTimeline
         reasoning=""
@@ -340,7 +340,7 @@ describe('AnswerProcessTimeline', () => {
 
     expect(screen.getByRole('button', { name: '正在搜索 北京天气、上海天气' })).toBeVisible();
 
-    // 模型偶尔把整句话塞进 query：顶行只有一行，不截断会把它挤没
+    // The model sometimes stuffs a whole sentence into query: the top row is a single line, and without truncation the sentence crowds it out
     rerender(
       <AnswerProcessTimeline
         reasoning=""
@@ -378,9 +378,8 @@ describe('AnswerProcessTimeline', () => {
     );
 
     /*
-      思考只播到第 6 个字，切点在第 10 个字：工具行先押着。
-      顶行不跟着押——押的是时间线内部的先后顺序，顶行报的是此刻的真实状态，
-      而「正在搜哪个词」越早出现越有用。所以查询词此时只在顶行，不在展开区。
+      Reasoning has only played to character 6, and the cut is at character 10: hold the tool row.
+      The top row is not held with it — what is held is order inside the timeline; the top row reports the real state right now, and "which query is being searched" is more useful the earlier it appears. So the query is only on the top row at this moment, not in the expanded area.
     */
     expect(screen.getByRole('button', { name: '正在搜索 MiniCPM 最新进展' })).toBeVisible();
     expect(screen.queryByText('MiniCPM 最新进展')).not.toBeInTheDocument();
@@ -421,7 +420,7 @@ describe('AnswerProcessTimeline', () => {
     const hit = screen.getByRole('link', { name: '技术报告，打开原文' });
     expect(hit).toHaveAttribute('href', 'https://one.example.com/a');
     expect(hit).toHaveAttribute('target', '_blank');
-    // 没在 citations 里命中的地址不编标题，用域名代替
+    // Addresses that miss citations get no invented title; use the domain instead
     expect(screen.getByRole('link', { name: 'untitled.example.com，打开原文' })).toBeVisible();
   });
 
@@ -462,7 +461,7 @@ describe('AnswerProcessTimeline', () => {
       />,
     );
 
-    // 合并后只有 1 个折叠按钮，思考与工具同属其中
+    // After the merge there is only 1 disclosure button; reasoning and tools both belong to it
     const trigger = screen.getByRole('button', { name: '工具调用中' });
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getAllByRole('button')).toHaveLength(1);
@@ -498,7 +497,7 @@ describe('AnswerProcessTimeline', () => {
       />,
     );
 
-    // 完成 + 仅工具（无思考内容）：退回工具数，否则收起态是一行空白
+    // Done + tools only (no reasoning): fall back to the tool count, otherwise the collapsed state is a blank line
     expect(screen.getByRole('button', { name: '使用 1 个工具' })).toHaveClass(
       'w-full',
       'max-w-3xl',
@@ -580,7 +579,7 @@ describe('AnswerProcessTimeline', () => {
 
     await user.click(screen.getByRole('button', { name: '正在思考中' }));
 
-    // 收起态不可见，归零没有视觉代价；不归零的话再点开会停在思考的尾巴上
+    // The collapsed state is invisible, so resetting to zero has no visual cost; without it, the next open stops on the tail of the reasoning
     expect(reasoningScroll?.scrollTop).toBe(0);
   });
 
@@ -642,7 +641,7 @@ describe('AnswerProcessTimeline', () => {
     const trigger = screen.getByRole('button', { name: '已思考' });
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByText('查询当前时间')).not.toBeVisible();
-    // 未收录的工具名原样展示，不伪造中文文案
+    // Unknown tool names are shown as-is; do not invent Chinese copy
     expect(screen.getByText('calculator')).not.toBeVisible();
     const panel = document.getElementById(trigger.getAttribute('aria-controls') ?? '');
     expect(panel?.firstElementChild).toHaveProperty('inert', true);
@@ -651,7 +650,7 @@ describe('AnswerProcessTimeline', () => {
 
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     expect(panel?.firstElementChild).toHaveProperty('inert', false);
-    // 单步耗时照竞品砍掉；总耗时也不在这条时间线上报，正文下方的指标行已有一份
+    // Per-step duration is cut, matching competitors; total duration is not reported on this timeline either, because the metrics row under the body already has a copy
     expect(screen.queryByText('用时 0.8 秒')).not.toBeInTheDocument();
     expect(screen.queryByText('用时 1.2 秒')).not.toBeInTheDocument();
   });
@@ -695,7 +694,7 @@ describe('AnswerProcessTimeline', () => {
 
     const trigger = screen.getByRole('button', { name: '使用 1 个工具' });
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
-    // 子步骤挂了不代表回答不可信，标题不标红也不换成联网失败
+    // A failed sub-step does not mean the answer is untrustworthy; the title is not turned red and is not replaced with a web-search failure
     expect(trigger).not.toHaveClass('text-destructive');
     expect(screen.getByText('时间服务不可用')).toBeVisible();
   });

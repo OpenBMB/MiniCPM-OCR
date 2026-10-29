@@ -4,13 +4,13 @@ interface ModelbestMarkProps {
 }
 
 /**
- * ModelBest 品牌图标（仅图形 M 标，不含文字）。
+ * ModelBest brand mark (the M graphic only, no wordmark).
  *
- * 用途：用于侧栏 / 顶栏的方形品牌位、折叠态等需要纯图标的场景（横版字标见 BrandLogo）。
- * path 取自官方 logo 的蓝色图形部分；颜色用 currentColor 继承，便于在 primary 底色块上反白。
+ * Purpose: square brand slots in the sidebar and top bar, and other places that need an icon alone (see BrandLogo for the horizontal wordmark).
+ * The path is the blue graphic from the official logo; color inherits currentColor so it can reverse to white on a primary background.
  *
- * @param size 像素尺寸（宽高一致）
- * @param className 附加样式（如 text-primary-foreground 控制颜色）
+ * @param size Size in pixels (width and height match).
+ * @param className Extra styles (for example text-primary-foreground to set the color).
  */
 export function ModelbestMark({ size = 20, className }: ModelbestMarkProps) {
   return (

@@ -2,7 +2,7 @@ import { readPreviewAttachment } from './attachments';
 import { IMAGE_PARSE_SHARED_EXAMPLES, type ImageParseExampleType } from './imageParseExamples';
 import type { ImageParseSnapshot } from './imageParseHistoryTypes';
 
-/** 图片组只在当前工作台保留，不扩展个人历史的持久化契约。 */
+/** An image group is kept only in the current workspace and does not extend the persistence contract of personal history. */
 export interface ImageParseExampleSnapshot extends ImageParseSnapshot {
   imagePages?: readonly ImageParseSnapshot[];
 }
@@ -51,10 +51,10 @@ async function previewFromUrl(
 }
 
 /**
- * 只读取案例静态原件；案例暂不预识别，也不请求服务端案例结果。
- * @param type 共享案例类型
- * @param signal 切换案例、账号或项目时的取消信号
- * @returns 包含原件和空结果的预览快照
+ * Read only the example's static original; examples are not pre-recognized and do not request a server example result.
+ * @param type shared example type
+ * @param signal cancellation signal when switching example, account, or project
+ * @returns a preview snapshot containing the original and an empty result
  */
 export async function loadImageParseExampleSnapshot(
   type: ImageParseExampleType,

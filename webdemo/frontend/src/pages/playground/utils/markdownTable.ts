@@ -1,7 +1,7 @@
 import { imageParseNodeText, imageParseSourceBlocks } from './imageParseEditorSource';
 import { replaceImageParseTextLineBreaks } from './imageParseLineBreaks';
 
-/** 一张表的二维文字网格；合并单元格只在左上位置保留文字。 */
+/** Two-dimensional text grid of one table; a merged cell keeps its text only at the top-left position. */
 export type MarkdownTable = string[][];
 
 function htmlTables(value: string): MarkdownTable[] {
@@ -35,8 +35,8 @@ function htmlTables(value: string): MarkdownTable[] {
 }
 
 /**
- * 使用成熟 Markdown AST 抽取 GFM 与 HTML 表格，排除代码块内的示例。
- * @param markdown 原始或编辑后的文档，HTML 合并表格无需降级
+ * Extract GFM and HTML tables with a mature Markdown AST, excluding examples inside code blocks.
+ * @param markdown original or edited document; an HTML table with merged cells does not need to be downgraded
  */
 export function extractMarkdownTables(markdown: string): MarkdownTable[] {
   return imageParseSourceBlocks(markdown).flatMap((block) => {
@@ -56,7 +56,7 @@ function tsvCell(value: string) {
   return /[\t\n\r"]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 
-/** 将文档表格导出为 TSV；换行和引号遵循表格软件的字段转义规则。 */
+/** Export a document table as TSV; newlines and quotes follow spreadsheet field-escaping rules. */
 export function markdownTablesToTsv(markdown: string): string {
   return extractMarkdownTables(markdown)
     .map((table) => table.map((row) => row.map(tsvCell).join('\t')).join('\n'))
@@ -73,10 +73,10 @@ function htmlCell(value: string) {
 }
 
 /**
- * 将文档表格导出为 HTML 表格：飞书、Word 只有拿到 `text/html` 才会还原出单元格，
- * 纯文本粘过去只会退化成一行行文字。
- * 表头信息在抽取阶段已经丢失（GFM 表与 HTML 表都只剩二维网格），因此统一输出 `td`。
- * 多张表之间插入空段落，避免 Word 把相邻表格合并成一张。
+ * Export a document table as an HTML table: Feishu and Word restore cells only when they receive `text/html`,
+ * and plain text pastes as lines of text.
+ * Header information is already lost at extraction time (both GFM tables and HTML tables are left as a two-dimensional grid), so everything is emitted as `td`.
+ * An empty paragraph is inserted between tables, so Word does not merge adjacent tables into one.
  */
 export function markdownTablesToHtml(markdown: string): string {
   return extractMarkdownTables(markdown)

@@ -14,9 +14,9 @@ interface ImageParseKieResultCommandsProps {
 }
 
 /**
- * 集中展示字段命中统计、修改字段与 JSON 复制，供结果工具栏及失败状态复用。
- * @param props 当前结果、请求字段与编辑入口
- * @returns 随窄栏换行的统计和图标操作
+ * Gather field-hit stats, field edits, and JSON copy in one place, for reuse by the result toolbar and the failure state.
+ * @param props Current result, requested fields, and edit entry
+ * @returns Stats and icon actions that wrap with a narrow column
  */
 export function ImageParseKieResultCommands({
   content,

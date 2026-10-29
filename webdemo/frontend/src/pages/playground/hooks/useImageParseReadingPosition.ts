@@ -7,17 +7,17 @@ import {
 } from '../utils/imageParseReadingAnchor';
 
 interface ImageParseReadingPositionOptions {
-  /** 当前页或当前结果身份；换页、换文件时重新捕获，不做跨文档跳动。 */
+  /** Identity of the current page or the current result; recapture when the page or file changes, and do not jump across documents. */
   resultKey: string;
-  /** 只改变展示内容、需要保持阅读位置的开关，例如页眉页脚。 */
+  /** A switch that only changes what is shown and needs to keep the reading position, such as header and footer. */
   preserveKey: unknown;
-  /** 使用结果栏已有的程序化滚动入口，避免联动把原文栏一起改写。 */
+  /** Use the programmatic scroll entry the result column already has, so linking does not rewrite the original column as well. */
   scrollTo?: (top: number) => void;
 }
 
 /**
- * 在内容开关切换前后保持结果栏阅读位置。
- * 捕获与恢复都在布局阶段完成，避免先绘制跳位后的内容再滚动。
+ * Keep the result column's reading position across a content-switch toggle.
+ * Both capture and restore finish in the layout phase, so content after a jump is not painted before the scroll.
  */
 export function useImageParseReadingPosition({
   resultKey,
@@ -35,7 +35,7 @@ export function useImageParseReadingPosition({
   const capture = useCallback(() => {
     if (!viewport) return;
     const next = captureImageParseReadingAnchor(viewport);
-    // 标签隐藏时视口高度为 0；保留上一次可见时的定位点。
+    // When the tab is hidden the viewport height is 0; keep the anchor from the last time it was visible.
     if (next) anchor.current = next;
   }, [viewport]);
 

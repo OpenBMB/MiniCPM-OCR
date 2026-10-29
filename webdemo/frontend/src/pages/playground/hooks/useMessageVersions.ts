@@ -1,7 +1,7 @@
 /**
- * Playground 多版本回答与反馈 hook。
+ * Playground hook for multi-version answers and feedback.
  *
- * 用途：regenerate / setFeedback / setActiveVersion；维护 versions 不变式，补全触发委托 startCompletion。
+ * Purpose: regenerate / setFeedback / setActiveVersion; keep the versions invariant, and delegate the completion trigger to startCompletion.
  */
 
 import { useCallback, type Dispatch, type SetStateAction } from 'react';
@@ -14,16 +14,16 @@ import {
   prepareRegenerateMessage,
 } from '../utils/messageVersions';
 
-/** useMessageVersions 入参 */
+/** useMessageVersions arguments */
 export interface UseMessageVersionsArgs {
   messages: ChatMessage[];
   setMessages: Dispatch<SetStateAction<ChatMessage[]>>;
   loading: boolean;
-  /** 来自 useChatCompletion：构造好 history 后发起补全 */
+  /** From useChatCompletion: start a completion after history has been built */
   startCompletion: (history: ChatMessage[], assistantId: string) => void;
 }
 
-/** useMessageVersions 返回 */
+/** useMessageVersions return value */
 export interface UseMessageVersionsReturn {
   regenerate: (assistantId: string) => void;
   setFeedback: (assistantId: string, kind: MessageFeedback) => void;
@@ -31,8 +31,8 @@ export interface UseMessageVersionsReturn {
 }
 
 /**
- * 托管多版本回答与反馈态；不含网络与 JSX。
- * @param args 消息列表、loading 与 startCompletion 回调
+ * Own multi-version answers and feedback state; no network and no JSX.
+ * @param args message list, loading, and the startCompletion callback
  */
 export function useMessageVersions(args: UseMessageVersionsArgs): UseMessageVersionsReturn {
   const { messages, setMessages, loading, startCompletion } = args;

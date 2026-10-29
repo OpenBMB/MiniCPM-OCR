@@ -12,13 +12,13 @@ interface ImageParseToolButtonProps {
   onClick: () => void;
   disabled?: boolean;
   pressed?: boolean;
-  /** 直接展示操作文字；图标控件保持紧凑，文字控件用于工具栏主操作。 */
+  /** Show the action text directly; icon controls stay compact, and text controls are for the toolbar's primary action. */
   showLabel?: boolean;
   className?: string;
   children: ReactNode;
 }
 
-/** 文档工具按钮：统一尺寸、键盘焦点、无障碍名称、悬停提示和可选可见文字。 */
+/** Document tool button: shared size, keyboard focus, accessible name, hover hint, and optional visible text. */
 export function ImageParseToolButton({
   label,
   hint = label,
@@ -53,7 +53,7 @@ export function ImageParseToolButton({
       <Tooltip>
         <TooltipTrigger asChild>
           {disabled ? (
-            // 原生禁用按钮不接收指针与焦点，用外层承接提示，按钮仍保持不可执行。
+            // A natively disabled button does not receive pointer or focus. The outer layer carries the hint, and the button stays non-executable.
             <span
               tabIndex={0}
               className="inline-flex rounded-md focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/30"

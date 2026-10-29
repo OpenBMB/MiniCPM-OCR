@@ -25,7 +25,7 @@ import { usePdfImageParseHistory } from './usePdfImageParseHistory';
 export type { PdfTableMergeState } from './usePdfImageParseTableMerge';
 const EMPTY_FIELDS: readonly string[] = [];
 
-/** 为 PDF 维护页码和 MAP 任务生命周期；替换文件/模式/模型时中止旧任务。 */
+/** Maintain page numbers and the MAP task lifecycle for a PDF; abort the old task when the file, mode, or model is replaced. */
 export function usePdfImageParse(
   attachment: Attachment | undefined,
   mode: ImageParseMode,
@@ -87,7 +87,7 @@ export function usePdfImageParse(
       const { source, mode, model, projectId, upright } = scope;
       if (!source || !enabled || !model.trim() || !projectId.trim()) return;
       stop();
-      // 重识别会让合并结果过期：整份重来时直接丢弃，单页重试先还原成逐页结果
+      // Recognizing again expires the merge result: discard it directly when the whole document starts over, and restore per-page results first on a single-page retry
       resetTableMerge(onlyPage !== undefined);
       setResultScope(scope);
       const active = new AbortController();
@@ -188,7 +188,7 @@ export function usePdfImageParse(
     loading: valid && loading,
     error: valid ? error : undefined,
     snapshot,
-    // 导航不增加识别代次；重试和合并只更新受影响页的草稿身份。
+    // Navigation does not bump the recognition generation; retry and merge update the draft identity only of the affected pages.
     resultIdentity: pageIdentity(page),
     resultIdentityForPage: pageIdentity,
     tableMerge,

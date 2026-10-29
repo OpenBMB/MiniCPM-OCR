@@ -14,9 +14,9 @@ interface ImageParseRegionCopyOptions {
 }
 
 /**
- * 复制选中识别块；范围缺失或写入失败时给出稳定错误提示。
- * @param options 当前草稿、块范围与提示入口
- * @returns 接受块 ID 的复制回调
+ * Copy the selected recognition block; when the range is missing or the write fails, show a stable error notice.
+ * @param options current draft, block ranges, and the notice entry
+ * @returns a copy callback that accepts a block ID
  */
 export function useImageParseRegionCopy({
   markdown,

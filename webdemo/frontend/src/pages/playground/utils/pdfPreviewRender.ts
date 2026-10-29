@@ -1,13 +1,13 @@
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 import { readPdfPreviewFrame, rememberPdfPreviewFrame } from './pdfPreviewFrameCache';
 
-/** 将 PDF.js 错误映射为稳定文案，不向页面暴露解析器内部堆栈。 */
+/** Map a PDF.js error to stable copy, and do not expose the parser's internal stack on the page. */
 export function pdfError(error: unknown): string {
   if (error instanceof Error && error.name === 'PasswordException') return 'documentPdfPassword';
   return 'documentPdfFailed';
 }
 
-/** PDF 页面基础尺寸；rotation 只保存文件自带方向。 */
+/** Base size of a PDF page; rotation stores only the orientation that comes with the file. */
 export interface PdfPageGeometry {
   pageNumber: number;
   width: number;
@@ -15,13 +15,13 @@ export interface PdfPageGeometry {
   rotation: number;
 }
 
-/** 未叠加用户缩放的页面占位尺寸，实际显示尺寸由 CSS 变量计算。 */
+/** Page placeholder size before user zoom is applied; the actual display size is computed from a CSS variable. */
 export interface PdfPageView extends Pick<PdfPageGeometry, 'pageNumber' | 'rotation'> {
   baseWidth: number;
   baseHeight: number;
 }
 
-/** 大 PDF 页面尺寸后台测量每批数量，避免一次性占用 PDF.js worker 与主线程。 */
+/** Batch size for measuring large-PDF page sizes in the background, so the PDF.js worker and the main thread are not occupied all at once. */
 const PDF_GEOMETRY_BATCH_SIZE = 8;
 
 interface PdfProgressiveGeometryOptions {
@@ -32,7 +32,7 @@ interface PdfProgressiveGeometryOptions {
   onError?: (error: unknown) => void;
 }
 
-/** 读取单页原始几何信息；失败由调用方决定是否保留估算值。 */
+/** Read one page's raw geometry; on failure the caller decides whether to keep the estimate. */
 async function measurePdfPageGeometry(
   document: PDFDocumentProxy,
   pageNumber: number,
@@ -42,7 +42,7 @@ async function measurePdfPageGeometry(
   return { pageNumber, width: view.width, height: view.height, rotation: pdfPage.rotate };
 }
 
-/** 按锚点页向外扩展测量顺序，优先修正用户即将滚到的相邻页。 */
+/** Expand the measurement order outward from the anchor page, so neighboring pages the user is about to scroll to are corrected first. */
 function createPdfGeometryOrder(anchorPage: number, pageCount: number): number[] {
   const order: number[] = [];
   for (let distance = 1; distance < pageCount; distance += 1) {
@@ -54,7 +54,7 @@ function createPdfGeometryOrder(anchorPage: number, pageCount: number): number[]
   return order;
 }
 
-/** 只在页面几何确实变化时返回新数组，尺寸相同的页面不会触发重渲染。 */
+/** Return a new array only when page geometry actually changed; pages of the same size do not trigger a re-render. */
 function mergePdfPageGeometries(
   current: PdfPageGeometry[],
   updates: readonly PdfPageGeometry[],
@@ -77,7 +77,7 @@ function mergePdfPageGeometries(
   return changed ? next : current;
 }
 
-/** 生成可见页几何签名，让离屏页面尺寸修正不触发当前页重绘。 */
+/** Build a geometry signature of the visible pages, so an offscreen page-size correction does not redraw the current page. */
 export function createVisiblePdfGeometryKey(
   geometryByPage: ReadonlyMap<number, PdfPageGeometry>,
   pageNumbers: readonly number[],
@@ -93,10 +93,10 @@ export function createVisiblePdfGeometryKey(
 }
 
 /**
- * 先用锚点页发布完整 PDF 骨架，再分批修正其余页面几何。
+ * Publish a full PDF skeleton from the anchor page first, then correct the geometry of the remaining pages in batches.
  *
- * 这样历史记录切换时当前页可以立即渲染，大文档不需要等待所有 `getPage`
- * 调用完成后才出现页面结构。
+ * Then, when switching history records, the current page can render immediately, and a large document does not have to wait for every `getPage`
+ * call to finish before the page structure appears.
  */
 export function measurePdfPageGeometries({
   document,
@@ -158,28 +158,28 @@ export function measurePdfPageGeometries({
   };
 }
 
-/** PDF.js 后台绘制完成但尚未提交到 DOM canvas 的一帧。 */
+/** One frame PDF.js finished drawing in the background but has not yet committed to the DOM canvas. */
 export interface PdfPageFrame {
   buffer: HTMLCanvasElement;
   width: number;
   height: number;
 }
 
-/** 单页渲染参数；width 是 PDF 视口的可用内容宽度。 */
+/** Render parameters for one page; width is the usable content width of the PDF viewport. */
 export interface PdfPageRenderOptions {
   geometry: PdfPageGeometry;
   availableWidth: number;
   scale: number;
   rotation: number;
-  /** 固定案例启用有界像素缓存；显式重试更换版本，普通历史不保留帧。 */
+  /** A fixed example enables a bounded pixel cache; an explicit retry changes the version, and ordinary history does not keep frames. */
   cacheKey?: string;
 }
 
 /**
- * 创建一页 PDF 的后台渲染任务。
+ * Create a background render task for one PDF page.
  *
- * 任务先在离屏 canvas 完成 PDF.js 绘制，再返回显示尺寸；调用方可把返回帧
- * 原子提交到 DOM canvas，避免缩放或旋转期间出现空白页。
+ * The task finishes PDF.js drawing on an offscreen canvas first, then returns the display size; the caller can atomically commit the returned frame
+ * to the DOM canvas, so a blank page does not appear during zoom or rotation.
  */
 export function createPdfPageRenderTask(
   document: PDFDocumentProxy,
@@ -239,9 +239,9 @@ export function createPdfPageRenderTask(
 }
 
 /**
- * 从当前页与左右相邻页中找出视口中心最近的页面。
+ * Find the page whose center is closest to the viewport center, among the current page and its left and right neighbors.
  *
- * 只比较相邻页可以让滚动页码更新保持 O(1)，同时避免页面间隙导致前后页来回震荡。
+ * Comparing only neighbors keeps scroll page-number updates O(1), and avoids the previous and next pages oscillating because of the gap between pages.
  */
 export function getNearestPdfPage(
   current: number,

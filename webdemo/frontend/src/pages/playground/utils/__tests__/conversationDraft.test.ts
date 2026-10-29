@@ -1,5 +1,5 @@
 /**
- * conversationDraft 单测：有效期、损坏数据清理与敏感字段剥离。
+ * Unit tests for conversationDraft: expiry, cleanup of corrupt data, and stripping of sensitive fields.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';

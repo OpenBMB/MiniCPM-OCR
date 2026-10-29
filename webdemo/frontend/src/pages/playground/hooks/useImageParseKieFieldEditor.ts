@@ -3,10 +3,10 @@ import { useState, type ClipboardEvent } from 'react';
 import { imageParseKieFieldsError, splitImageParseKieFields } from '../utils/imageParseKie';
 
 /**
- * 编排单个或批量字段输入，失败保留草稿；主操作包含尚未加入列表的输入。
- * @param fields 已配置的字段
- * @param onChange 字段列表更新入口
- * @returns 输入草稿、即时错误、待提交字段与添加结果
+ * Orchestrate single or batch field input, and keep the draft on failure; the primary action includes input that has not been added to the list yet.
+ * @param fields fields already configured
+ * @param onChange entry that updates the field list
+ * @returns the input draft, the immediate error, fields waiting to be submitted, and the add result
  */
 export function useImageParseKieFieldEditor(
   fields: readonly string[],
@@ -44,7 +44,7 @@ export function useImageParseKieFieldEditor(
     if (splitImageParseKieFields(text).length < 2) return;
     event.preventDefault();
     const input = event.currentTarget;
-    // 合并选区前后的草稿，避免粘贴批量字段时丢掉已经输入的文字。
+    // Merge the draft before and after the selection, so pasting a batch of fields does not drop text that was already typed.
     const value = draft.slice(0, input.selectionStart) + text + draft.slice(input.selectionEnd);
     add(value);
   }

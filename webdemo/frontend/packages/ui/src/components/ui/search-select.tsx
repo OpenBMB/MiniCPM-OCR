@@ -9,9 +9,9 @@ import type { SearchSelectProps } from './search-select.types';
 export type { SearchSelectOption, SearchSelectProps } from './search-select.types';
 
 /**
- * 可搜索单选/多选：清除按钮与输入同行，已选项按身份回显，浮层支持键盘和远程分页。
- * @param props 搜索、候选、已选项及状态文案
- * @returns 可访问的组合框与独立定位的候选浮层
+ * Searchable single or multi select: the clear button sits on the same row as the input, selected items are echoed by identity, and the popover supports keyboard use and remote paging.
+ * @param props Search, candidates, selected items, and status copy.
+ * @returns An accessible combobox and an independently positioned candidate popover.
  */
 export function SearchSelect({
   clearLabel = '清除',

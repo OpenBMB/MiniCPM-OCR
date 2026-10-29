@@ -34,7 +34,7 @@ interface ImageParseRichEditorProps {
   onCommit: () => void;
 }
 
-/** Tiptap 文档编辑视图：正文、表格和撤销共用成熟编辑器的事务模型。 */
+/** Tiptap document edit view: body, tables, and undo share the mature editor's transaction model. */
 export function ImageParseRichEditor({
   source,
   onSave,

@@ -3,9 +3,9 @@ import { AudioLines, BookOpen } from 'lucide-react';
 import { compIconMap } from './comp-icons';
 
 /**
- * 导航/页面图标注册表（侧栏、面包屑等按 meta.icon 名称取用）。
+ * Nav and page icon registry (sidebar, breadcrumbs, and others look up meta.icon by name).
  *
- * 体量较大的组件演示图标已拆至 `comp-icons.tsx`，此处合并两表对外提供统一查询。
+ * The larger component-demo icons live in `comp-icons.tsx`; this file merges both tables into one lookup.
  */
 const navIconMap: Record<string, (props: { className?: string }) => React.ReactNode> = {
   AudioLines: ({ className }) => <AudioLines className={className} size={18} strokeWidth={1.8} />,
@@ -314,15 +314,15 @@ const navIconMap: Record<string, (props: { className?: string }) => React.ReactN
   ),
 };
 
-/** 导航图标 + 组件演示图标合并后的统一注册表 */
+/** Unified registry of nav icons plus component-demo icons. */
 export const iconMap: Record<string, (props: { className?: string }) => React.ReactNode> = {
   ...navIconMap,
   ...compIconMap,
 };
 
 /**
- * 按名称取图标渲染函数；名称缺失或未注册时回退到 Fallback。
- * @param name meta.icon 中声明的图标名
+ * Look up an icon render function by name; fall back to Fallback when the name is missing or unregistered.
+ * @param name Icon name declared in meta.icon.
  */
 export function getIcon(name?: string) {
   return iconMap[name ?? 'Fallback'] ?? iconMap.Fallback;

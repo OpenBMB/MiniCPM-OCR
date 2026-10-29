@@ -6,10 +6,10 @@ import type { DocumentFileRules } from '../utils/documentUpload';
 import { applyPreparedDocument } from '../utils/imageGroupPdf';
 
 /**
- * 接管工作台空白区域的整页拖放，复用上传前的 PDF/图片预处理。
- * @param onFile 已通过拖放校验的单文件处理入口
- * @param rules 当前识别档位的格式与数量边界
- * @returns 拖拽高亮状态与可直接展开到容器的拖放事件
+ * Take over whole-page drag and drop on the empty workspace area, reusing the PDF/image preprocessing that runs before upload.
+ * @param onFile entry that handles the single file that has already passed the drop checks
+ * @param rules format and count bounds of the current recognition tier
+ * @returns drag-highlight state and drop events that can be spread onto the container directly
  */
 export function useImageParsePageDrop(
   onFile: (file: File) => void,

@@ -18,9 +18,9 @@ const SelectTrigger = React.forwardRef<
       'placeholder:text-muted-foreground/60',
       'hover:border-primary/30',
       'focus:outline-none',
-      // 仅键盘聚焦时高亮；鼠标点选关闭后不留紫框（与 Input/Button 一致）
+      // Highlight only for keyboard focus; a mouse selection that closes the menu leaves no purple ring (same as Input and Button).
       'focus-visible:border-primary/50 focus-visible:ring-1 focus-visible:ring-primary/20',
-      // 展开中保留轻微边框提示，收起后恢复默认
+      // Keep a light border hint while open, and return to the default once closed.
       'data-[state=open]:border-primary/30',
       'disabled:cursor-not-allowed disabled:opacity-50',
       '[&>span]:line-clamp-1',
@@ -104,7 +104,7 @@ const SelectScrollDownButton = React.forwardRef<
 ));
 SelectScrollDownButton.displayName = SelectPrimitive.ScrollDownButton.displayName;
 
-// Popper 定位依赖 transform，入场动画只用 opacity，避免与 Radix 定位/transform 冲突导致「跳一下」
+// Popper positioning depends on transform, so the enter animation uses opacity only and does not fight Radix positioning or transform and cause a jump.
 const selectContentStyles = `
 @keyframes map-select-in {
   from { opacity: 0; }
@@ -147,7 +147,7 @@ function ensureSelectKeyframes() {
 interface SelectContentProps extends React.ComponentPropsWithoutRef<
   typeof SelectPrimitive.Content
 > {
-  /** 列表滚动方式：buttons 保持 Radix 默认箭头；native 使用系统原生滚动条。 */
+  /** List scrolling: buttons keeps the Radix default arrows; native uses the system scrollbar. */
   scrollMode?: 'buttons' | 'native';
 }
 
@@ -165,7 +165,7 @@ const SelectContent = React.forwardRef<HTMLDivElement, SelectContentProps>(
           ref={ref}
           sideOffset={sideOffset}
           className={cn(
-            // 浮层层级须高于 Dialog（overlay/content 均为 z-50），否则在弹窗内打开下拉会被盖住
+            // The popover must stack above Dialog (overlay and content are both z-50), or a dropdown opened inside a dialog is covered.
             'map-select-content relative z-[60] max-h-72 min-w-[8rem] overflow-hidden rounded-lg border border-border/60 bg-card text-card-foreground',
             scrollMode === 'native' && 'map-select-native-scroll',
             'shadow-[0_8px_30px_-4px_rgba(0,0,0,0.1),0_2px_8px_-2px_rgba(0,0,0,0.06)]',

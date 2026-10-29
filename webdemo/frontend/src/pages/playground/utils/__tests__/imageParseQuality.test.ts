@@ -47,7 +47,7 @@ describe('原文档框色分级（第一期临时阈值）', () => {
   });
 
   it('框色分级与待审核筛选阈值相互独立', () => {
-    // 0.8 及以上的块不进入待审核，但框色要到 99% 才转绿。
+    // Blocks at 0.8 or above do not enter review, but the box turns green only at 99%.
     expect(imageParseConfidenceLevel(0.8)).toBe('low');
     expect(imageParseConfidenceLevel(0.98)).toBe('low');
     expect(imageParseConfidenceLevel(0.99)).toBe('high');

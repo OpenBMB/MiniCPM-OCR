@@ -1,5 +1,5 @@
 /**
- * conversations 映射纯函数单测：stored↔ChatMessage 互转 + 签名。
+ * Unit tests for conversations mapping pure functions: stored↔ChatMessage conversion + signatures.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -244,8 +244,8 @@ describe('chatMessagesToSavePayload', () => {
         streaming: false,
         usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 },
       },
-      { id: '3', role: 'assistant', content: '', streaming: true }, // 空占位，跳过
-      { id: '4', role: 'assistant', content: 'x', error: '失败' }, // 错误，跳过
+      { id: '3', role: 'assistant', content: '', streaming: true }, // Empty placeholder, skip
+      { id: '4', role: 'assistant', content: 'x', error: '失败' }, // Error, skip
     ];
     const payload = chatMessagesToSavePayload(messages, '标题', 'gpt');
     expect(payload.title).toBe('标题');

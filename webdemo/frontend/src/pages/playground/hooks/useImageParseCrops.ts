@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import type { ImageParseSdkResult } from '@/api/map/imageParseSdk';
 import { imageParseCrops } from '../utils/imageParseCrops';
 
-/** 原图裁图只在本次解析有效时落地；失败不影响文字结果。 */
+/** An original-image crop lands only while this parse is still valid; failure does not affect the text result. */
 export function useImageParseCrops() {
   const [crops, setCrops] = useState<readonly string[]>([]);
   const clearCrops = useCallback(() => setCrops([]), []);
@@ -24,7 +24,7 @@ export function useImageParseCrops() {
         );
         if (isCurrent()) setCrops(next);
       } catch {
-        // 图片解码/裁切失败不影响解析正文与区块选择。
+        // An image decode or crop failure does not affect the parsed body or block selection.
       }
     },
     [],

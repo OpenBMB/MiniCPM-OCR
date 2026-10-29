@@ -48,9 +48,9 @@ interface DialogContentProps extends React.ComponentPropsWithoutRef<
 > {
   onClose?: () => void;
   closeLabel?: string;
-  /** 居中弹窗或右侧抽屉。 */
+  /** Centered dialog or right-side drawer. */
   variant?: 'dialog' | 'sheet-right';
-  /** 覆盖遮罩样式；右侧抽屉可在桌面端弱化遮罩。 */
+  /** Override overlay styles; a right-side drawer can soften the overlay on desktop. */
   overlayClassName?: string;
 }
 
@@ -90,12 +90,12 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
                   'motion-reduce:animate-none',
                 ]
               : [
-                  // 移动端：底部抽屉
+                  // Mobile: bottom drawer.
                   'inset-x-0 bottom-0 max-h-[85vh] w-full rounded-t-2xl',
                   'shadow-[0_-8px_30px_-4px_rgba(0,0,0,0.12)]',
                   '[animation:map-sheet-in_250ms_ease-out]',
                   'data-[state=closed]:[animation:map-sheet-out_200ms_ease-in]',
-                  // 桌面端（≥sm）：居中弹窗。
+                  // Desktop (≥sm): centered dialog.
                   'sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:max-h-[85vh]',
                   'sm:w-full sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2',
                   'sm:rounded-xl sm:border sm:border-border/40',
@@ -110,11 +110,11 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
           {!isRightSheet && (
             <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-muted-foreground/20 sm:hidden" />
           )}
-          {/* 内层滚动区：长内容在此纵向滚动；DialogHeader 用 sticky 钉在顶部，关闭键固定在 Content 角上。
-              注意：这里不能有 pt——sticky top-0 在带 padding-top 的滚动容器里会吸附到 padding 边而非顶边，
-              把头部整体下压，导致标题与关闭键错位、顶部露白。顶部留白改由 DialogHeader 自己的 pt 提供。
-              scroll-pt-16 给 scroll-into-view（如 autoFocus 输入框）留出 sticky 头部高度，
-              避免聚焦时把首个字段标签滚到头部下方被裁切。 */}
+          {/* Inner scroll region: long content scrolls vertically here; DialogHeader sticks to the top, and the close button stays fixed on the Content corner.
+              Do not add pt here — sticky top-0 inside a scroll container with padding-top sticks to the padding edge rather than the top edge,
+              which pushes the whole header down, misaligns the title and the close button, and leaves a white gap at the top. Top spacing comes from DialogHeader’s own pt.
+              scroll-pt-16 reserves the sticky header height for scroll-into-view (for example an autoFocus input),
+              so focus does not scroll the first field’s label under the header and clip it. */}
           <div
             data-slot="dialog-scroll-body"
             className="min-h-0 flex-1 scroll-pt-16 overflow-y-auto overscroll-contain px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:px-6 sm:pb-6"
@@ -149,10 +149,10 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
 DialogContent.displayName = 'DialogContent';
 
 function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  // sticky 钉在内层滚动区顶部：用 -mx 把 bg-card 铺满 Content 宽度（抵消滚动区的 px），
-  // 右侧 pr-12 给关闭键（X，绝对定位于 Content 的 top-5/6、right-5/6）留位，bg-card 遮挡下方滚动内容。
-  // 关键：不要再加 -mt 抵消滚动区 pt——滚动区已无 pt，顶部留白由本头部自己的 pt-5/pt-6 提供，
-  // 这样标题文字中心与关闭键中心对齐；负 mt 会被 sticky 夹回 padding 边，反而把标题压低、与 X 错位。
+  // Stick to the top of the inner scroll region: -mx spreads bg-card across the Content width (cancelling the scroll region’s px),
+  // pr-12 on the right leaves room for the close button (X, absolutely positioned at Content top-5/6 and right-5/6), and bg-card covers content scrolling underneath.
+  // Important: do not add -mt to cancel the scroll region’s pt — the scroll region has no pt, and top spacing comes from this header’s own pt-5/pt-6,
+  // so the title text center lines up with the close button center; a negative mt is clamped by sticky back to the padding edge, which drops the title and misaligns it with X.
   return (
     <div
       className={cn(
@@ -164,8 +164,8 @@ function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
   );
 }
 
-// 接到 Radix 原语：DialogPrimitive.Title 会生成 id 并让 Content 自动 aria-labelledby，
-// 否则 Radix 会对每个 DialogContent 报「requires a DialogTitle」无障碍告警。
+// Wired to the Radix primitive: DialogPrimitive.Title generates an id and Content sets aria-labelledby automatically,
+// otherwise Radix warns on every DialogContent that it "requires a DialogTitle" for accessibility.
 const DialogTitle = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
@@ -191,13 +191,13 @@ const DialogDescription = React.forwardRef<
 DialogDescription.displayName = DialogPrimitive.Description.displayName;
 
 function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  // sticky 钉在内层滚动区底部，与 DialogHeader 的 sticky top 对称：长表单时操作按钮始终吸底，不随内容滚走。
-  // -mx 全宽铺 bg-card 盖住下方滚动内容；顶部 border + bg-card 与内容分隔，footer 自身 pb 提供底部留白（含移动端安全区）。
+  // Stick to the bottom of the inner scroll region, mirroring DialogHeader’s sticky top: on a long form the actions stay pinned and do not scroll away.
+  // -mx spreads bg-card full width over content scrolling underneath; a top border plus bg-card separates it from the content, and the footer’s own pb supplies bottom spacing (including the mobile safe area).
   //
-  // 关键：滚动区带有底部 padding（供无 footer 的弹窗留白），而 `position:sticky` 的吸附基准是滚动容器的
-  // content-box（padding 内侧）——若用 `bottom-0`，footer 会停在 padding 上沿，其下方露出与 pb 等高的空白，
-  // 按钮看起来“没贴到右下角”。这里把吸附点 `bottom` 设为负的 pb（-mb 同步抵消该段对滚动高度的占用），
-  // 使 footer 真正贴到卡片底边，短表单与长表单滚动到底时都无留白。
+  // Important: the scroll region has bottom padding (spacing for dialogs with no footer), and the sticky offset for `position:sticky` is the scroll container’s
+  // content-box (inside the padding) — with `bottom-0`, the footer stops at the top of that padding and leaves a gap as tall as pb underneath,
+  // so the buttons look like they never reach the bottom-right corner. Set the sticky `bottom` to the negative pb (-mb cancels that span’s share of the scroll height),
+  // so the footer actually sits on the card’s bottom edge, with no leftover gap for a short form or when a long form is scrolled to the end.
   return (
     <div
       className={cn(

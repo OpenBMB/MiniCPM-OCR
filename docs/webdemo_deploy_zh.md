@@ -77,3 +77,16 @@ VITE_OCR_TARGET=http://127.0.0.1:8966 corepack pnpm dev --host --port 5173 --str
 ```
 
 打开 **`http://localhost:5173/playground/document-parse`**，即可开始体验本地的 WebDemo！
+
+## 5. 接口
+
+后端同样也提供了 API 服务，以下是相关的 API 接口。
+
+| 接口 | 用途 |
+|---|---|
+| `POST /api/document-parse/jobs` | 异步图片或 PDF，HTTP 200 返回任务 |
+| `GET /api/document-parse/jobs/{id}` | HTTP 200 返回进度与结果 |
+| `DELETE /api/document-parse/jobs/{id}` | 取消任务，HTTP 200 返回任务状态 |
+| `POST /api/kie` | 同步单图，HTTP 200 返回单页响应 |
+
+文档解析的图片和 PDF 都创建任务，响应里 `status` 为 `Running`。关键信息抽取走 `POST /api/kie`，只接受单张图片：JSON 请求体带 `image` 和 `fields`。这一路不创建任务，也不接收 PDF。关键信息抽取的异步形式可以参照文档解析进行改造。

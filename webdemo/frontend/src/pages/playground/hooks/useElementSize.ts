@@ -1,16 +1,16 @@
 /**
- * 观测元素的布局尺寸。
+ * Observe an element's layout size.
  *
- * 用途：图片视口与内容都要按实际尺寸算缩放贴合与平移边界，而这两个盒子会随
- * 分栏拖拽、窗口缩放、侧栏展开而变——只在挂载时量一次就会算错。
+ * Purpose: both the image viewport and the content need their real size to compute zoom fit and pan bounds, and those two boxes change with
+ * split dragging, window resize, and the sidebar opening — measuring once on mount would compute the wrong value.
  *
- * 用 ResizeObserver 而不是监听 window.resize：报的是布局盒，
- * transform 不影响它，所以缩放过程中不会自激成死循环。
+ * Use ResizeObserver rather than listening to window.resize: it reports the layout box,
+ * and transform does not affect it, so zooming does not excite itself into a dead loop.
  */
 
 import { useEffect, useState } from 'react';
 
-/** 元素布局尺寸；宽为 0 表示还没测量到。 */
+/** Element layout size; width 0 means it has not been measured yet. */
 export interface ElementSize {
   width: number;
   height: number;
@@ -19,8 +19,8 @@ export interface ElementSize {
 const EMPTY: ElementSize = { width: 0, height: 0 };
 
 /**
- * 跟随元素尺寸变化。
- * @param node 目标元素，null 时返回零尺寸
+ * Follow changes in an element's size.
+ * @param node target element; return a zero size when null
  */
 export function useElementSize(node: HTMLElement | null): ElementSize {
   const [size, setSize] = useState<ElementSize>(EMPTY);

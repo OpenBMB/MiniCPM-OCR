@@ -26,9 +26,9 @@ interface ImageParseRecognitionSettingsProps {
 }
 
 /**
- * 收拢影响下一次全文识别的选项，不与原件显示设置混用。
- * @param props 摆正、印章与图表展示受控状态、请求期间禁用标记
- * @returns 支持键盘和触屏的识别设置菜单
+ * Gather the options that affect the next full-text recognition, and do not mix them with original-display settings.
+ * @param props Controlled state for rotation adaptation, seal, and chart display, and the disabled flag while a request is in flight
+ * @returns A recognition-settings menu that supports keyboard and touch
  */
 export function ImageParseRecognitionSettings({
   upright,
@@ -95,9 +95,9 @@ interface RecognitionSettingItemProps {
 }
 
 /**
- * 渲染带说明 Tooltip 和受控 Switch 的识别设置项。
- * @param props 设置项文案、当前状态与切换回调
- * @returns 菜单中的识别设置行
+ * Renders a recognition-settings item with a descriptive Tooltip and a controlled Switch.
+ * @param props Setting copy, current state, and toggle callback
+ * @returns A recognition-settings row in the menu
  */
 function RecognitionSettingItem({
   dataTour,

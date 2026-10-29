@@ -40,7 +40,7 @@ interface ImageParsePdfResultPageProps {
   onEditingChange: (page: number, value: boolean) => void;
 }
 
-/** 单页结果的高亮和编辑严格限制在本页，避免跨页重复 ID 命中。 */
+/** Highlight and edit for a single-page result stay strictly on this page, so a duplicate id across pages is not hit. */
 export const ImageParsePdfResultPage = memo(function ImageParsePdfResultPage({
   page,
   resultKey,
@@ -193,7 +193,7 @@ interface ImageParsePdfPendingPageProps {
   onRetry: (page: number) => void;
 }
 
-/** 未完成页只保留页码锚点；只有当前页展示加载状态和整体进度。 */
+/** An unfinished page keeps only a page-number anchor; only the current page shows the loading state and overall progress. */
 export function ImageParsePdfPendingPage({
   page,
   completed,

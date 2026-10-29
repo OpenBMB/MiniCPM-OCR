@@ -13,9 +13,9 @@ interface UseImageParseExperienceTourOptions {
 }
 
 /**
- * 按当前识别任务选择文档解析或关键信息抽取引导。
- * @param options 任务类型、账号状态与两类任务的就绪状态
- * @returns 当前任务的新手引导重播入口
+ * Choose the document-parsing or key information extraction tour from the current recognition task.
+ * @param options task type, account state, and the readiness of the two task kinds
+ * @returns the replay entry for the current task's guided tour
  */
 export function useImageParseExperienceTour({
   task,
@@ -40,7 +40,7 @@ export function useImageParseExperienceTour({
     enabled: task === 'kie' && Boolean(userId && projectId),
     ready,
     hasDocument,
-    // 字段配置和结果核对都属于可继续引导的阶段；错误或运行中由 ready/failed 暂停。
+    // Field configuration and result checking are both phases the tour can continue; an error or a run in progress is paused by ready/failed.
     hasResult: hasKieResult,
     resultReady: hasDocument && ready,
     failed,

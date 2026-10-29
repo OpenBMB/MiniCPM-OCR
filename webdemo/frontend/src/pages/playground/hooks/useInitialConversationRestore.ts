@@ -1,7 +1,7 @@
 /**
- * Playground 首次刷新恢复。
+ * Playground first-refresh restore.
  *
- * 用途：身份确认后优先恢复同用户草稿，否则按 URL 会话 ID 拉取服务端详情。
+ * Purpose: after identity is confirmed, restore the same user's draft first; otherwise pull the server detail by the URL conversation ID.
  */
 
 import { useEffect, useRef } from 'react';
@@ -25,8 +25,8 @@ interface UseInitialConversationRestoreArgs {
 }
 
 /**
- * 恢复刷新前的当前会话。
- * @returns 无返回值。
+ * Restore the current conversation from before the refresh.
+ * @returns no return value.
  */
 export function useInitialConversationRestore(args: UseInitialConversationRestoreArgs): void {
   const {
@@ -55,11 +55,11 @@ export function useInitialConversationRestore(args: UseInitialConversationRestor
     }
 
     async function restore(): Promise<void> {
-      // 本地草稿分支也异步执行，避免 effect 内同步触发多次级联 state 更新。
+      // The local-draft branch also runs asynchronously, so the effect does not synchronously trigger several cascading state updates.
       await Promise.resolve();
       if (run !== runRef.current) return;
       if (hasUserActivity) {
-        // URL 详情未恢复前用户已发送，必须脱离旧会话，避免用不完整快照覆盖服务端历史。
+        // If the user has already sent before the URL detail is restored, leave the old conversation, so an incomplete snapshot does not overwrite server history.
         if (conversationId) setActiveId(undefined);
         finish();
         return;

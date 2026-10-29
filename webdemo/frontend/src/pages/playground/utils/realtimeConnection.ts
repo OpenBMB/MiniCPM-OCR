@@ -1,10 +1,10 @@
 /**
- * 实时全双工会话连接（框架无关）。
+ * Realtime full-duplex session connection (framework-agnostic).
  *
- * 拥有 WS 传输、麦克风采集(16k)、下行播放(24k)、视频抽帧与会话时序；经回调把状态/波形/
- * 字幕增量/错误抛给上层（useRealtimeSession 负责映射到 React 状态）。协议帧见 realtimeProtocol.ts。
- * MAP API Key 经子协议 `map-api-key.<secret>` 携带，不入 URL/query/日志，并兼作 CSRF 防御；
- * 明文密钥仅由调用方内存传入，本模块不持久化、不打印。
+ * Owns WS transport, microphone capture (16k), downlink playback (24k), video frame grabs, and session timing; callbacks throw state, waveform,
+ * caption increments, and errors up to the caller (useRealtimeSession maps them onto React state). Protocol frames are in realtimeProtocol.ts.
+ * The MAP API Key is carried on the subprotocol `map-api-key.<secret>`, never in the URL, query, or logs, and also serves as CSRF defense;
+ * the plaintext secret is passed in only from the caller's memory. This module does not persist it and does not print it.
  */
 
 import { CHAT_API_BASE } from '@/api/map/chat';
@@ -18,7 +18,7 @@ import {
   type RealtimeConfig,
 } from './realtimeProtocol';
 
-/** 会话状态：空闲/连接中/聆听/处理/播放/权限被拒/出错 */
+/** Session state: idle / connecting / listening / processing / playing / permission denied / error */
 export type VoiceStatus =
   | 'idle'
   | 'requesting'
@@ -28,7 +28,7 @@ export type VoiceStatus =
   | 'denied'
   | 'error';
 
-/** connect 当轮参数 */
+/** Parameters for this connect turn */
 export type RealtimeLifecycleEvent =
   | {
       type:
@@ -78,7 +78,7 @@ export interface RealtimeConnectOptions {
   secret: string;
 }
 
-/** 连接向上层抛出的回调集合 */
+/** Callback set the connection throws up to the caller */
 export interface RealtimeCallbacks {
   onStatus: (status: VoiceStatus) => void;
   onViz: (level: number, bars: number[]) => void;
@@ -94,7 +94,7 @@ const KEY_PROTO_PREFIX = 'map-api-key.';
 const VIDEO_MAX_SLICE_NUMS = 1;
 const CLOSE_GRACE_PERIOD_MS = 3000;
 
-/** 构造 L2 `/v1/realtime` 的 WS URL（Key 走子协议，绝不入 URL/query）。 */
+/** Build the WS URL for L2 `/v1/realtime` (the key goes on the subprotocol and never into the URL or query). */
 function buildWsUrl(mode: string, model: string): string {
   const base = CHAT_API_BASE.replace(/\/$/, '');
   const query =
@@ -129,7 +129,7 @@ export class RealtimeConnection {
 
   constructor(private readonly cb: RealtimeCallbacks) {}
 
-  /** 建立会话：麦克风 → 采集/可视化/播放器 → （video）离屏抽帧 → WS 握手。失败返回 false。 */
+  /** Open a session: microphone → capture / visualization / player → (video) offscreen frame grab → WS handshake. Return false on failure. */
   async connect(o: RealtimeConnectOptions): Promise<boolean> {
     this.closed = false;
     this.closing = false;
@@ -205,7 +205,7 @@ export class RealtimeConnection {
     return true;
   }
 
-  /** 主动挂断（发送 session.close 后清理）。 */
+  /** Hang up on purpose (send session.close, then clean up). */
   disconnect(): void {
     if (this.closed || this.closing) return;
     const sock = this.ws;
@@ -221,7 +221,7 @@ export class RealtimeConnection {
       this.cleanup('idle');
       return;
     }
-    // 停止媒体采集和播放，但保留 WS 读取能力，让服务端终态帧能被消费。
+    // Stop media capture and playback, but keep the WS readable so the server's terminal frame can be consumed.
     this.cleanupMediaResources();
     this.cb.onViz(0, new Array(this.opts?.barCount ?? 0).fill(0));
     this.closeTimer = window.setTimeout(() => this.cleanup('idle'), CLOSE_GRACE_PERIOD_MS);
@@ -252,13 +252,13 @@ export class RealtimeConnection {
     return this.hdEnabled;
   }
 
-  /** 暂停/恢复上行（暂停时不再发送麦克风数据）。 */
+  /** Pause or resume the uplink (while paused, microphone data is no longer sent). */
   setPaused(next: boolean): void {
     this.paused = next;
     this.emit({ type: 'pause', at: Date.now(), paused: next });
   }
 
-  /** 单工模式提交当前录音轮次：发送一个带 force_listen 的音频块后暂停上行。 */
+  /** In simplex mode, submit the current recording turn: send one audio chunk with force_listen, then pause the uplink. */
   commitTurn(): void {
     this.forceOnce = true;
     this.paused = false;
@@ -321,8 +321,8 @@ export class RealtimeConnection {
         this.emit({ type: 'listening', at: Date.now(), sessionId: evt.sessionId });
         break;
       case 'audio':
-        // 优先聆听开启后，上游可能仍有已生成但尚未到达的残余音频帧；
-        // 这些帧不能重新写入播放器，否则用户会感觉「打断」没有生效。
+        // After priority listening is turned on, the upstream may still have leftover audio frames that were generated but have not arrived yet;
+        // those frames must not be written into the player again, or the user would feel the interrupt did not take effect.
         if (this.forceListenActive) return;
         if (!this.speaking) {
           this.speaking = true;
@@ -390,7 +390,7 @@ export class RealtimeConnection {
     this.cb.onLifecycle(event);
   }
 
-  /** 释放媒体采集、播放和视频预览资源，但保留 WebSocket 供收尾读取。 */
+  /** Release media capture, playback, and video preview resources, but keep the WebSocket for the closing read. */
   private cleanupMediaResources(): void {
     this.stopViz?.();
     this.mic?.stop();
@@ -408,7 +408,7 @@ export class RealtimeConnection {
     this.speaking = false;
   }
 
-  /** 释放媒体和 WebSocket 资源。 */
+  /** Release media and WebSocket resources. */
   private cleanupResources(): void {
     this.clearCloseTimer();
     this.cleanupMediaResources();
@@ -417,7 +417,7 @@ export class RealtimeConnection {
     this.ws = null;
   }
 
-  /** 清理主动关闭的有界等待定时器。 */
+  /** Clear the bounded wait timer for a close started on purpose. */
   private clearCloseTimer(): void {
     if (this.closeTimer !== null) {
       window.clearTimeout(this.closeTimer);

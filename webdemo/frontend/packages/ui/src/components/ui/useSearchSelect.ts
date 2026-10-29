@@ -12,7 +12,7 @@ import {
 } from '@floating-ui/react';
 import type { SearchSelectOption, SearchSelectProps } from './search-select.types';
 
-/** 管理可搜索选择器的浮层、虚拟键盘焦点和独立的搜索/选择状态。 */
+/** Manages the searchable select’s popover, virtual keyboard focus, and separate search and selection state. */
 export function useSearchSelect(props: SearchSelectProps) {
   const { search, selectedOptions, multiple, remote, disabled } = props;
   const [open, setOpen] = useState(false);
@@ -98,7 +98,7 @@ export function useSearchSelect(props: SearchSelectProps) {
   function remove(option: SearchSelectOption) {
     props.onSelectionChange(selectedOptions.filter((selected) => selected.value !== option.value));
     inputRef.current?.focus();
-    // 移除操作只恢复输入焦点，不应把原本关闭的候选浮层重新打开。
+    // A remove action only restores input focus, and must not reopen a candidate popover that was closed.
     setOpen(open);
   }
 

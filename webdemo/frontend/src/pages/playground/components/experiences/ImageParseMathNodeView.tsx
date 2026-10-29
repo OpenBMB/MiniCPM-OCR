@@ -8,7 +8,7 @@ import { cn } from '@map/ui';
 import { useImageParseFormulaNode } from '../../hooks/useImageParseFormulaNode';
 import { ImageParseFormulaSource } from './ImageParseFormulaSource';
 
-/** 公式保持可复制的 KaTeX DOM；输入框直接替换当前节点，不使用图片或独立编辑面板。 */
+/** Formulas stay as copyable KaTeX DOM; the input replaces the current node directly, with no image or separate edit panel. */
 export function ImageParseMathNodeView(props: NodeViewProps) {
   const { t } = useTranslation('playground');
   const formula = useImageParseFormulaNode(props);

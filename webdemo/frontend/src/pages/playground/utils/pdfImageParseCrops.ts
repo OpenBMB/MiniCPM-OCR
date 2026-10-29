@@ -2,7 +2,7 @@ import type { ImageParseSdkResult } from '@/api/map/imageParseSdk';
 import { imageParseCrops } from './imageParseCrops';
 import { renderPdfPageImage } from './pdfPageImage';
 
-/** 从存档 PDF 重建当前页裁剪预览，仅执行本地渲染，不调用 OCR 或签链。 */
+/** Rebuild the current page's crop preview from an archived PDF; only local rendering runs, with no OCR call and no signed URL. */
 export async function rebuildPdfPageCrops(
   source: string,
   page: number,

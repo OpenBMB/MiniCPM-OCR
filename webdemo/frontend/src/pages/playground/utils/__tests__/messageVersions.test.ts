@@ -1,5 +1,5 @@
 /**
- * messageVersions 纯函数单测：regenerate 上下文、准备态、反馈切换、版本翻页。
+ * Unit tests for messageVersions pure functions: regenerate context, preparing state, feedback toggle, and version paging.
  */
 
 import { describe, it, expect } from 'vitest';

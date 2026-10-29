@@ -1,5 +1,5 @@
 /**
- * 发送禁用原因单测：模型、密钥与明文密钥各阶段给出明确提示。
+ * Unit tests for the send-disabled reason: model, secret, and plaintext-secret stages each produce a clear message.
  */
 
 import { describe, expect, it } from 'vitest';

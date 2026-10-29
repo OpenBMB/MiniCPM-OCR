@@ -1,4 +1,4 @@
-/** 用户提供的合并单元格与物理常数公式表格，供编辑和预览回归共用。 */
+/** User-provided merged-cell and physical-constants formula table, shared by editor and preview regression tests. */
 export const IMAGE_PARSE_CONSTANTS_TABLE = String.raw`<table><tr><td rowspan="2">名称</td><td rowspan="2">符号</td><td rowspan="2">数值</td><td colspan="2">单位</td></tr>
 <tr><td>SI</td><td>(厘米克秒)单位系</td></tr>
 <tr><td>中子的康普顿波长</td><td>$\lambda ca=h/m_{a}c$</td><td>1.319 590 9</td><td>$10^{-15}$</td><td>$10^{-13}cm$</td></tr>

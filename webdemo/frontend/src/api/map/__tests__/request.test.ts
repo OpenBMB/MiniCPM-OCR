@@ -1,5 +1,5 @@
 /**
- * MAP 请求器 token 工具单测：JWT subject 仅用于客户端数据隔离。
+ * MAP request-client token unit test: the JWT subject is used only for client-side data isolation.
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { setApplicationLocale } from '@/i18n';
 import { clearToken, getTokenSubject, mapRequest, mapUpload, setToken } from '../request';
 
-/** 构造无需签名的测试 JWT；生产鉴权仍由服务端校验真实签名。 */
+/** Build an unsigned test JWT; production auth still has the server verify the real signature. */
 function testToken(payload: Record<string, unknown>): string {
   const encoded = btoa(JSON.stringify(payload))
     .replace(/\+/g, '-')

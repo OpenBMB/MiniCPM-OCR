@@ -30,7 +30,7 @@ function block(
   };
 }
 
-/** 两页示例：第一页表格在页末，第二页表格在页首且重复表头。 */
+/** Two-page example: the first page's table is at the end of the page, and the second page's table is at the start and repeats the header. */
 function snapshot(page: number, table: string, atBottom: boolean): ImageParseSnapshot {
   const header = `页眉${page}`;
   const footer = `${page}`;

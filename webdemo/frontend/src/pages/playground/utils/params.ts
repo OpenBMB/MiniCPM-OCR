@@ -1,17 +1,17 @@
 /**
- * 对话参数 → 请求字段映射纯函数。
+ * Pure functions that map conversation parameters → request fields.
  *
- * 用途：把本页参数偏好（温度/思考深度等）组装为后端 `/v1/chat/completions` 请求参数。
- * 思考字段不同模型命名不一，按 `thinkingStyle` 决定发 reasoning_effort / thinking / 两者。
+ * Purpose: assemble this page's parameter preferences (temperature, reasoning depth, and so on) into backend `/v1/chat/completions` request parameters.
+ * Reasoning fields are named differently per model; `thinkingStyle` decides whether to send reasoning_effort, thinking, or both.
  */
 
 import type { PlaygroundParams, ThinkingControlFormat, ThinkingDepth } from '../types';
 import type { ChatCompletionParams, ChatRequestMessage } from '@/api/map/chat';
 
 /**
- * 判断当前公开模型是否属于已支持图片压缩设置的 MiniCPM-V-4.7 系列。
- * @param model 公开模型 ID
- * @returns 仅精确系列名或连字符后缀返回 true，避免误匹配 v4.70 等模型
+ * Whether the current public model belongs to the MiniCPM-V-4.7 series that already supports image-compression settings.
+ * @param model public model ID
+ * @returns true only for the exact series name or a hyphen suffix, so models such as v4.70 are not matched by mistake
  */
 export function supportsImageDownsampleMode(model: string): boolean {
   const normalized = model.trim().toLowerCase();
@@ -19,24 +19,24 @@ export function supportsImageDownsampleMode(model: string): boolean {
 }
 
 /**
- * 判断当前公开模型是否必须使用非流式请求。
- * @param model 公开模型 ID
- * @returns 仅 MiniCPM-OCR-Jev 返回 true，避免影响其他 OCR 模型
+ * Whether the current public model must use a non-streaming request.
+ * @param model public model ID
+ * @returns true only for MiniCPM-OCR-Jev, so other OCR models are not affected
  */
 export function requiresNonStreaming(model: string): boolean {
   return model.trim().toLowerCase() === 'minicpm-ocr-jev';
 }
 
 /**
- * 由思考深度档位构造思考相关请求字段。
+ * Build reasoning-related request fields from the reasoning-depth tier.
  *
- * 按模型协议发送 `chat_template_kwargs.enable_thinking` 或 `thinking.type`。
- * OpenAI 风格的 `reasoning_effort` 没有关闭值，仅在开启时按配置风格附加。
+ * Send `chat_template_kwargs.enable_thinking` or `thinking.type` according to the model protocol.
+ * OpenAI-style `reasoning_effort` has no off value, and is attached by config style only when reasoning is on.
  *
- * @param depth 思考深度档位（on/off）
- * @param style 思考参数风格
- * @param controlFormat 思考开关应使用的协议字段
- * @returns 思考相关的请求字段片段
+ * @param depth reasoning-depth tier (on/off)
+ * @param style reasoning parameter style
+ * @param controlFormat protocol field the reasoning switch should use
+ * @returns the reasoning-related fragment of request fields
  */
 export function buildThinkingParams(
   depth: ThinkingDepth,
@@ -53,7 +53,7 @@ export function buildThinkingParams(
     out.thinking = { type: enabled ? 'enabled' : 'disabled' };
   }
 
-  // OpenAI 风格附加项：reasoning_effort 枚举无「关闭」值，仅开启时下发 medium
+  // OpenAI-style extra: the reasoning_effort enum has no "off" value, so medium is sent only when reasoning is on
   if (style === 'reasoning_effort' || style === 'both') {
     if (enabled) out.reasoning_effort = 'medium';
   }
@@ -61,11 +61,11 @@ export function buildThinkingParams(
 }
 
 /**
- * 组装完整的对话请求参数。
+ * Assemble the full conversation request parameters.
  *
- * @param model 选中的模型 id
- * @param messages 历史消息（已转为 role+content）
- * @param params 参数偏好
+ * @param model selected model id
+ * @param messages history messages (already converted to role+content)
+ * @param params parameter preferences
  */
 export function buildChatParams(
   model: string,
@@ -92,7 +92,7 @@ export function buildChatParams(
     params.thinkingStyle,
     params.thinkingControlFormat,
   );
-  // L2 按整字段覆盖思考对象，修改开关时需保留模型配置的同层参数。
+  // L2 overrides the reasoning object as a whole field; when the switch changes, same-level parameters from the model config must be kept.
   if (thinking.chat_template_kwargs) {
     thinking.chat_template_kwargs = {
       ...params.thinkingDefaults?.chat_template_kwargs,
@@ -108,12 +108,12 @@ export function buildChatParams(
   };
 }
 
-/** 数值参数只有在明确设置且为有限数字时才进入请求，0 不视为空值。 */
+/** A numeric parameter enters the request only when it is explicitly set and finite; 0 is not treated as empty. */
 function isFiniteNumber(value: number | undefined): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
 
-/** 仅当当前请求实际包含图片输入时，才允许发送图片处理参数。 */
+/** Image-processing parameters may be sent only when the current request actually contains image input. */
 function hasImageInput(messages: ChatRequestMessage[]): boolean {
   return messages.some(
     (message) =>

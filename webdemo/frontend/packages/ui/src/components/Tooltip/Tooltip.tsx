@@ -3,7 +3,7 @@ import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import { VariantProps, cva } from 'class-variance-authority';
 import { cn } from '../../utils';
 
-// Trigger 样式（按钮/可触发元素）
+// Trigger styles (button or other trigger element).
 const tooltipTriggerVariants = cva(
   'inline-flex items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2',
   {
@@ -27,7 +27,7 @@ const tooltipTriggerVariants = cva(
   },
 );
 
-// Tooltip 内容样式（气泡）
+// Tooltip content styles (the bubble).
 const tooltipContentVariants = cva(
   'z-[70] overflow-hidden rounded-lg border px-3 py-1.5 text-sm shadow-[0_4px_16px_-2px_rgba(0,0,0,0.1),0_2px_4px_-1px_rgba(0,0,0,0.06)] data-[state=delayed-open]:[animation:map-tooltip-in_150ms_ease-out] data-[state=closed]:[animation:map-tooltip-out_100ms_ease-in]',
   {
@@ -44,7 +44,7 @@ const tooltipContentVariants = cva(
   },
 );
 
-// Props 类型
+// Props types.
 interface TooltipTriggerProps
   extends
     React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Trigger>,
@@ -58,12 +58,12 @@ interface TooltipContentProps
   align?: 'start' | 'center' | 'end';
 }
 
-// 组件实现
+// Component implementation.
 const TooltipProvider = TooltipPrimitive.Provider;
 
 /**
- * Tooltip 根组件。
- * 将 Radix 默认的 700ms 悬浮延迟收敛到 200ms，让提示更跟手（仍可通过 delayDuration 覆盖）。
+ * Tooltip root.
+ * Pulls Radix’s default 700ms hover delay down to 200ms so the hint feels more responsive (delayDuration can still override it).
  */
 function Tooltip({
   delayDuration = 200,

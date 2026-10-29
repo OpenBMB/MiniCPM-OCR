@@ -9,9 +9,9 @@ interface PdfPanOrigin {
 }
 
 /**
- * PDF 鼠标拖拽阅读；只更新原生滚动位置，不改变倍率或重绘画布。
- * @param enabled 文档就绪后允许拖拽，触屏仍使用原生滚动。
- * @returns 抓取状态和视口指针事件处理函数。
+ * PDF mouse-drag reading; update only the native scroll position, and do not change the scale or redraw the canvas.
+ * @param enabled dragging is allowed after the document is ready; touch still uses native scroll.
+ * @returns the grab state and the viewport pointer-event handlers.
  */
 export function usePdfPreviewPan(enabled: boolean) {
   const origin = useRef<PdfPanOrigin | null>(null);
@@ -20,7 +20,7 @@ export function usePdfPreviewPan(enabled: boolean) {
     (event: PointerEvent<HTMLDivElement>) => {
       if (!enabled || origin.current || event.button !== 0 || event.pointerType === 'touch') return;
       const target = event.target;
-      // 识别框和操作控件保留点击语义，不能被阅读拖拽捕获。
+      // Recognition boxes and action controls keep click semantics and must not be captured by reading drag.
       if (
         target instanceof Element &&
         target.closest('button, a, input, select, textarea, [role="button"], [contenteditable]')

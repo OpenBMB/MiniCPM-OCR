@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""VLM 识别服务 — HTTP 客户端，封装 vLLM / LIS 的 OpenAI Chat Completions 接口。
+"""VLM recognition client. Wraps the OpenAI Chat Completions API of vLLM or LIS.
 
-职责：
-  - 从 `prompt_map` 按 label 选 prompt
-  - 把 PIL.Image 编码为 data URI
-  - 拼 vLLM payload（含 TTS 的 decode_overrides / n）
-  - 解析响应，归一化为 {"text": ..., "texts": [...], "output_token_count": ...}
-  - 健康检查 /v1/models，验证模型名是否匹配
+It does this:
+  - Pick a prompt from `prompt_map` by label
+  - Encode a PIL.Image as a data URI
+  - Build the vLLM payload, including TTS decode_overrides and n
+  - Parse the response into {"text": ..., "texts": [...], "output_token_count": ...}
+  - Check /v1/models and whether the model name matches
 
-不持有任何任务状态；线程安全（urllib.request 本身是无状态的）。
+It holds no job state. Thread-safe, because urllib.request itself is stateless.
 """
 from __future__ import annotations
 
@@ -22,10 +22,10 @@ from typing import Dict, List, Optional
 
 from PIL import Image
 
-# 不走系统代理，避免容器内 proxy 配置干扰本地 vLLM
+# Skip the system proxy so a container proxy does not divert the local vLLM.
 _OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
-# 与 SDK 配置（minicpmvocr.yaml 的 engine 段）读同一组变量，部署时只设一次
+# Read the same variables as the SDK config (the engine section of minicpmvocr.yaml). Set them once at deploy time.
 VLLM_URL = (os.environ.get("OCR_VLLM_URL") or os.environ.get("VLLM_URL")
             or "http://127.0.0.1:18499").rstrip("/")
 SERVED_MODEL = (os.environ.get("OCR_SERVED_MODEL_NAME") or os.environ.get("OCR_SERVED_NAME")
@@ -51,9 +51,9 @@ def _post(url: str, payload: Dict, timeout: int = 240) -> Dict:
 
 
 class OcrService:
-    """OpenAI Chat Completions 客户端，对接 vLLM 或 LIS。
+    """OpenAI Chat Completions client for vLLM or LIS.
 
-    所有方法都是无状态的，可以从多个线程并发调用。
+    Every method is stateless and can be called from several threads at once.
     """
 
     def __init__(self, vllm_url: str = VLLM_URL,
@@ -73,7 +73,7 @@ class OcrService:
         }
 
     # ------------------------------------------------------------------
-    # 对外接口
+    # Public API
     # ------------------------------------------------------------------
 
     def recognize(
@@ -85,7 +85,7 @@ class OcrService:
         n: int = 1,
         decode_overrides: Optional[Dict] = None,
     ) -> Dict:
-        """识别一张块图。
+        """Recognize one crop.
 
         n=1  → {"text": str, "output_token_count": int, "finish_reason": str}
         n>1  → {"texts": list[str], "output_token_count": int}
@@ -102,7 +102,7 @@ class OcrService:
         return self._parse_response(raw, n)
 
     def health(self) -> Dict:
-        """探活：检查 vLLM 是否可达，以及模型名是否匹配。
+        """Liveness: whether vLLM is reachable, and whether the model name matches.
 
         Returns {"reachable": bool, "model_match": bool,
                  "served": list[str], "error": str|None}
@@ -119,7 +119,7 @@ class OcrService:
                     "error": f"{type(exc).__name__}: {exc}"}
 
     # ------------------------------------------------------------------
-    # 内部实现
+    # Internals
     # ------------------------------------------------------------------
 
     def _build_payload(
@@ -159,10 +159,10 @@ class OcrService:
         }
         if slice_nums is not None:
             payload["mm_processor_kwargs"]["max_slice_nums"] = int(slice_nums)
-        # TTS 时 n>1，seed 由调用方在 decode_overrides 里传入
+        # For TTS, n>1. The caller passes seed inside decode_overrides.
         if n > 1:
             payload["n"] = int(n)
-        # 把 decode_overrides 里除了已处理键之外的其他采样参数透传
+        # Pass through sampling parameters in decode_overrides other than the keys already applied.
         handled = {"temperature", "top_p", "top_k", "repetition_penalty",
                    "no_repeat_ngram_size"}
         if decode_overrides:

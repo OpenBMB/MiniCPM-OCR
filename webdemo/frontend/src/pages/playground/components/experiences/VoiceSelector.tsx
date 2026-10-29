@@ -1,7 +1,7 @@
 /**
- * 可搜索的音色选择器。
+ * Searchable voice selector.
  *
- * 用途：按场景在预置音色与当前用户保存的私有音色之间选择；名称和业务 ID 都可快速过滤。
+ * Purpose: choose, by scene, between preset voices and private voices saved by the current user; both the name and the business ID can be filtered quickly.
  */
 
 import { Search } from 'lucide-react';
@@ -12,7 +12,7 @@ import type { MapVoiceResource } from '@/api/map';
 export interface VoiceSelectorOption {
   value: string;
   label: string;
-  /** 用于快速搜索的补充文本，例如预置音色的内部标识。 */
+  /** Extra text for quick search, for example a preset voice's internal identifier. */
   searchText?: string;
 }
 
@@ -21,7 +21,7 @@ interface VoiceSelectorProps {
   onChange: (value: string) => void;
   presetOptions: VoiceSelectorOption[];
   savedVoices: MapVoiceResource[];
-  /** 是否允许当前场景读取和展示用户私有音色。 */
+  /** Whether the current scene may read and show the user's private voices. */
   allowSavedVoices?: boolean;
   disabled?: boolean;
   loading?: boolean;
@@ -33,9 +33,9 @@ interface VoiceSelectorProps {
 }
 
 /**
- * 可搜索的音色选择器。
- * @param props 音色目录、当前值和分组展示文案
- * @returns 预置与私有音色的可访问选择控件
+ * Searchable voice selector.
+ * @param props Voice catalog, current value, and group display copy
+ * @returns An accessible select control for preset and private voices
  */
 export function VoiceSelector({
   value,
@@ -73,7 +73,7 @@ export function VoiceSelector({
   const empty = matchingPresets.length === 0 && matchingSaved.length === 0;
 
   function handleChange(nextValue: string) {
-    // 选择后立即关闭并清空检索词，下一次打开时始终展示完整目录。
+    // Close immediately after a selection and clear the query, so the next open always shows the full catalog.
     setQuery('');
     setOpen(false);
     onChange(nextValue);
@@ -163,9 +163,9 @@ interface VoiceOptionGroupProps {
 }
 
 /**
- * 音色候选分组。
- * @param props 分组标题与候选项
- * @returns 分组化的音色列表
+ * A group of voice candidates.
+ * @param props Group title and candidates
+ * @returns A grouped voice list
  */
 function VoiceOptionGroup({ label, children }: VoiceOptionGroupProps) {
   return (
@@ -184,9 +184,9 @@ interface VoiceOptionProps {
 }
 
 /**
- * 单个音色候选项。
- * @param props 当前选中状态、展示内容和选择动作
- * @returns 可点击的音色行
+ * A single voice candidate.
+ * @param props Current selected state, display content, and selection action
+ * @returns A clickable voice row
  */
 function VoiceOption({ active, label, detail, onSelect }: VoiceOptionProps) {
   return (
@@ -207,11 +207,11 @@ function VoiceOption({ active, label, detail, onSelect }: VoiceOptionProps) {
 }
 
 /**
- * 判断音色名称或业务 ID 是否匹配搜索词。
- * @param label 音色展示名称
- * @param searchText 可选补充检索文本
- * @param query 已归一化的小写搜索词
- * @returns 是否应在当前候选中显示
+ * Decide whether a voice name or business ID matches the search query.
+ * @param label Voice display name
+ * @param searchText Optional extra search text
+ * @param query Normalized lowercase search query
+ * @returns Whether it should be shown among the current candidates
  */
 function matchesVoiceSearch(label: string, searchText: string | undefined, query: string): boolean {
   if (!query) return true;
@@ -219,11 +219,11 @@ function matchesVoiceSearch(label: string, searchText: string | undefined, query
 }
 
 /**
- * 解析当前值对应的展示名称。
- * @param value 当前选中的预置音色或私有音色 ID
- * @param presetOptions 预置音色目录
- * @param savedVoices 当前用户已保存的音色
- * @returns 用于触发按钮回显的音色名称
+ * Resolve the display name for the current value.
+ * @param value Currently selected preset-voice or private-voice ID
+ * @param presetOptions Preset-voice catalog
+ * @param savedVoices Voices already saved by the current user
+ * @returns Voice name shown back on the trigger button
  */
 function findVoiceLabel(
   value: string,

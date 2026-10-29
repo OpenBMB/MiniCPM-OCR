@@ -162,8 +162,8 @@
   }
 }
 
-/* 图像解析扫描带：自身高度为容器 14%，714% 位移刚好把它推到容器底部。
-   下行再上行构成一个来回，像扫描头而不是每轮硬跳回顶部。 */
+/* Image-parse scan band: its own height is 14% of the container, and a 714% translation pushes it exactly to the container bottom.
+   Down then up makes one round trip, like a scan head, rather than jumping hard back to the top each cycle. */
 @keyframes map-image-scan {
   0% {
     transform: translateY(-100%);
@@ -176,7 +176,7 @@
   }
 }
 
-/* 版面框检出：逐个出现，200ms 落在项目规范的入场区间内 */
+/* Layout boxes appearing: they show up one by one; 200ms sits inside the project entrance-motion range. */
 @keyframes map-layout-box-in {
   from {
     opacity: 0;

@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 
 /**
- * 展示无法可靠转换的原始文档块；只读保留，避免保存其它内容时丢失。
- * @param node 仅含原始源码的 schema 节点
+ * Show an original document block that cannot be converted reliably; keep it read-only so it is not lost when other content is saved.
+ * @param node Schema node that contains only the original source
  */
 export function ImageParsePreservedSource({ node }: NodeViewProps) {
   const { t } = useTranslation('playground');

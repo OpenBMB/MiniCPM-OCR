@@ -15,17 +15,17 @@ interface ImageParseRun {
   signal: AbortSignal;
   isCurrent: () => boolean;
   mode?: ImageParseMode;
-  /** 当前登录用户可见的文档解析模型 ID；空值表示无权限。 */
+  /** Document-parsing model ID visible to the current logged-in user; an empty value means no permission. */
   model: string;
-  /** 当前选中 API Key 的明文密钥；仅内存传递，不落盘。 */
+  /** Plaintext secret of the currently selected API Key; passed in memory only and not persisted to disk. */
   secret: string;
-  /** Playground 单图优先使用 OBS 文件引用；文件服务异常时回退内联图片。 */
+  /** A Playground single image prefers an OBS file reference; when the file service fails, fall back to an inline image. */
   fileId?: string;
-  /** 文件服务不可用时，使用平台旧资产入口返回的签名链接。 */
+  /** When the file service is unavailable, use the signed URL returned by the platform's legacy asset entry. */
   fileUrl?: string;
 }
 
-/** 通过 L2 API Key 链路解析页图；不以 L3 代理配置判定 L2 可用性，也不回退传统模型。 */
+/** Parse the page image through the L2 API Key path; do not judge L2 availability from the L3 proxy config, and do not fall back to a traditional model. */
 export async function runImageParse(args: ImageParseRun): Promise<ImageParseSdkResult | undefined> {
   const signal = AbortSignal.any([args.signal, AbortSignal.timeout(300_000)]);
   const assertCurrent = () => {
@@ -34,8 +34,8 @@ export async function runImageParse(args: ImageParseRun): Promise<ImageParseSdkR
   };
   assertCurrent();
   if (!args.model?.trim()) throw new Error('imageParseNoModel');
-  // 显式传入的空串表示本次必须使用内联图片，不能回退到 attachment，
-  // 否则引用失效后的内联重试会再次带上已清理的 fileId/URL。
+  // An explicitly passed empty string means this attempt must use an inline image and must not fall back to the attachment,
+  // or an inline retry after the reference failed would attach the fileId/URL that was already cleared.
   const fileId =
     args.fileId !== undefined ? args.fileId.trim() : (args.attachment.fileId?.trim() ?? '');
   const fileUrl =
@@ -78,14 +78,14 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
-/** 将解析错误键转换为界面文案键；高精度档位超时使用更具体的提示。 */
+/** Turn a parse error key into a UI copy key; a high-precision tier timeout uses a more specific notice. */
 export function imageParseCopyKey(key: string, mode: ImageParseMode): string {
   return key === 'imageParseTimeout' && mode === 'high-precision'
     ? 'imageParseHighPrecisionTimeout'
     : key;
 }
 
-/** 将 v3 OCR 代理错误转换为稳定文案键，不展示未经净化的上游消息。 */
+/** Turn a v3 OCR proxy error into a stable copy key, and do not show an unsanitized upstream message. */
 export function imageParseErrorKey(error: unknown): string {
   if (error instanceof DOMException && error.name === 'TimeoutError') return 'imageParseTimeout';
   if (error instanceof Error && /^imageParse[A-Z]/.test(error.message)) return error.message;

@@ -1,12 +1,10 @@
 /**
- * 正文内的引用角标。
+ * Citation badge inside the body.
  *
- * 用途：把命中来源的 Markdown 链接渲染成与来源列表同号的上标数字，
- * 悬浮出预览卡、点击唤起右侧来源面板并定位到该条（未接 onActivate 时退回新窗口打开原文）。
+ * Purpose: render a Markdown link that matches a source as a superscript number with the same index as the source list. Hover shows a preview card; click opens the source panel on the right and scrolls to that item (when onActivate is not wired, fall back to opening the original in a new window).
  *
- * 为什么用 `relative + top` 而不是 `<sup>` / `vertical-align: super`：
- * 后两者会抬高行内盒并撑高整行行高，正文读起来忽上忽下；相对定位不参与行盒计算，
- * 角标视觉上升但版面完全不动。
+ * Why `relative + top` instead of `<sup>` / `vertical-align: super`:
+ * the latter two raise the inline box and stretch the whole line height, so the body reads as jumping up and down. Relative positioning does not join line-box layout, so the badge rises visually but the layout does not move at all.
  */
 
 import { useTranslation } from 'react-i18next';
@@ -18,28 +16,28 @@ import { isNativeOpenIntent, openCitationWindow, safeCitationHref } from '../uti
 import { CitationPreviewCard } from './CitationPreview';
 
 interface CitationBadgeProps {
-  /** 角标对应的来源。 */
+  /** Source this badge corresponds to. */
   citation: Citation;
-  /** 来源序号（从 1 起，与底部参考资料、来源面板同号）。 */
+  /** Source index (starting at 1, the same number as the references at the bottom and the source panel). */
   index: number;
-  /** 点击角标时的接管动作（打开来源面板并定位）；不传则维持新窗口打开原文。 */
+  /** Takeover action when the badge is clicked (open the source panel and locate the item); when omitted, keep opening the original in a new window. */
   onActivate?: () => void;
 }
 
 /**
- * 渲染一个可预览、可跳转的引用角标。
- * @param citation 角标对应的来源
- * @param index 来源序号（从 1 起）
- * @param onActivate 点击时的接管动作，缺省为新窗口打开原文
- * @returns 上标数字角标；地址非法时退化为不可点的纯数字
+ * Renders a citation badge that can be previewed and followed.
+ * @param citation Source this badge corresponds to
+ * @param index Source index (starting at 1)
+ * @param onActivate Takeover action on click; default is to open the original in a new window
+ * @returns A superscript number badge; an illegal address degrades to a non-clickable plain number
  */
 export function CitationBadge({ citation, index, onActivate }: CitationBadgeProps) {
   const { t } = useTranslation('playground');
   const href = safeCitationHref(citation.url);
   const label = t('citationIndexLabel', { index });
 
-  // data-citation-badge 让 MarkdownRenderer 的 `[&_a]` 基础样式跳过角标，
-  // 否则正文链接的下划线与主色会盖掉角标自身的配色。
+  // data-citation-badge makes MarkdownRenderer's `[&_a]` base styles skip the badge,
+  // otherwise the body link's underline and primary color cover the badge's own colors.
   const badgeClassName = cn(
     'relative -top-[0.3em] mx-[0.1em] inline-flex h-[1.15em] min-w-[1.15em] items-center justify-center',
     'rounded-[0.35em] bg-muted px-[0.28em] align-baseline text-[0.7em] font-medium leading-none',
@@ -66,11 +64,11 @@ export function CitationBadge({ citation, index, onActivate }: CitationBadgeProp
           data-citation-url={href}
           aria-label={label}
           onClick={(event) => {
-            // Cmd/Ctrl/中键仍按浏览器原生语义直接开新标签，不抢高级用户的习惯
+            // Cmd/Ctrl/middle-click still opens a new tab with native browser semantics, and does not override that habit for advanced users
             if (isNativeOpenIntent(event)) return;
             event.preventDefault();
             event.stopPropagation();
-            // 接了面板就交给面板定位高亮；没接（如独立预览场景）才退回打开原文
+            // When a panel is wired, hand highlighting and scrolling to the panel; only when it is not (for example, a standalone preview) fall back to opening the original
             if (onActivate) onActivate();
             else openCitationWindow(href);
           }}

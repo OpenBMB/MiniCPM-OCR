@@ -1,8 +1,8 @@
 /**
- * 体验中心核心对话状态机 hook（门面）。
+ * Core conversation state-machine hook for the experience center (facade).
  *
- * 用途：托管消息列表与 send/clear；补全网络委托 useChatCompletion，多版本/反馈委托 useMessageVersions。
- * 对外 API 保持不变：页面层只依赖 useChat(args) 及其返回值。
+ * Purpose: own the message list and send/clear; completion networking is delegated to useChatCompletion, and multi-version/feedback to useMessageVersions.
+ * The external API stays the same: the page layer depends only on useChat(args) and its return value.
  */
 
 import { useCallback, useRef, useState } from 'react';
@@ -11,55 +11,55 @@ import { genId, makeDivider, makeMessage } from '../utils/messages';
 import { useChatCompletion } from './useChatCompletion';
 import { useMessageVersions } from './useMessageVersions';
 
-/** useChat 入参 */
+/** useChat arguments */
 export interface UseChatArgs {
-  /** 当前选中模型 id */
+  /** Currently selected model id */
   model: string;
-  /** 懒取明文密钥（无密钥时返回空，send 会拒绝） */
+  /** Lazily read the plaintext secret (returns empty when there is no secret, and send refuses) */
   getSecret: () => string | undefined;
-  /** 当前自动选定的 API Key ID，联网模式只把该 ID 交给 BFF */
+  /** Currently auto-selected API Key ID; web-search mode hands only this ID to the BFF */
   keyId?: string;
-  /** 参数偏好 */
+  /** Parameter preferences */
   params: PlaygroundParams;
-  /** 可选系统提示 */
+  /** Optional system prompt */
   systemPrompt?: string;
-  /** 模型目录声明的上下文窗口；0 表示未声明。 */
+  /** Context window declared in the model catalog; 0 means it is not declared. */
   contextWindow?: number;
-  /** 模型目录声明的最大输出 token。 */
+  /** Maximum output tokens declared in the model catalog. */
   modelMaxOutputTokens?: number;
-  /** 自动裁剪旧消息后的体验提示。 */
+  /** Experience notice after old messages are trimmed automatically. */
   onContextTrim?: (trimmedMessageCount: number) => void;
-  /** 当前输入自身超过可用上下文时的体验提示。 */
+  /** Experience notice when the current input itself exceeds the available context. */
   onContextLimit?: () => void;
-  /** 请求终态后刷新 Playground 免费体验状态。 */
+  /** Refresh Playground free-trial state after a request reaches a terminal state. */
   refreshCredential?: () => void;
 }
 
-/** useChat 返回 */
+/** useChat return value */
 export interface UseChatReturn {
   messages: ChatMessage[];
   loading: boolean;
-  /** 发送一条用户消息（可带多模态附件）并发起补全 */
+  /** Send one user message (optionally with multimodal attachments) and start a completion */
   send: (text: string, attachments?: Attachment[]) => void;
-  /** 重新生成某条 assistant 消息（非破坏性）：保留既有版本，追加新版本并切到末位 */
+  /** Regenerate one assistant message (non-destructive): keep existing versions, append a new version, and switch to the last one */
   regenerate: (assistantId: string) => void;
-  /** 切换某条 assistant 消息的反馈态（赞/踩互斥，再次点击同项取消）。写入当前版本并镜像顶层 */
+  /** Toggle feedback on one assistant message (like/dislike are exclusive; clicking the same one again clears it). Write the current version and mirror the top level */
   setFeedback: (assistantId: string, kind: MessageFeedback) => void;
-  /** 切换某条 assistant 消息的显示版本（‹n/N› 翻页），把该版本字段镜像回顶层 */
+  /** Switch the displayed version of one assistant message (‹n/N› paging), and mirror that version's fields back to the top level */
   setActiveVersion: (assistantId: string, index: number) => void;
-  /** 停止当前生成（AbortController） */
+  /** Stop the current generation (AbortController) */
   stop: () => void;
-  /** 清空全部消息 */
+  /** Clear every message */
   clear: () => void;
-  /** 清除上下文：插入一条分隔线，其上历史不再作为上下文发送（消息仍保留，非新会话） */
+  /** Clear context: insert a divider, and history above it is no longer sent as context (messages stay; this is not a new conversation) */
   clearContext: () => void;
-  /** 直接替换消息列表（用于切换「最近对话」） */
+  /** Replace the message list directly (used when switching "recent conversations") */
   setMessages: (list: ChatMessage[]) => void;
 }
 
 /**
- * 对话状态机门面。
- * @param args 模型 / 取密钥 / 参数 / 系统提示
+ * Conversation state-machine facade.
+ * @param args model / secret getter / parameters / system prompt
  */
 export function useChat(args: UseChatArgs): UseChatReturn {
   const {
@@ -128,8 +128,8 @@ export function useChat(args: UseChatArgs): UseChatReturn {
         atts.length ? { attachments: atts } : {},
       );
       const history = [...messages, userMsg];
-      // 开了联网就先把 searching 置起来：从发请求到第一个 tool_status 事件之间有一段空窗，
-      // 否则这段时间界面上什么反馈都没有。关闭联网时仍是 false，非联网路径行为不变。
+      // When web search is on, set searching first: there is a gap between sending the request and the first tool_status event,
+      // and otherwise the UI has no feedback during that time. When web search is off it stays false, and the non-search path is unchanged.
       const placeholder = makeMessage(assistantId, 'assistant', '', {
         streaming: true,
         searching: params.webSearch,

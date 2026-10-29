@@ -1,9 +1,7 @@
 /**
- * 环形声纹可视化（Canvas）。
+ * Ring voiceprint visualization (Canvas).
  *
- * 用途：有辨识度的圆形声纹——中心辉光 + 一圈随频谱律动的渐变柱（按角度紫→蓝），待机时
- * 亮带沿圆周旋转流动、说话时各频段随能量放大；中心是随音量脉动的麦克风核心（lucide 图标）。
- * Canvas + rAF 命令式绘制，半径取 min(宽,高) 保证正圆；颜色取自 `--primary` 令牌，暗色自适配。
+ * Purpose: a recognizable circular voiceprint — a center glow plus a ring of gradient bars that move with the spectrum (purple→blue by angle). While idle a bright band flows around the circle; while speaking each band grows with its energy. The center is a microphone core that pulses with volume (a lucide icon). Drawn imperatively with Canvas + rAF. The radius is min(width, height) so it stays a circle; color comes from the `--primary` token and adapts in dark mode.
  */
 
 import { useEffect, useRef, type RefObject } from 'react';
@@ -11,15 +9,15 @@ import { Mic } from 'lucide-react';
 import type { VizFrame } from '../../hooks/useRealtimeSession';
 
 interface VoiceOrbProps {
-  /** 频谱帧的可变引用（60fps 直写，见 VizFrame）；柱高与中心脉动都在画布 rAF 里直接读 */
+  /** Mutable ref for a spectrum frame (written directly at 60fps; see VizFrame); bar height and the center pulse are both read directly in the canvas rAF */
   viz: RefObject<VizFrame>;
-  /** 是否活跃（聆听/播放） */
+  /** Whether it is active (listening/playing) */
   active: boolean;
   className?: string;
 }
 
 /**
- * 环形声纹。
+ * Ring voiceprint.
  */
 export function VoiceOrb({ viz, active, className }: VoiceOrbProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -59,19 +57,19 @@ export function VoiceOrb({ viz, active, className }: VoiceOrbProps) {
       const act = activeRef.current;
       const n = data.length || 40;
 
-      // 中心辉光
+      // Center glow
       const glow = ctx.createRadialGradient(cx, cy, size * 0.08, cx, cy, size * 0.5);
       glow.addColorStop(0, `hsla(${c.h},${c.s}%,${c.l}%,0.2)`);
       glow.addColorStop(1, `hsla(${c.h},${c.s}%,${c.l}%,0)`);
       ctx.fillStyle = glow;
       ctx.fillRect(0, 0, cw, ch);
 
-      // 频谱柱环
+      // Spectrum bar ring
       ctx.lineCap = 'round';
       for (let i = 0; i < n; i += 1) {
         const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
         const energy = data[i] ?? 0;
-        // 待机：亮带沿圆周旋转流动；说话：叠加频段能量
+        // Idle: a bright band flows around the circle; speaking: add per-band energy
         const idle = act ? 0.05 : 0.16 + 0.13 * Math.sin(phase * 1.6 - i * 0.5);
         const len = Math.max(3, (idle + energy) * maxLen);
         const cos = Math.cos(angle);
@@ -85,7 +83,7 @@ export function VoiceOrb({ viz, active, className }: VoiceOrbProps) {
         ctx.stroke();
       }
 
-      // 中心核心随音量脉动：与柱环同帧直接写 style，避免为此每帧触发一次 React 渲染
+      // The center core pulses with volume: write style directly on the same frame as the bar ring, so this does not trigger a React render every frame
       if (coreRef.current) {
         coreRef.current.style.transform = `scale(${1 + Math.min(viz.current.level, 1) * 0.16})`;
       }
@@ -100,7 +98,7 @@ export function VoiceOrb({ viz, active, className }: VoiceOrbProps) {
   return (
     <div className={`relative aspect-square ${className ?? ''}`}>
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden />
-      {/* 中心核心：呼吸光环 + 渐变圆 + 麦克风，随音量脉动 */}
+      {/* Center core: breathing halo + gradient circle + microphone, pulsing with volume */}
       <div className="absolute inset-0 flex items-center justify-center">
         <span
           aria-hidden
@@ -117,7 +115,7 @@ export function VoiceOrb({ viz, active, className }: VoiceOrbProps) {
   );
 }
 
-/** 读取 --primary 设计令牌（HSL 三元组）为数值 */
+/** Read the --primary design token (an HSL triple) as numbers */
 function readPrimaryHsl(): { h: number; s: number; l: number } {
   const raw = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim();
   const m = raw.match(/([\d.]+)\s+([\d.]+)%\s+([\d.]+)%/);

@@ -1,8 +1,8 @@
 /**
- * Playground 一次补全生命周期的纯函数。
+ * Pure functions for one Playground completion lifecycle.
  *
- * 用途：auth 校验、流式收尾、abort/fail 时的消息列表变换；供 useChatCompletion 与单测复用。
- * 流式 SSE 回调集合在 chatStreamCallbacks.ts。
+ * Purpose: auth checks, streaming finalization, and message-list transforms on abort/fail; shared by useChatCompletion and unit tests.
+ * The streaming SSE callback set lives in chatStreamCallbacks.ts.
  */
 
 import type { ChatMessage } from '../types';
@@ -10,14 +10,14 @@ import { appendToMessage, applyVersion, snapshotVersion } from './messages';
 import { normalizeAssistantReply } from './thinkSplit';
 import { finalizeToolEvents } from './toolEvents';
 
-/** 未选 Key / 密钥未就绪时的统一错误文案 */
+/** Shared error copy when no key is selected or the secret is not ready */
 export const COMPLETION_KEY_ERROR = '请先在左下角选择一个 API Key 以建立会话';
 
 /**
- * 校验补全前 auth 条件；返回错误文案或 null（可继续发起请求）。
- * @param webSearch 是否联网模式
- * @param keyId 联网模式使用的 API Key ID
- * @param secret 普通模式使用的明文密钥
+ * Check auth conditions before a completion; return error copy or null (the request may proceed).
+ * @param webSearch whether web-search mode is on
+ * @param keyId API Key ID used in web-search mode
+ * @param secret plaintext secret used in normal mode
  */
 export function authErrorForCompletion(
   webSearch: boolean,
@@ -30,10 +30,10 @@ export function authErrorForCompletion(
 }
 
 /**
- * 正常完成：落定 streaming 字段、写入总耗时，并把当前回答快照进 versions[]。
- * @param list 当前消息列表
- * @param assistantId 目标 assistant 消息 id
- * @param startedAt performance.now() 起点
+ * Normal completion: settle streaming fields, record total elapsed time, and snapshot the current answer into versions[].
+ * @param list current message list
+ * @param assistantId target assistant message id
+ * @param startedAt performance.now() start
  */
 export function finalizeCompletedMessages(
   list: ChatMessage[],
@@ -60,10 +60,10 @@ export function finalizeCompletedMessages(
 }
 
 /**
- * 用户主动停止：首次生成保留 partial 正文但不写入 versions；重新生成回退到末个已完成版本。
- * @param list 当前消息列表
- * @param assistantId 目标 assistant 消息 id
- * @param startedAt performance.now() 起点
+ * User stop: the first generation keeps the partial body but does not write versions; a regeneration rolls back to the last completed version.
+ * @param list current message list
+ * @param assistantId target assistant message id
+ * @param startedAt performance.now() start
  */
 export function finalizeAbortedMessages(
   list: ChatMessage[],
@@ -96,11 +96,11 @@ export function finalizeAbortedMessages(
 }
 
 /**
- * 请求失败：有历史版本则回退；首次生成则在顶层标 error。
- * @param list 当前消息列表
- * @param assistantId 目标 assistant 消息 id
- * @param message 用户可见错误文案
- * @param errorCode 上游错误码
+ * Request failure: roll back when history versions exist; on the first generation, mark error on the top-level message.
+ * @param list current message list
+ * @param assistantId target assistant message id
+ * @param message user-visible error copy
+ * @param errorCode upstream error code
  */
 export function finalizeFailedMessages(
   list: ChatMessage[],
@@ -111,8 +111,8 @@ export function finalizeFailedMessages(
   if (errorCode === 'content_policy_violation') {
     return markConversationTurnContextExcluded(list, assistantId).map((item) => {
       if (item.id !== assistantId) return item;
-      // 输出安审撤回：正文与思考都可能已经上屏，必须一并清空后替换为中性提示，
-      // 否则被撤回的内容会残留在气泡、会话历史与下一轮 messages 里。
+      // Output safety recall: body and reasoning may already be on screen, so both must be cleared and replaced with a neutral notice,
+      // otherwise the recalled content would remain in the bubble, conversation history, and the next turn's messages.
       return {
         ...item,
         content: failureMessage,
@@ -148,7 +148,7 @@ export function finalizeFailedMessages(
   });
 }
 
-/** 将当前 assistant 占位及其对应的最近用户消息标记为不可进入后续模型上下文。 */
+/** Mark the current assistant placeholder and its nearest user message as excluded from later model context. */
 export function markConversationTurnContextExcluded(
   list: ChatMessage[],
   assistantId: string,

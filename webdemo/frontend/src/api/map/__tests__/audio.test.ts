@@ -2,13 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { synthesizeSpeech } from '../audio';
 
 /**
- * synthesizeSpeech 的请求体组装与错误映射测试：
- * 对齐 LIS voxcpm_speech@2——体验中心固定请求 WAV SSE，聚合当前 `audio` 字段，兼容历史
- * `delta` 字段，并仅在 audio.done 完成时返回播放器所需 Blob。契约外字段
- * （cfg/denoise/normalize）仅在用户显式调整时才下发。
+ * Request-body assembly and error-mapping test for synthesizeSpeech:
+ * Aligned with LIS voxcpm_speech@2 — the experience center always requests WAV SSE, aggregates the current `audio` field, and still accepts the historical
+ * `delta` field, and returns the Blob the player needs only when audio.done completes. Extra-contract fields
+ * (cfg/denoise/normalize) are sent only when the user changes them explicitly.
  */
 
-/** 构造一个成功的 SSE 音频响应。 */
+/** Build a successful SSE audio response. */
 function speechResponse(events?: string): Response {
   return new Response(
     events ??
@@ -27,7 +27,7 @@ function speechResponse(events?: string): Response {
   );
 }
 
-/** 构造一个 OpenAI 风格的错误响应 */
+/** Build an OpenAI-style error response */
 function errorResponse(status: number, message?: string, code?: string): Response {
   return new Response(JSON.stringify({ error: { code, message } }), {
     status,
@@ -35,9 +35,9 @@ function errorResponse(status: number, message?: string, code?: string): Respons
   });
 }
 
-/** 取出 mock fetch 最近一次调用的请求体与 init */
+/** Read the request body and init from the latest mock fetch call */
 function lastCall(fetchMock: ReturnType<typeof vi.fn>) {
-  // 仓库 target 是 ES2020，不能用 Array.prototype.at
+  // The repo target is ES2020, so Array.prototype.at cannot be used
   const calls = fetchMock.mock.calls;
   const [, init] = calls[calls.length - 1] as [string, RequestInit];
   return { init, body: JSON.parse(init.body as string) as Record<string, unknown> };
@@ -48,7 +48,7 @@ const base = { model: 'tts-1', secret: 'lis_sk_x', text: '你好' };
 let fetchMock: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
-  // 每次调用现造一个 Response：Response body 只能读一次，复用同一实例会在第二次调用时报 unusable
+  // Build a new Response on every call: a Response body can be read only once, and reusing the same instance reports unusable on the second call
   fetchMock = vi.fn().mockImplementation(() => Promise.resolve(speechResponse()));
   vi.stubGlobal('fetch', fetchMock);
   vi.stubGlobal('URL', { ...URL, createObjectURL: () => 'blob:x' });

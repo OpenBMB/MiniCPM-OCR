@@ -2,7 +2,7 @@ import { linkPlaygroundFile } from '@/api/map/fileUploads';
 
 import type { ChatMessage } from '../types';
 
-/** 每次模型请求更新 file-upload 文件的短期链接，历史消息与重新生成共享此流程。 */
+/** Each model request refreshes the short-lived link of a file-upload file; history messages and regenerate share this flow. */
 export async function refreshAttachmentLinks(messages: ChatMessage[]): Promise<ChatMessage[]> {
   const signed = new Map<string, Promise<string>>();
   let lastDivider = -1;

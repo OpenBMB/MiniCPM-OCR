@@ -1,20 +1,20 @@
-/** 屏幕坐标系中的点或平移量，单位为 CSS 像素。 */
+/** A point or pan amount in screen coordinates, in CSS pixels. */
 export interface Point {
   x: number;
   y: number;
 }
 
-/** 元素的布局尺寸；宽为 0 表示还没测量到。 */
+/** Layout size of an element; width 0 means it has not been measured yet. */
 export interface Size {
   width: number;
   height: number;
 }
 
-/** 视图状态。scale=FIT_SCALE 恒定表示「整图贴合视口」，与角度无关。 */
+/** View state. scale=FIT_SCALE always means "the whole image fits the viewport", independent of angle. */
 export interface ImageZoomView {
   scale: number;
-  /** 屏幕坐标系下的平移量（CSS 像素） */
+  /** Pan in screen coordinates (CSS pixels) */
   offset: Point;
-  /** 旋转角度，90° 步进，取值 0/90/180/270 */
+  /** Rotation angle, in 90° steps, one of 0/90/180/270 */
   rotation: number;
 }

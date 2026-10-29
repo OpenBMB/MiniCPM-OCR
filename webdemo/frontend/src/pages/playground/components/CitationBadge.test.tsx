@@ -14,7 +14,7 @@ const citation = {
   snippet: '这里是来源摘要，用于在不离开回答时快速判断来源是否相关。',
 };
 
-/** 替身弹窗：记录 openCitationWindow 最终跳到哪个地址。 */
+/** Stand-in window: records which address openCitationWindow finally navigates to. */
 function stubPopup() {
   const replace = vi.fn();
   const popup = { opener: {}, location: { replace } } as unknown as Window;
@@ -45,7 +45,7 @@ describe('CitationBadge', () => {
     expect(badge).toHaveTextContent('2');
     expect(badge).toHaveAttribute('data-citation-badge');
     expect(badge).toHaveAttribute('data-citation-url', citation.url);
-    // 相对定位上移而非 <sup>：不参与行盒计算，正文行高不被撑开
+    // Shift up with relative positioning rather than <sup>: it does not join line-box layout, so the body line height is not stretched
     expect(badge).toHaveClass('relative', '-top-[0.3em]');
   });
 

@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-"""模型资源管理。
+"""Model resource manager.
 
-负责：
-  1. 模型资源懒加载（layout detector、upright corrector、vLLM backend）
-  2. 构建每次请求的 SDK 配置（build_cfg）
-并发模型：摆正、版面、分块识别各有一条队列。
-请求先进入摆正队列；摆正结束才从版面池借一套检测器，这一页切完立刻归还；
-切出来的块进入共享识别队列。检测器不会在等摆正或等 vLLM 时空占着。
-layout detector 是 paddle predictor，不能多线程共用，所以按 LAYOUT_WORKERS
-建池，一页借一套。多张卡时按 OCR_LAYOUT_DEVICES 把副本摊到各卡上，池子仍是一条。
+It does two things:
+  1. Load model resources lazily (layout detector, rotation-adaptation corrector, vLLM backend)
+  2. Build the SDK config for each request (build_cfg)
+Rotation adaptation, layout, and crop recognition each have their own queue.
+A request enters the rotation-adaptation queue first. Only after that finishes
+does it borrow a detector from the layout pool, and the detector is returned
+as soon as this page is cut. The crops then enter the shared recognition queue.
+A detector is not held while waiting on rotation adaptation or vLLM.
+The layout detector is a Paddle predictor and cannot be shared across threads,
+so the pool has LAYOUT_WORKERS copies and one page borrows one copy. With
+several GPUs, OCR_LAYOUT_DEVICES spreads the copies across cards. The pool
+itself stays one queue.
 """
 from __future__ import annotations
 
@@ -41,14 +45,14 @@ CONFIG_PATH = Path(os.environ.get(
 DATA_DIR = Path(os.environ.get("OCRWEB_DATA_DIR", BASE / "data"))
 JOBS_DIR = DATA_DIR / "jobs"
 
-# 版面池大小。每套检测器同一时刻只服务一页，页切完就归还。
+# Layout pool size. Each detector serves one page at a time and is returned when that page is cut.
 LAYOUT_WORKERS = int(os.environ.get("OCR_LAYOUT_WORKERS", "3"))
-# 摆正队列的工人数。每个工人一套模型，页可以来自不同请求、不同文件。
+# Workers on the rotation-adaptation queue. Each worker has its own model. Pages may come from different requests and files.
 UPRIGHT_WORKERS = int(os.environ.get("OCR_UPRIGHT_WORKERS", "8"))
 
-# pipeline 级别的固定覆盖：人在等，所以版面与识别重叠。
-# 整页图和 crop 默认不落盘（大图 PNG 编码是版面阶段的大头）；
-# 只有单块重算要从磁盘读 crop，由 build_cfg(save_crops=True) 单独打开。
+# Fixed pipeline overrides: a person is waiting, so layout and recognition overlap.
+# Full-page images and crops are not written to disk by default. Encoding a large PNG dominates the layout stage.
+# Only a single-block rerun reads crops from disk, and build_cfg(save_crops=True) turns that on by itself.
 WEBUI_OVERRIDES: Dict = {
     "pipeline": {
         "overlap_layout": True,
@@ -58,8 +62,8 @@ WEBUI_OVERRIDES: Dict = {
     "logging": {"progress_log_every": 5},
 }
 
-# RM/TTS 配方（见 docs/rm-tts-pipeline.md）
-# rm_url / rm_input_form 通过 ${VAR:-fallback} 语法在 load_config 时展开
+# RM/TTS recipes (see docs/rm-tts-pipeline.md)
+# rm_url / rm_input_form expand through ${VAR:-fallback} when load_config runs.
 RM_URL        = "${OCR_RM_URL:-http://127.0.0.1:8000}"
 RM_INPUT_FORM = "${OCR_RM_INPUT_FORM:-}"
 
@@ -96,16 +100,16 @@ SUPPORTED_SUFFIXES = {".pdf", ".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tif", 
 
 
 # ===================================================================
-# 工具函数
+# Helpers
 # ===================================================================
 
 def new_job_id() -> str:
-    """生成唯一 job id，同时也用作 request_id（32 位小写 hex）。"""
+    """A unique job id, also used as request_id (32 lowercase hex characters)."""
     return hashlib.md5(os.urandom(16) + str(time.time()).encode()).hexdigest()
 
 
 def _fresh_upright_registry() -> bool:
-    """登记目录里有一份 90 秒内更新过的工人记录，才算有远程摆正。"""
+    """Remote rotation adaptation is available only when the registry has a worker record updated within 90 seconds."""
     registry = os.environ.get("OCR_UPRIGHT_REGISTRY", "").strip()
     if not registry:
         return False
@@ -123,10 +127,10 @@ def _fresh_upright_registry() -> bool:
 
 
 def layout_devices(count: int) -> list:
-    """每套版面模型放哪张卡。池子仍是一条，空闲的那套接下一个页。
+    """Which GPU each layout model uses. The pool is still one queue, and the idle copy takes the next page.
 
-    OCR_LAYOUT_DEVICES=cuda:0,cuda:0,cuda:1,cuda:1 时按列出的顺序。
-    没写时，可见卡多于一张就轮流放；只有一张卡就全部用 OCR_LAYOUT_DEVICE。
+    OCR_LAYOUT_DEVICES=cuda:0,cuda:0,cuda:1,cuda:1 follows the listed order.
+    When unset, more than one visible GPU rotates the copies. A single GPU uses OCR_LAYOUT_DEVICE for all of them.
     """
     count = max(1, int(count))
     spec = os.environ.get("OCR_LAYOUT_DEVICES", "").strip()
@@ -144,7 +148,7 @@ def layout_devices(count: int) -> list:
 
 
 def _webui_overrides(**sections) -> Dict:
-    """把 WEBUI_OVERRIDES 和本次请求的覆盖合并，浅合并一层。"""
+    """Merge WEBUI_OVERRIDES with this request's overrides, one level deep."""
     merged = {key: dict(value) for key, value in WEBUI_OVERRIDES.items()}
     for key, value in sections.items():
         merged.setdefault(key, {}).update(value)
@@ -152,11 +156,11 @@ def _webui_overrides(**sections) -> Dict:
 
 
 # ===================================================================
-# Runner — 模型资源管理 + 单块重算
+# Runner — model resources and single-block rerun
 # ===================================================================
 
 class Runner:
-    """模型只加载一次，跨请求复用。线程安全。"""
+    """Models load once and are reused across requests. Thread-safe."""
 
     def __init__(self) -> None:
         JOBS_DIR.mkdir(parents=True, exist_ok=True)
@@ -168,12 +172,12 @@ class Runner:
         self._upright_loaded = False
 
     # ----------------------------------------------------------------
-    # 配置构建
+    # Config building
     # ----------------------------------------------------------------
 
     def build_cfg(self, job_id: str, upright: bool,
                   mode: str = DEFAULT_MODE, save_crops: bool = False) -> Dict:
-        """构建一次请求的完整 SDK 配置。"""
+        """Build the full SDK config for one request."""
         job_dir = JOBS_DIR / job_id
         if upright and UPRIGHT_WORKERS <= 0 and not _fresh_upright_registry():
             upright = False
@@ -191,23 +195,23 @@ class Runner:
                 "limit":     0,
             },
             upright={"enabled": bool(upright)},
-            # 工作台的印章/图表开关只改展示。识别侧始终打开，否则这两类块会被跳过。
+            # The seal and chart switches on the page only change what is shown. Recognition stays on, or those blocks are skipped.
             layout={
                 "use_chart_recognition": True,
                 "use_seal_recognition": True,
             },
             pipeline={"save_crops": bool(save_crops)},
-            # 配方里有嵌套 dict，并发请求之间不能共享同一份
+            # A recipe holds nested dicts, so concurrent requests cannot share one copy.
             tts=copy.deepcopy(TTS_RECIPES[mode]),
         )
         return load_config(str(CONFIG_PATH), overrides)
 
     # ----------------------------------------------------------------
-    # 模型资源
+    # Model resources
     # ----------------------------------------------------------------
 
     def _ensure_started(self, cfg: Dict) -> None:
-        """模型懒加载：第一次调用时建 engine 和 LAYOUT_WORKERS 套版面资源。"""
+        """Lazy load: the first call builds the engine and LAYOUT_WORKERS layout copies."""
         with self._res_lock:
             if self._engine is not None:
                 return
@@ -245,7 +249,7 @@ class Runner:
         return {"detector": detector, "device": layout_cfg.get("device", "")}
 
     def staged_resources(self, cfg: Dict) -> Dict:
-        """准备三条队列，但不借出版面检测器。"""
+        """Prepare the three queues without borrowing a layout detector."""
         self._ensure_started(cfg)
         return {
             "layout_pool": self._slots,
@@ -255,7 +259,7 @@ class Runner:
         }
 
     def borrow(self, cfg: Dict) -> Dict:
-        """借一套版面模型。用完调用 release，不必等到这一页的切片结束。"""
+        """Borrow one layout model. Call release when finished. Do not wait for this page's crops to finish."""
         self._ensure_started(cfg)
         return self._slots.get()
 
@@ -268,7 +272,7 @@ class Runner:
 
     @contextlib.contextmanager
     def acquire(self, cfg: Dict) -> Iterator[Dict]:
-        """借一套版面模型；摆正队列是所有请求共用的。"""
+        """Borrow one layout model. The rotation-adaptation queue is shared by every request."""
         slot = self.borrow(cfg)
         try:
             yield self.resources_for(slot)

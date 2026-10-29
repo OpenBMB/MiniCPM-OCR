@@ -7,12 +7,12 @@ const LOCAL_IMAGE = /^data:image\/(?!svg(?:\+xml)?;)[a-z0-9.+-]+;base64,[a-z\d+/
 const LOCAL_PDF = /^data:application\/pdf;base64,[a-z\d+/=\s]+$/i;
 const FILE_UPLOAD_ID = /^[a-zA-Z0-9_-]{3,80}$/;
 
-/** 快照清洗模式：本地缓存、云端保存与运行时恢复各有不同原件边界。 */
+/** Snapshot cleaning mode: local cache, cloud save, and runtime restore each have a different original-file boundary. */
 export interface SanitizeImageParseSnapshotOptions {
   storage?: 'local' | 'cloud';
-  /** 仅运行时恢复允许 fileId 位图/PDF 签链及固定共享 PDF；保存入口不得开启。 */
+  /** Only runtime restore may use a fileId bitmap/PDF signed URL and the fixed shared PDF; save entries must not enable it. */
   allowHydratedFileURL?: boolean;
-  /** 仅共享图片案例运行时恢复允许空结果，不用于历史保存。 */
+  /** Only runtime restore of a shared image example may have an empty result; it is not used when saving history. */
   allowSharedImagePreview?: boolean;
 }
 
@@ -31,7 +31,7 @@ function isFileURL(value: string): boolean {
   }
 }
 
-/** 按存储和运行时边界清洗历史附件，签链仅用于预览，永不进入持久化存档。 */
+/** Clean history attachments against storage and runtime boundaries. Signed URLs are for preview only and never enter the persisted archive. */
 export function sanitizeImageParseHistoryAttachment(
   value: unknown,
   options: SanitizeImageParseSnapshotOptions,
@@ -92,7 +92,7 @@ export function sanitizeImageParseHistoryAttachment(
     };
   }
   if (!dataUrl) return null;
-  // 不使用 spread：附件可能携带对象存储标识或运行时注入的凭据。
+  // Do not use spread: an attachment may carry an object-storage id or a credential injected at runtime.
   return {
     id: input.id,
     kind,

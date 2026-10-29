@@ -1,5 +1,5 @@
 /**
- * useMessageVersions hook 单测：regenerate 编排与 feedback/version 委托。
+ * Unit tests for the useMessageVersions hook: regenerate orchestration and feedback/version delegation.
  */
 
 import { act, renderHook } from '@testing-library/react';

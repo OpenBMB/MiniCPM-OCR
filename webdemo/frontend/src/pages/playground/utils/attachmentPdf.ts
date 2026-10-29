@@ -9,14 +9,14 @@ import {
 const PDF_MIME = 'application/pdf';
 
 /**
- * 读取 OCR PDF：文件服务可用时先上传原件，再用运行时 Blob URL 预览。
+ * Read an OCR PDF: when the file service is available, upload the original first, then preview it with a runtime Blob URL.
  *
- * 大 PDF 不能先转 base64 data URL；否则 FileReader 与 PDF.js 解码都会长时间占用主线程。
- * Blob URL 仅保存在当前附件状态，云端历史仍只持久化稳定 fileId。
- * @param file 用户选择的 PDF
- * @param signal 连续替换文件时的取消信号
- * @param options OCR 的大小上限与本地兜底策略
- * @returns 上传成功返回 fileId + Blob URL；本地兜底也使用 Blob URL，避免 base64 阻塞主线程
+ * A large PDF must not be converted to a base64 data URL first; otherwise both FileReader and PDF.js decoding occupy the main thread for a long time.
+ * The Blob URL lives only in the current attachment state. Cloud history still persists only the stable fileId.
+ * @param file PDF selected by the user
+ * @param signal cancellation signal when files are replaced in succession
+ * @param options OCR size limit and local-fallback policy
+ * @returns fileId + Blob URL on a successful upload; the local fallback also uses a Blob URL so base64 does not block the main thread
  */
 export async function readPdfAttachment(
   file: File,

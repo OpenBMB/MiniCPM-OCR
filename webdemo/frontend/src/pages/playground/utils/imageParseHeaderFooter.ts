@@ -10,8 +10,8 @@ import type { ImageParseLayoutBlock } from './imageParseSample';
 const stableCache = new WeakMap<ImageParseSdkResult, ImageParseSdkResult>();
 
 /**
- * 给缺少服务端 id 的块补上基于原始顺序的稳定 id。
- * 过滤页眉页脚会改变数组下标，提前固定 id 才能让选中态和滚动锚点跨开关保持。
+ * Fill in a stable id based on original order for blocks that lack a server id.
+ * Filtering headers and footers changes array indexes; fixing the id first lets selection and scroll anchors survive the toggle.
  */
 export function stabilizeImageParseResult(result: ImageParseSdkResult): ImageParseSdkResult {
   if (result.blocks.every((block) => block.id)) return result;
@@ -27,14 +27,14 @@ export function stabilizeImageParseResult(result: ImageParseSdkResult): ImagePar
   return stable;
 }
 
-/** 页眉、页脚与页码（页码在 blockKind 里归入 footer）。 */
+/** Header, footer, and page number (page numbers are grouped into footer in blockKind). */
 export function isImageParseHeaderFooter(block: ImageParseLayoutBlock): boolean {
   return isImageParseHeaderFooterBlock(block);
 }
 
 /**
- * 关掉页眉 / 页脚 / 页码时，跳过这几类再按块生成一遍。
- * 其余块的起止位置随新正文后移；没有可去的块时原样返回同一对象。
+ * When header / footer / page number are turned off, skip those kinds and generate again block by block.
+ * Start and end positions of the remaining blocks shift with the new body; when nothing can be removed, return the same object unchanged.
  */
 export function hideImageParseHeaderFooter(result: ImageParseSdkResult): ImageParseSdkResult {
   const stable = stabilizeImageParseResult(result);

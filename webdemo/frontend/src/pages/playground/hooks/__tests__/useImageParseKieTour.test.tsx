@@ -101,7 +101,7 @@ describe('关键信息抽取新手引导', () => {
     expect(driverMock.instances[0].isActive()).toBe(true);
     expect(driverMock.instances[0].getActiveIndex()).toBe(1);
 
-    // 模拟用户阅读字段说明后点击“下一步”，停留在开始抽取步骤。
+    // Simulate the user reading the field description and clicking "Next", staying on the start-extraction step.
     act(() => driverMock.instances[0].moveNext());
     rerender({ ready: false, hasDocument: true, resultReady: false });
     expect(driverMock.instances[0].isActive()).toBe(false);

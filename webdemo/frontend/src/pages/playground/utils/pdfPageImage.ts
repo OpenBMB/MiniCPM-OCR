@@ -1,6 +1,6 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 
-/** 按 OCR 固定倍率生成本地页图，取消及完成后释放画布与页面资源。 */
+/** Produce a local page image at the fixed OCR scale, and release the canvas and page resources on cancel and on completion. */
 export async function renderPdfPageImage(
   pdf: PDFDocumentProxy,
   pageNumber: number,
@@ -33,7 +33,7 @@ export async function renderPdfPageImage(
   }
 }
 
-/** 异步编码 PNG；避免每页 toDataURL 在主线程同步压缩造成滚动卡顿。 */
+/** Encode PNG asynchronously; avoid toDataURL compressing each page synchronously on the main thread and stuttering scroll. */
 function canvasToDataUrl(canvas: HTMLCanvasElement, signal: AbortSignal): Promise<string> {
   return new Promise((resolve, reject) => {
     const abort = () => reject(new DOMException('Render cancelled', 'AbortError'));

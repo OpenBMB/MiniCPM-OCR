@@ -1,16 +1,16 @@
 /**
- * MAP 设计系统 — 主题 Token 单一来源
+ * MAP design system — single source of theme tokens
  *
- * 所有应用通过 `@import '@map/ui/theme.css';` 引入。
- * 改颜色 / 圆角 / 字体只改这里一处，全平台生效。
- * 颜色为 HSL 通道值（不含 hsl()），供 tailwind.config.js 的 `hsl(var(--token) / <alpha-value>)` 消费。
+ * Every app imports it with `@import '@map/ui/theme.css';`.
+ * Color, radius, and type change in this one place and apply across the platform.
+ * Colors are HSL channels (without hsl()), consumed by tailwind.config.js as `hsl(var(--token) / <alpha-value>)`.
  */
-/* Inter 用于英文/数字; Noto Sans SC + 系统中文字体用于中文界面 */
+/* Inter is for English and digits; Noto Sans SC plus system Chinese fonts are for the Chinese UI. */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    /* ---- 颜色（亮色） ---- */
+    /* ---- Color (light) ---- */
     --background: 230 100% 99%;
     --foreground: 226 32% 17%;
     --card: 0 0% 100%;
@@ -30,31 +30,31 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* ---- 状态色（语义 token，亮/暗自动切换） ---- */
-    --success: 160 84% 39%; /* emerald-500 — 通过/在线/健康 */
+    /* ---- Status colors (semantic tokens; light and dark switch automatically) ---- */
+    --success: 160 84% 39%; /* emerald-500 — pass / online / healthy */
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%; /* amber-500 — 降级/待处理 */
+    --warning: 38 92% 50%; /* amber-500 — degraded / pending */
     --warning-foreground: 38 92% 12%;
-    --info: 217 91% 60%; /* blue-500 — 中性提示 */
+    --info: 217 91% 60%; /* blue-500 — neutral notice */
     --info-foreground: 0 0% 100%;
 
-    /* ---- OCR 置信度：独立于全站状态色，保持原图可读与分级一致 ---- */
+    /* ---- OCR confidence: independent of site-wide status colors, so the source image stays readable and the scale stays consistent ---- */
     --ocr-confidence-high: 142 71% 45%;
     --ocr-confidence-low: 24 95% 53%;
     --ocr-confidence-error: 0 84% 60%;
     --ocr-confidence-neutral: 220 9% 46%;
-    --ocr-link: var(--primary); /* 双栏定位跟随主题色，不改变置信度分级 */
+    --ocr-link: var(--primary); /* Two-column positioning follows the theme color and does not change the confidence scale. */
 
-    /* ---- 图表色板（榜单/指标可视化,色盲友好且区分度高） ---- */
-    --chart-1: 239 84% 67%; /* indigo(主色系列) */
+    /* ---- Chart palette (leaderboards and metric visuals; colorblind-friendly and easy to tell apart) ---- */
+    --chart-1: 239 84% 67%; /* indigo (primary series) */
     --chart-2: 173 80% 40%; /* teal */
     --chart-3: 38 92% 50%; /* amber */
     --chart-4: 330 81% 60%; /* pink */
-    --annotation-foreground: 226 32% 17%; /* 图上粉色标签始终使用深色文字 */
+    --annotation-foreground: 226 32% 17%; /* Pink labels on charts always use dark text. */
     --chart-5: 217 91% 60%; /* blue */
     --chart-6: 142 71% 45%; /* green */
 
-    /* ---- 圆角（shadcn 标准：单一基准值，派生 sm/md/lg） ---- */
+    /* ---- Radius (shadcn standard: one base value, sm/md/lg derived) ---- */
     --radius: 0.5rem;
   }
 
@@ -78,7 +78,7 @@
     --destructive: 0 63% 31%;
     --destructive-foreground: 0 0% 100%;
 
-    /* ---- 状态色：暗色下调亮以保证对比度 ---- */
+    /* ---- Status colors: brightened in dark mode so contrast holds ---- */
     --success: 158 64% 52%; /* emerald-400 */
     --warning: 43 96% 56%; /* amber-400 */
     --info: 213 94% 68%; /* blue-400 */
@@ -87,7 +87,7 @@
     --ocr-confidence-error: 0 84% 60%;
     --ocr-confidence-neutral: 218 11% 65%;
     --ocr-link: var(--primary);
-    /* 图表色板沿用 :root 定义,如需暗色微调可在此覆盖 */
+    /* The chart palette keeps the :root definition; override here if dark mode needs a tweak. */
   }
 
   body {

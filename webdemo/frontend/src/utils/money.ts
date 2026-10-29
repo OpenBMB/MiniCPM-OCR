@@ -1,15 +1,15 @@
 /**
- * 金额 / 额度展示格式化工具。
+ * Amount and quota display formatting.
  *
- * 后端金额为高精度 numeric 字符串（如 "12.34000000"），直接展示尾部零冗余。
- * 这里统一裁掉无意义的尾零，并对空/非法值给出占位。
+ * Backend amounts are high-precision numeric strings (for example "12.34000000"); showing them raw leaves trailing zeros.
+ * Strip meaningless trailing zeros here, and use a placeholder for empty or invalid values.
  */
 import type { AppLocale } from '@map/store';
 
 /**
- * 格式化金额为两位小数，用于余额、花费等展示场景。
- * @param value 高精度金额字符串；空/非法时返回 "0.00"
- * @returns 两位小数的金额文本
+ * Format an amount to two decimal places, for balances, spend, and similar display.
+ * @param value High-precision amount string; empty or invalid returns "0.00".
+ * @returns Amount text with two decimal places.
  */
 export function formatMoney(value?: string | null): string {
   if (value == null || value === '') return '0.00';
@@ -19,9 +19,9 @@ export function formatMoney(value?: string | null): string {
 }
 
 /**
- * 格式化固定 4 位小数金额，适用于模型定价等需要精度显式展示的价格场景。
- * @param value 高精度金额字符串；空/非法时返回 "0.0000"
- * @returns 固定 4 位小数的金额文本
+ * Format an amount to a fixed 4 decimal places, for prices such as model pricing that should show precision explicitly.
+ * @param value High-precision amount string; empty or invalid returns "0.0000".
+ * @returns Amount text with a fixed 4 decimal places.
  */
 export function formatMoneyFixed4(value?: string | null): string {
   if (value == null || value === '') return '0.0000';
@@ -31,9 +31,9 @@ export function formatMoneyFixed4(value?: string | null): string {
 }
 
 /**
- * 格式化可空额度（后端 NullDecimal：{ Decimal, Valid }）。
- * @param quota NullDecimal 结构；未设置时表示「不限」
- * @returns 额度文本或「不限」
+ * Format a nullable quota (backend NullDecimal: { Decimal, Valid }).
+ * @param quota NullDecimal value; unset means "unlimited".
+ * @returns Quota text, or "unlimited".
  */
 export function formatQuota(quota?: { Decimal: string; Valid: boolean } | null): string {
   if (!quota || !quota.Valid) return '不限';
@@ -41,7 +41,7 @@ export function formatQuota(quota?: { Decimal: string; Valid: boolean } | null):
 }
 
 /**
- * 账本金额与积分保持 1:1；对外只展示积分，不再进行兑换换算。
+ * Ledger amounts and points stay 1:1; only points are shown, with no exchange conversion.
  */
 function parsePoints(value?: string | null): number | null {
   if (value == null || value === '') return null;
@@ -51,10 +51,10 @@ function parsePoints(value?: string | null): number | null {
 }
 
 /**
- * 格式化余额 / 花费为固定两位小数积分并添加千分位。
- * 模型调用的单次消耗可能小于 1 积分，仍按统一精度展示。
- * @param value 高精度元金额字符串；空/非法时返回 "0"
- * @returns 带千分位的积分文本（不含单位）
+ * Format a balance or spend as points with two fixed decimal places and thousands separators.
+ * A single model call can cost less than 1 point and is still shown at the same precision.
+ * @param value High-precision yuan amount string; empty or invalid returns "0".
+ * @returns Points text with thousands separators (no unit).
  */
 export function formatPoints(value?: string | null, locale: AppLocale = 'zh-CN'): string {
   const pts = parsePoints(value);
@@ -63,10 +63,10 @@ export function formatPoints(value?: string | null, locale: AppLocale = 'zh-CN')
 }
 
 /**
- * 格式化模型定价为「积分 / 1M tokens」，统一固定两位小数。
- * 零值、空值或非法值代表未配置可计费价格，统一展示为「-」。
- * @param value 高精度元单价字符串（每 1M tokens）
- * @returns 积分单价文本（不含单位）或「-」
+ * Format model pricing as "points / 1M tokens", always with two decimal places.
+ * Zero, empty, or invalid means no billable price is configured, and is shown as "-".
+ * @param value High-precision yuan unit price string (per 1M tokens).
+ * @returns Points unit-price text (no unit), or "-".
  */
 export function formatPointsPerMillion(
   value?: string | null,
@@ -78,9 +78,9 @@ export function formatPointsPerMillion(
 }
 
 /**
- * 格式化可空额度为积分（后端 NullDecimal）；未设置表示「不限」。
- * @param quota NullDecimal 结构
- * @returns 积分文本或「不限」
+ * Format a nullable quota as points (backend NullDecimal); unset means "unlimited".
+ * @param quota NullDecimal value.
+ * @returns Points text, or "unlimited".
  */
 export function formatPointsQuota(quota?: { Decimal: string; Valid: boolean } | null): string {
   if (!quota || !quota.Valid) return '不限';

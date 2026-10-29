@@ -1,11 +1,11 @@
 /**
- * Playground 历史对话的后端存储形态（每用户私有）。
+ * Backend storage shape for Playground history conversations (private per user).
  *
- * 用途：与前端 ChatMessage 互转的 DTO 集合。从 types.ts 拆出来是为了让两边都留在
- * 类型文件 500 行的硬上限内；对外仍由 types.ts 统一再导出，调用方 import 路径不变。
+ * Purpose: DTOs converted to and from the frontend ChatMessage. Split out of types.ts so both files stay
+ * within the 500-line hard limit for type files. types.ts still re-exports them, so caller import paths stay the same.
  */
 
-/** 历史对话（列表项 / 元信息，不含消息明细） */
+/** History conversation (list item / metadata, without message details) */
 export interface MapConversation {
   id: string;
   title: string;
@@ -14,7 +14,7 @@ export interface MapConversation {
   updated_at: string;
 }
 
-/** 历史对话中的一条消息（后端存储形态，与前端 ChatMessage 互转） */
+/** One message in a history conversation (backend storage shape, converted to and from the frontend ChatMessage) */
 export interface MapStoredMessage {
   id: string;
   role: 'system' | 'user' | 'assistant';
@@ -23,41 +23,41 @@ export interface MapStoredMessage {
   prompt_tokens?: number;
   completion_tokens?: number;
   total_tokens?: number;
-  /** 首 token 延迟（ms，前端埋点实测） */
+  /** Time to first token (ms, measured by frontend instrumentation) */
   first_token_ms?: number;
-  /** 本轮总耗时（ms，前端埋点实测） */
+  /** Total duration of this turn (ms, measured by frontend instrumentation) */
   duration_ms?: number;
-  /** 当前选中回答版本对应的平台 L2 请求 ID */
+  /** Platform L2 request ID for the currently selected answer version */
   request_id?: string;
-  /** 当前选中回答版本对应的客户端关联 ID */
+  /** Client correlation ID for the currently selected answer version */
   client_request_id?: string;
-  /** 当前选中回答版本实际使用的 API Key ID */
+  /** API Key ID actually used by the currently selected answer version */
   api_key_id?: string;
-  /** 多版本回答的全部版本（仅重新生成过的 assistant 有值；单版本为空） */
+  /** Every version of a multi-version answer (set only for a regenerated assistant message; empty for a single version) */
   alt_versions?: MapStoredVersion[];
-  /** 当前选中版本索引（0 起；空=单版本） */
+  /** Index of the currently selected version (0-based; empty means a single version) */
   active_version?: number;
-  /** 反馈高亮（当前选中版本的点赞/点踩） */
+  /** Feedback highlight (like/dislike of the currently selected version) */
   feedback?: 'up' | 'down';
-  /** 联网搜索引用来源（单版本 assistant 消息） */
+  /** Web-search citation sources (single-version assistant message) */
   citations?: Array<{ url: string; title?: string; snippet?: string }>;
-  /** 联网工具状态文本（单版本消息顶层；用于刷新后重绘过程区） */
+  /** Web-tool status text (top level of a single-version message; redraws the process area after refresh) */
   search_status?: string;
-  /** 联网检索当前阶段（单版本消息顶层） */
+  /** Current web-retrieval stage (top level of a single-version message) */
   search_step?: string;
-  /** 联网检索到的网页数量（单版本消息顶层） */
+  /** Number of web pages retrieved (top level of a single-version message) */
   search_result_count?: number;
-  /** 当前正在执行或最近完成的联网工具（单版本消息顶层） */
+  /** Web tool currently running or most recently finished (top level of a single-version message) */
   search_active_tool?: string;
-  /** 网页读取工具准备浏览或成功浏览的页面数量（单版本消息顶层） */
+  /** Number of pages the web reader is about to browse or has browsed (top level of a single-version message) */
   search_browse_count?: number;
-  /** 联网搜索实际使用的查询词（单版本消息顶层） */
+  /** Query terms actually used by web search (top level of a single-version message) */
   search_queries?: string[];
-  /** 本轮实际调用过的工具名称（单版本消息顶层） */
+  /** Tool names actually invoked this turn (top level of a single-version message) */
   search_tools?: string[];
-  /** 本轮工具调用事件摘要（单版本消息顶层） */
+  /** Tool-call event summary for this turn (top level of a single-version message) */
   tool_events?: ToolEventDTO[];
-  /** 用户消息附件元信息；只保存对象存储 URL/key 与展示元数据，不保存 base64 */
+  /** User-message attachment metadata; store only the object-storage URL/key and display metadata, not base64 */
   attachments?: Array<{
     id: string;
     kind: 'image' | 'video' | 'audio' | 'file';
@@ -70,12 +70,12 @@ export interface MapStoredMessage {
     objectKey?: string;
     dataUrl?: string;
   }>;
-  /** 安审拦截消息仍可展示，但不会重新带入后续模型上下文。 */
+  /** A content-safety-review blocked message can still be shown, but is not fed back into later model context. */
   context_excluded?: boolean;
   created_at: string;
 }
 
-/** 单个回答版本的存储形态（后端以 jsonb 原样往返，不解释内容） */
+/** Storage shape of one answer version (the backend round-trips jsonb as-is and does not interpret the content) */
 export interface MapStoredVersion {
   content: string;
   reasoning?: string;
@@ -84,65 +84,65 @@ export interface MapStoredVersion {
   total_tokens?: number;
   first_token_ms?: number;
   duration_ms?: number;
-  /** 该回答版本对应的平台 L2 请求 ID */
+  /** Platform L2 request ID for this answer version */
   request_id?: string;
-  /** 该回答版本对应的客户端关联 ID */
+  /** Client correlation ID for this answer version */
   client_request_id?: string;
-  /** 该回答版本实际使用的 API Key ID */
+  /** API Key ID actually used by this answer version */
   api_key_id?: string;
-  /** 该版本的联网引用来源 */
+  /** Web citation sources for this version */
   citations?: Array<{ url: string; title?: string; snippet?: string }>;
-  /** 该版本的反馈高亮（点赞/点踩） */
+  /** Feedback highlight for this version (like/dislike) */
   feedback?: 'up' | 'down';
-  /** 该版本是否因页面刷新等客户端生命周期中断而不完整 */
+  /** Whether this version is incomplete because a client lifecycle event such as a page refresh interrupted it */
   interrupted?: boolean;
-  /** 该版本联网工具状态文本（用于过程区重绘） */
+  /** Web-tool status text for this version (used to redraw the process area) */
   search_status?: string;
-  /** 该版本联网检索当前阶段 */
+  /** Current web-retrieval stage for this version */
   search_step?: string;
-  /** 该版本联网检索到的网页数量 */
+  /** Number of web pages retrieved for this version */
   search_result_count?: number;
-  /** 该版本当前正在执行或最近完成的联网工具 */
+  /** Web tool currently running or most recently finished for this version */
   search_active_tool?: string;
-  /** 该版本网页读取工具准备浏览或成功浏览的页面数量 */
+  /** Number of pages the web reader is about to browse or has browsed for this version */
   search_browse_count?: number;
-  /** 该版本联网搜索实际使用的查询词 */
+  /** Query terms actually used by web search for this version */
   search_queries?: string[];
-  /** 该版本本轮实际调用过的工具名称 */
+  /** Tool names actually invoked this turn for this version */
   search_tools?: string[];
-  /** 该版本工具调用事件摘要 */
+  /** Tool-call event summary for this version */
   tool_events?: ToolEventDTO[];
 }
 
-/** Playground 历史消息中的工具事件摘要。 */
+/** Tool-event summary in a Playground history message. */
 export interface ToolEventDTO {
   eventId: string;
   step: number;
   tool: string;
   status: 'running' | 'success' | 'failed' | 'interrupted';
   queryCount?: number;
-  /** 该工具实际使用的查询词。 */
+  /** Query terms this tool actually used. */
   queries?: string[];
   resultCount?: number;
   pageCount?: number;
   durationMs?: number;
   message?: string;
-  /** 该工具涉及的来源地址，用于在过程时间线上就地展示站点图标与页面标题。 */
+  /** Source URLs involved in this tool, shown in place on the process timeline with site icons and page titles. */
   citationUrls?: string[];
   /**
-   * 该工具首帧到达时已产出的思考字符数，作为思考文本的切分点。
-   * 由前端在流式期间推导，后端不下发；历史消息与非流式回答没有该字段。
+   * Reasoning character count already produced when this tool’s first frame arrived, used as the split point in the reasoning text.
+   * Derived on the frontend during streaming; the backend does not send it. History messages and non-streaming answers do not have this field.
    */
   reasoningOffset?: number;
 }
 
-/** 历史对话详情（元信息 + 消息明细） */
+/** History conversation detail (metadata plus message details) */
 export interface MapConversationDetail {
   conversation: MapConversation;
   messages: MapStoredMessage[];
 }
 
-/** 保存对话的请求体（整段覆盖式） */
+/** Request body for saving a conversation (full overwrite) */
 export interface MapSaveConversationInput {
   title?: string;
   model?: string;
@@ -162,21 +162,21 @@ export interface MapSaveConversationInput {
     active_version?: number;
     feedback?: 'up' | 'down';
     citations?: Array<{ url: string; title?: string; snippet?: string }>;
-    /** 联网工具状态文本（单版本消息顶层；用于刷新后重绘过程区） */
+    /** Web-tool status text (top level of a single-version message; redraws the process area after refresh) */
     search_status?: string;
-    /** 联网检索当前阶段（单版本消息顶层） */
+    /** Current web-retrieval stage (top level of a single-version message) */
     search_step?: string;
-    /** 联网检索到的网页数量（单版本消息顶层） */
+    /** Number of web pages retrieved (top level of a single-version message) */
     search_result_count?: number;
-    /** 当前正在执行或最近完成的联网工具（单版本消息顶层） */
+    /** Web tool currently running or most recently finished (top level of a single-version message) */
     search_active_tool?: string;
-    /** 网页读取工具准备浏览或成功浏览的页面数量（单版本消息顶层） */
+    /** Number of pages the web reader is about to browse or has browsed (top level of a single-version message) */
     search_browse_count?: number;
-    /** 联网搜索实际使用的查询词（单版本消息顶层） */
+    /** Query terms actually used by web search (top level of a single-version message) */
     search_queries?: string[];
-    /** 本轮实际调用过的工具名称（单版本消息顶层） */
+    /** Tool names actually invoked this turn (top level of a single-version message) */
     search_tools?: string[];
-    /** 本轮工具调用事件摘要 */
+    /** Tool-call event summary for this turn */
     tool_events?: ToolEventDTO[];
     attachments?: MapStoredMessage['attachments'];
     context_excluded?: boolean;

@@ -1,10 +1,9 @@
 /**
- * 文档解析上传区。
+ * Document-parse upload area.
  *
- * 用途：空态对标 mineru-web 上传页——标题、虚线拖放面、限制条目横向排列。
- * 图片使用原图工作台；PDF 按需加载分页预览器，避免增加图片入口的加载成本。
+ * Purpose: the empty state is aligned with the mineru-web upload page — title, dashed drop surface, and limit items in a horizontal row. Images use the original-image workspace; PDFs load a paginated previewer on demand, so the image entry does not pay extra load cost.
  *
- * 统一处理文件选择、拖放和页面级粘贴。
+ * File selection, drag-and-drop, and page-level paste are handled in one place.
  */
 
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
@@ -29,12 +28,12 @@ interface ImageParseDropzoneProps {
   onPick: (file: File) => void;
   onClear: () => void;
   onPreview: (src: string) => void;
-  /** 该图的版面块；空数组表示不画框，只跑扫描 */
+  /** Layout blocks for this image; an empty array means draw no boxes and only run the scan */
   blocks?: readonly ImageParseLayoutBlock[];
-  /** 服务端旋转摆正信息；仅图片工作台直接消费。 */
+  /** Server rotation-adaptation info; consumed directly only by the image workspace. */
   rotation?: ImageParseRotationInfo;
   pageBlocks?: Readonly<Record<number, readonly ImageParseLayoutBlock[]>>;
-  /** 每一页自己的服务端摆正角度，键是页码。 */
+  /** This page's own server rotation-adaptation angle; the key is the page number. */
   pageServerAngles?: Readonly<Record<number, number>>;
   progress?: ImageParseProgressSnapshot | null;
   parsing?: boolean;
@@ -62,7 +61,7 @@ interface ImageParseDropzoneProps {
 const PdfDocumentStage = lazy(() => lazyWithRetry(() => import('./PdfDocumentStage')));
 
 /**
- * 单文档上传与图片、PDF 预览。
+ * Single-document upload and image and PDF preview.
  */
 export function ImageParseDropzone({
   attachment,
@@ -110,7 +109,7 @@ export function ImageParseDropzone({
     [disabled, onPick, t, toast],
   );
 
-  // 页面级粘贴：不必先点上传区，从剪贴板直接放入更符合阅读工具习惯。
+  // Page-level paste: no need to click the upload area first. Putting it in straight from the clipboard matches a reading tool better.
   useEffect(() => {
     function onPaste(event: ClipboardEvent) {
       if (disabled) return;
@@ -244,7 +243,7 @@ interface EmptyDropzoneProps {
   onDrop: (event: React.DragEvent<HTMLButtonElement>) => void;
 }
 
-/** 空态：mineru 式上传页，限制说明拆成三条，避免一句提示堆在拖放面上。 */
+/** Empty state: a mineru-style upload page. The limit notes are split into three lines so one hint is not piled on the drop surface. */
 function EmptyDropzone({
   disabled,
   previewOnly,

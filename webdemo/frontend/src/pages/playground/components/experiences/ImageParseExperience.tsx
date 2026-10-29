@@ -1,4 +1,4 @@
-/** 图像解析工作台：上传后自动全文识别，字段提取先配置，原件与结果对照。 */
+/** Image-parse workspace: after upload, run full-text recognition automatically. Field extraction is configured first. The original and the result sit side by side. */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@map/ui';
@@ -43,7 +43,7 @@ type PlaygroundModel = ReturnType<typeof usePlaygroundModel>;
 interface ImageParseExperienceProps {
   model: PlaygroundModel;
   task?: 'standard' | 'kie';
-  /** 侧栏主动进入时新建工作台；直接进入或刷新仍可恢复当前文档。 */
+  /** Entering from the sidebar on purpose starts a new workspace; a direct entry or a refresh can still restore the current document. */
   startFresh?: boolean;
   showMenuButton?: boolean;
   onOpenSidebar?: () => void;
@@ -51,11 +51,11 @@ interface ImageParseExperienceProps {
 }
 
 /**
- * 图像解析体验页。
- * @param model 模型与密钥编排
- * @param startFresh 主动进入时跳过当前历史的自动恢复
- * @param showMenuButton 移动端显示侧栏汉堡键
- * @param onOpenSidebar 打开体验中心侧栏
+ * Image-parse experience page.
+ * @param model Model and key orchestration
+ * @param startFresh On a purposeful entry, skip automatic restore of the current history
+ * @param showMenuButton On mobile, show the sidebar hamburger
+ * @param onOpenSidebar Open the experience-center sidebar
  */
 export function ImageParseExperience({
   model,

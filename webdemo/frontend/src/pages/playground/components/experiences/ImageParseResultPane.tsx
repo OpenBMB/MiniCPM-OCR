@@ -1,4 +1,4 @@
-/** 图像解析结果栏：切视图时保持正文挂载，避免重复解析。 */
+/** Image-parse result column: keep the body mounted when switching views, so it is not parsed again. */
 
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -39,13 +39,13 @@ import {
 
 type ImageParseState = ReturnType<typeof useImageParse>;
 
-/** 面板切换保持挂载；不要在每次展开时从透明度 0 重播入场动画。 */
+/** Keep mounted across panel switches; do not replay the entrance animation from opacity 0 on every expand. */
 const TAB_CONTENT_CLASS = 'mt-0 min-h-0 flex-1 overflow-auto bg-card data-[state=inactive]:hidden';
 
-/** 三页共用的内容留白。底部多留一截，滚到末尾时最后一行不会贴着栏底。 */
+/** Content padding shared by the three pages. Leave extra at the bottom so the last line does not sit against the column edge when scrolled to the end. */
 const PAGE_PADDING = 'px-4 pb-12 pt-4 sm:px-6';
 
-/** 内容列限宽居中，避免全宽模式下行长影响阅读。 */
+/** The content column is width-limited and centered, so line length does not hurt reading in full-width mode. */
 const CONTENT_COLUMN = 'mx-auto w-full max-w-5xl';
 
 interface ImageParseResultPaneProps {
@@ -59,7 +59,7 @@ interface ImageParseResultPaneProps {
   previewLinkedRanges?: readonly ImageParseLinkedRange[];
   previewCrops?: readonly string[];
   previewOnly?: boolean;
-  /** 复制当前选中区域；表格由上层按 HTML + TSV 处理 */
+  /** Copy the currently selected region; tables are handled by the parent as HTML + TSV */
   onCopyRegion?: (id: string) => void;
   selectedBlockId?: string;
   hoveredBlockId?: string;
@@ -68,7 +68,7 @@ interface ImageParseResultPaneProps {
   selectedRange?: ImageParseTextRange;
   linkedRanges?: readonly ImageParseLinkedRange[];
   tab?: string;
-  /** 临时开关：是否展示待复核页。 */
+  /** Temporary switch: whether to show the pending-review page. */
   reviewEnabled?: boolean;
   onTabChange?: (tab: string) => void;
   onSelectBlock?: (id: string, page?: number) => void;
@@ -76,7 +76,7 @@ interface ImageParseResultPaneProps {
   onToggleLinked?: () => void;
   showBlocks?: boolean;
   onToggleBlocks?: () => void;
-  /** 多页示例的跨页表格合并；PDF 多页时用 parse.pdf.tableMerge。 */
+  /** Cross-page table merge for multi-page examples; for a multi-page PDF use parse.pdf.tableMerge. */
   exampleTableMerge?: ReturnType<typeof useImageParseExampleMerge>;
   regeneration?: ReturnType<typeof useImageParseRegeneration>;
   downloading?: boolean;
@@ -89,10 +89,10 @@ interface ImageParseResultPaneProps {
 }
 
 /**
- * Markdown 结果栏。
- * @param parse 图像解析编排状态
- * @param draft 可编辑草稿
- * @param onCopyRegion 复制当前选中区域
+ * Markdown result column.
+ * @param parse Image-parse orchestration state
+ * @param draft Editable draft
+ * @param onCopyRegion Copy the currently selected region
  */
 export function ImageParseResultPane({
   parse,
@@ -162,14 +162,14 @@ export function ImageParseResultPane({
   );
   const algorithmMode = parse.mode === 'standard' || isImageParsePipelineMode(parse.mode);
   const showReview = reviewEnabled && !algorithmMode;
-  // 页数说明原文已打开；未完成页保留占位，避免用户误以为结果栏无响应。
+  // The page-count note says the original is already open; unfinished pages keep a placeholder so users do not think the result column is unresponsive.
   const continuousPdf = Boolean(parse.pdf?.pages);
-  // 印章识别允许空正文；只要返回了真实区块，也应展示结果而不是空态。
+  // Seal recognition allows an empty body; as long as real blocks came back, show the result rather than the empty state.
   const hasPreview = Boolean(shownMarkdown || continuousPdf || shownLayout.length > 0);
   const hasStableResult = !loading && (parse.finished || Boolean(parse.pdf?.completed));
   const [localTab, setLocalTab] = useState('preview');
   const requestedTab = tab ?? localTab;
-  // 待复核能力临时隐藏；外部恢复旧视图时回落到预览，避免停留在不可见内容。
+  // Pending review is temporarily hidden; when the outside restores an old view, fall back to preview so it does not stay on invisible content.
   const activeTab = showReview || requestedTab !== 'review' ? requestedTab : 'preview';
   const review = useImageParseReview(parse.resultKey);
   const previewRef = useRef<HTMLElement>(null);
@@ -193,7 +193,7 @@ export function ImageParseResultPane({
   );
   let emptyDescription = 'imageParseEmptyHint';
   if (previewOnly) emptyDescription = 'imageParseLocalResultHint';
-  // 成功复核即完成待办，不要求提分；失败仍保留待办，分数与对比列表不受影响。
+  // A successful review completes the to-do and does not require a higher score; a failure keeps the to-do, and scores and the comparison list are unaffected.
   const reviewCount = computedQuality.suggested.filter((item) => {
     const result = regeneration?.results[item.id];
     return !result || Boolean(result.error);
@@ -238,7 +238,7 @@ export function ImageParseResultPane({
         {parse.mode === 'kie' ? (
           <ImageParseKieSummary content={draft.value} fields={parse.fields} />
         ) : null}
-        {/* KIE 成功解析后只展示结果表，避免同一份 JSON 再以正文重复渲染。 */}
+        {/* After KIE parses successfully, show only the result table, so the same JSON is not rendered again as body text. */}
         {parse.mode === 'kie' && kieValues ? null : (
           <ImageParseVisualEditor
             key={`${parse.resultKey}:${loading}`}
@@ -269,7 +269,7 @@ export function ImageParseResultPane({
     );
   }
 
-  // 切标签时保留正文挂载和纯色背景，避免内容先透明再出现。
+  // When switching tabs, keep the body mounted and the solid background, so the content does not go transparent and then appear.
   return (
     <section
       ref={resultPaneRef}
@@ -352,7 +352,7 @@ export function ImageParseResultPane({
             onScroll={onPreviewScroll}
             className={`${TAB_CONTENT_CLASS} ${PAGE_PADDING}`}
           >
-            {/* 正文与顶栏同底色，只靠限宽和留白成版，不再套卡片吃掉边距 */}
+            {/* The body and the top bar share a background color. The page is made by the width limit and whitespace only, and a card is no longer wrapped around it to eat the margin */}
             <article
               ref={continuousPdf ? undefined : previewRef}
               className={cn(
@@ -476,7 +476,7 @@ export function ImageParseResultPane({
   );
 }
 
-/** 文档节点上的直接定位入口；链接和表单控件沿用自身交互。 */
+/** Direct location entry on a document node; links and form controls keep their own interaction. */
 function linkedBlockId(target: EventTarget | null): string | undefined {
   if (!(target instanceof HTMLElement) || target.closest('a, button, input, textarea, select')) {
     return undefined;
@@ -484,7 +484,7 @@ function linkedBlockId(target: EventTarget | null): string | undefined {
   return target.closest<HTMLElement>('[data-ocr-block-id]')?.dataset.ocrBlockId;
 }
 
-/** 点击的结果页提供页级定位上下文；图片预览保持原有单参数事件。 */
+/** The clicked result page provides page-level location context; the image preview keeps the original single-argument event. */
 function linkedPage(target: EventTarget | null): number | undefined {
   if (!(target instanceof HTMLElement)) return undefined;
   const value = target.closest<HTMLElement>('[data-ocr-result-page]')?.dataset.ocrResultPage;

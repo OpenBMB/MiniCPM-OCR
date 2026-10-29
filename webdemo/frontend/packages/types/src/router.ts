@@ -11,7 +11,7 @@ export interface AppRoute {
 export interface RouteMeta {
   title: string;
   icon?: string;
-  /** 外部链接：设置后该导航项不走内部路由，点击在新标签页打开此 URL */
+  /** External link: when set, this nav item skips internal routing and opens this URL in a new tab. */
   external?: string;
   hidden?: boolean;
   keepAlive?: boolean;

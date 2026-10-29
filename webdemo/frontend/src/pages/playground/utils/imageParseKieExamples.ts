@@ -1,10 +1,10 @@
 import restaurantReceiptImage from '../assets/ocr-examples/kie-restaurant-receipt.png';
 import taxiReceiptImage from '../assets/ocr-examples/kie-taxi-receipt.png';
 
-/** 关键信息抽取内置案例类型。 */
+/** Built-in example type for key information extraction. */
 export type ImageParseKieExampleType = 'taxi-receipt' | 'restaurant-receipt';
 
-/** 关键信息抽取内置案例；字段使用翻译键，选择后按当前语言生成请求字段。 */
+/** Built-in examples for key information extraction; fields use translation keys and, once selected, generate request fields in the current language. */
 export interface ImageParseKieExample {
   id: string;
   type: ImageParseKieExampleType;
@@ -16,7 +16,7 @@ export interface ImageParseKieExample {
   fields: readonly string[];
 }
 
-/** 两张真实票据原件，与文档解析案例一样可作为工作台入口。 */
+/** Two real receipt originals, which can be workspace entries the same way document-parsing examples can. */
 export const IMAGE_PARSE_KIE_EXAMPLES: readonly ImageParseKieExample[] = [
   {
     id: 'example:kie-taxi-receipt',
@@ -51,10 +51,10 @@ export const IMAGE_PARSE_KIE_EXAMPLES: readonly ImageParseKieExample[] = [
 ];
 
 /**
- * 把内置案例静态资源还原为可上传文件。
- * @param example 当前案例
- * @param signal 取消信号
- * @returns 图片 PNG 文件
+ * Turn a built-in example's static asset back into an uploadable file.
+ * @param example current example
+ * @param signal cancellation signal
+ * @returns image PNG file
  */
 export async function imageParseKieExampleFile(
   example: ImageParseKieExample,

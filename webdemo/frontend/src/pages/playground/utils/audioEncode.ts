@@ -1,12 +1,12 @@
 /**
- * 体验中心音频编解码工具。
+ * Audio encode and decode helpers for the experience center.
  *
- * 用途：语音对话与 TTS 的浏览器侧音频处理——把录音 Blob 解码并重采样为 16kHz mono
- * PCM WAV 的裸 base64（对齐 MiniCPM-o / OpenAI input_audio 约定），以及把上游返回的
- * base64 音频组装成可播放的 Object URL。纯前端，无第三方依赖。
+ * Purpose: browser-side audio for voice chat and TTS — decode a recording Blob and resample it to 16kHz mono
+ * PCM WAV raw base64 (matching the MiniCPM-o / OpenAI input_audio convention), and assemble upstream base64
+ * audio into a playable Object URL. Frontend only, no third-party dependency.
  */
 
-/** 音频格式 → MIME，用于组装可播放的 Blob */
+/** Audio format → MIME, used to assemble a playable Blob */
 export function mimeForFormat(format: string): string {
   switch (format.toLowerCase()) {
     case 'mp3':
@@ -23,7 +23,7 @@ export function mimeForFormat(format: string): string {
   }
 }
 
-/** 裸 base64 音频 → 可播放的 Object URL（调用方负责在不用时 revoke） */
+/** Raw base64 audio → playable Object URL (the caller revokes it when finished) */
 export function base64ToObjectUrl(base64: string, format: string): string {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
@@ -32,11 +32,11 @@ export function base64ToObjectUrl(base64: string, format: string): string {
 }
 
 /**
- * 录音/文件 Blob → { 16kHz mono PCM WAV 裸 base64, 时长秒 }。
+ * Recording or file Blob → { raw base64 of 16kHz mono PCM WAV, duration in seconds }.
  *
- * 用 AudioContext 解码任意录音容器（webm/opus 等），再经 OfflineAudioContext 重采样到
- * 16kHz 单声道，最后编码为 16-bit PCM WAV。解码一次即同时拿到重采样音频与原始时长，
- * 供 TTS 参考音频做时长校验（≤50s）复用，避免二次解码。
+ * AudioContext decodes any recording container (webm/opus and so on), OfflineAudioContext resamples to
+ * 16kHz mono, then the samples are encoded as 16-bit PCM WAV. One decode yields both the resampled audio and the original duration,
+ * which TTS reference-audio duration checks (≤50s) can reuse, avoiding a second decode.
  */
 export async function blobToWav16k(
   blob: Blob,
@@ -65,13 +65,13 @@ export async function blobToWav16k(
 }
 
 /**
- * 录音/文件 Blob -> 可上传的 16kHz mono PCM WAV 文件。
+ * Recording or file Blob -> uploadable 16kHz mono PCM WAV file.
  *
- * 用途：把浏览器 MediaRecorder 常见的 webm/opus 容器转换成音色接口要求的 WAV
- * 文件，调用方可继续复用现有 multipart 上传链路。
- * @param blob 待转换的音频 Blob
- * @param name 输出文件名
- * @returns WAV 文件与解码得到的原始时长
+ * Purpose: convert the webm/opus container typical of the browser MediaRecorder into the WAV
+ * file the voice API requires, so the caller can keep using the existing multipart upload path.
+ * @param blob audio Blob to convert
+ * @param name output file name
+ * @returns WAV file and the original duration from decoding
  */
 export async function blobToWav16kFile(
   blob: Blob,
@@ -90,21 +90,21 @@ export async function blobToWav16kFile(
 }
 
 /**
- * 录音 Blob → 16kHz mono PCM WAV 的裸 base64。
+ * Recording Blob → raw base64 of 16kHz mono PCM WAV.
  *
- * 供 input_audio 上传（语音对话）。仅需 base64 时用本函数，内部复用 blobToWav16k。
+ * For input_audio upload (voice chat). Use this when only base64 is needed; it reuses blobToWav16k internally.
  */
 export async function blobToWav16kBase64(blob: Blob): Promise<string> {
   return (await blobToWav16k(blob)).base64;
 }
 
 /**
- * 音频 Blob → 16kHz mono 裸 float32 PCM base64。
+ * Audio Blob → raw float32 PCM base64 at 16kHz mono.
  *
- * Realtime 参考音频协议不接受 WAV 容器，只接受裸 float32 PCM；与 TTS 的 WAV
- * 参考音频转换保持独立，避免把容器头误传给实时服务。
- * @param blob 待转换的音频文件
- * @returns 16kHz mono 裸 float32 PCM 的 base64
+ * The realtime reference-audio protocol does not accept a WAV container, only raw float32 PCM; keep this separate from the TTS WAV
+ * reference-audio conversion so a container header is not sent to the realtime service by mistake.
+ * @param blob audio file to convert
+ * @returns base64 of 16kHz mono raw float32 PCM
  */
 export async function blobToPcm16kBase64(blob: Blob): Promise<string> {
   const arrayBuf = await blob.arrayBuffer();
@@ -128,7 +128,7 @@ export async function blobToPcm16kBase64(blob: Blob): Promise<string> {
   return arrayBufferToBase64(samples.buffer);
 }
 
-/** Float32 采样 → 16-bit PCM WAV（含 44 字节头）ArrayBuffer */
+/** Float32 samples → 16-bit PCM WAV (44-byte header included) ArrayBuffer */
 function encodeWavPcm16(samples: Float32Array, sampleRate: number): ArrayBuffer {
   const buffer = new ArrayBuffer(44 + samples.length * 2);
   const view = new DataView(buffer);
@@ -139,13 +139,13 @@ function encodeWavPcm16(samples: Float32Array, sampleRate: number): ArrayBuffer 
   view.setUint32(4, 36 + samples.length * 2, true);
   writeStr(8, 'WAVE');
   writeStr(12, 'fmt ');
-  view.setUint32(16, 16, true); // fmt chunk 大小
+  view.setUint32(16, 16, true); // fmt chunk size
   view.setUint16(20, 1, true); // PCM
-  view.setUint16(22, 1, true); // 单声道
+  view.setUint16(22, 1, true); // mono
   view.setUint32(24, sampleRate, true);
   view.setUint32(28, sampleRate * 2, true); // byteRate = rate * blockAlign
   view.setUint16(32, 2, true); // blockAlign = channels * bytesPerSample
-  view.setUint16(34, 16, true); // 位深
+  view.setUint16(34, 16, true); // bit depth
   writeStr(36, 'data');
   view.setUint32(40, samples.length * 2, true);
 
@@ -159,19 +159,19 @@ function encodeWavPcm16(samples: Float32Array, sampleRate: number): ArrayBuffer 
 }
 
 /**
- * Float32 PCM -> WAV Blob。
+ * Float32 PCM -> WAV Blob.
  *
- * 用途：录音采集层直接得到 PCM 时生成标准 WAV，避免依赖浏览器 MediaRecorder 的容器
- * 编码与解码兼容性。
- * @param samples 单声道 Float32 PCM 采样
- * @param sampleRate 采样率
- * @returns 可播放、可上传的 WAV Blob
+ * Purpose: when the capture layer already has PCM, produce a standard WAV and avoid depending on the browser MediaRecorder's container
+ * encoding and decode compatibility.
+ * @param samples mono Float32 PCM samples
+ * @param sampleRate sample rate
+ * @returns a WAV Blob that can be played and uploaded
  */
 export function pcmToWavBlob(samples: Float32Array, sampleRate: number): Blob {
   return new Blob([encodeWavPcm16(samples, sampleRate)], { type: 'audio/wav' });
 }
 
-/** ArrayBuffer → base64（分块避免超长字符串爆栈） */
+/** ArrayBuffer → base64 (chunked so a very long string does not blow the stack) */
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   const chunk = 0x8000;
@@ -183,13 +183,13 @@ export function arrayBufferToBase64(buffer: ArrayBuffer): string {
 }
 
 /**
- * 音频 URL → 波形峰值数组（长度 buckets，值 0–1，按整段最大振幅归一）。
+ * Audio URL → waveform peak array (length buckets, values 0–1, normalized by the peak amplitude of the whole clip).
  *
- * 供播放器画“真实”波形：解码后按桶取每段绝对值峰值。固定用较高分辨率解码一次，
- * 组件再按容器宽度重采样，避免窗口缩放时反复解码。解码失败（格式不支持/跨域）
- * 返回 null，调用方回退占位，不影响播放本身。
- * @param src 音频 URL（Object URL 亦可）
- * @param buckets 峰值桶数
+ * For drawing a "real" waveform in the player: after decoding, each bucket takes the peak absolute value of its slice. Decode once at a fairly high resolution,
+ * then the component resamples to the container width, so window resizes do not decode again. On decode failure (unsupported format or cross-origin)
+ * return null; the caller falls back to a placeholder and playback itself is unaffected.
+ * @param src audio URL (an Object URL is fine)
+ * @param buckets number of peak buckets
  */
 export async function decodeWaveformPeaks(src: string, buckets: number): Promise<number[] | null> {
   try {
@@ -222,9 +222,9 @@ export async function decodeWaveformPeaks(src: string, buckets: number): Promise
 }
 
 /**
- * 麦克风频谱可视化：AnalyserNode 逐帧输出整体音量与频谱条（命令式 rAF）。
- * @param onFrame 每帧回调（level 0–1，bars 0–1 数组）
- * @returns 停止函数（取消动画帧）
+ * Microphone spectrum visualization: AnalyserNode emits overall level and spectrum bars each frame (imperative rAF).
+ * @param onFrame per-frame callback (level 0–1, bars a 0–1 array)
+ * @returns stop function (cancels the animation frame)
  */
 export function attachSpectrum(
   ctx: AudioContext,

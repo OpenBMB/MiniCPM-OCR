@@ -10,9 +10,7 @@ interface ImageParseResultActionsProps {
 }
 
 /**
- * 结果导出操作：只负责下载，不包含视图切换入口。
- * 一键复制正文的格式无法保证（Markdown 源码粘到哪里都不是文档），
- * 结果文本统一走下载，区域复制放在选中块的就近操作处。
+ * Result export actions: download only, with no view-switch entry. One-click copy of the body cannot guarantee a format (Markdown source pasted anywhere is not a document). Result text goes through download, and region copy lives on the nearby actions of the selected block.
  */
 export function ImageParseResultActions({
   loading,

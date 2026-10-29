@@ -76,7 +76,7 @@ describe('ImageParseStage bounded origin', () => {
       expect(button.textContent).toBe('');
       expect(button).toHaveAttribute('title', label);
     }
-    // 更换文件交给拖拽与顶栏入口，底栏不再保留更换按钮（t 在测试里返回 key）。
+    // Replacing a file is left to drag-and-drop and the top-bar entry. The bottom bar no longer keeps a replace button (t returns the key in tests).
     expect(screen.queryByRole('button', { name: 'imageParseReplace' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'imageParseZoomIn' }));
     expect(toolbar).toHaveTextContent('125%');

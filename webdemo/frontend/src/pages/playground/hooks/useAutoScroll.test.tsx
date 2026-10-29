@@ -8,7 +8,7 @@ interface AutoScrollHarnessProps {
   turnKey: string;
 }
 
-/** 挂载自动滚动 hook，供测试真实 ref 与滚动事件。 */
+/** Mount the auto-scroll hook, so tests can use a real ref and scroll events. */
 function AutoScrollHarness({ updateKey, turnKey }: AutoScrollHarnessProps) {
   const { scrollRef, contentRef, onScroll, onWheel, onTouchMove, onKeyDown, onPointerDown } =
     useAutoScroll(updateKey, turnKey);
@@ -33,7 +33,7 @@ interface ScrollMetrics {
   clientHeight: number;
 }
 
-/** 为 jsdom 滚动容器提供可控尺寸。 */
+/** Provide a controllable size for a jsdom scroll container. */
 function setScrollMetrics(element: HTMLElement, metrics: ScrollMetrics) {
   Object.defineProperties(element, {
     scrollHeight: {
@@ -47,7 +47,7 @@ function setScrollMetrics(element: HTMLElement, metrics: ScrollMetrics) {
   });
 }
 
-/** 触发一次内容尺寸变化。 */
+/** Trigger one content-size change. */
 function notifyResize(callback: ResizeObserverCallback | undefined, target: Element) {
   callback?.([{ target } as unknown as ResizeObserverEntry], {} as ResizeObserver);
 }
@@ -155,7 +155,7 @@ describe('useAutoScroll', () => {
     rerender(<AutoScrollHarness updateKey="content-updated" turnKey="turn-1" />);
     expect(scroller.scrollTop).toBe(800);
 
-    // 点开一处折叠区：内容长高了，但视口不许动，否则刚点的那一行会被顶出屏幕顶部
+    // Opening one disclosure: the content grows taller, but the viewport must not move, or the row just clicked would be pushed off the top of the screen
     fireEvent.pointerDown(scroller);
     metrics.scrollHeight = 1_400;
     notifyResize(resizeCallback, content);
@@ -174,7 +174,7 @@ describe('useAutoScroll', () => {
 
       rerender(<AutoScrollHarness updateKey="content-updated" turnKey="turn-1" />);
       fireEvent.pointerDown(scroller);
-      // 免疫只覆盖那一下点击带来的形变，不是永久关掉跟随
+      // The immunity covers only the deformation from that one click, and does not turn follow off permanently
       vi.advanceTimersByTime(700);
 
       metrics.scrollHeight = 1_400;

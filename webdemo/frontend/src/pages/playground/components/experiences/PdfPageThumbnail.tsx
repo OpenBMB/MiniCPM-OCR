@@ -4,7 +4,7 @@ import { cn } from '@map/ui';
 
 import { usePdfThumbnail } from '../../hooks/usePdfThumbnail';
 
-/** PDF 低分辨率预览；仅可见项绘制，不与正文共用 canvas。 */
+/** Low-resolution PDF preview; draw only visible items, and do not share a canvas with the body. */
 export function PdfPageThumbnail({
   document,
   pageNumber,

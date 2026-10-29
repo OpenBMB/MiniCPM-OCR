@@ -28,7 +28,7 @@ interface ImageParseReviewPaneProps {
   onLoadMore: () => void;
 }
 
-/** 待复核条目沿用标准卡片；重生成后在同一卡片内展示两版对比，不重复展开原文。 */
+/** Pending-review items reuse the standard card; after regeneration, show the two-version comparison inside the same card and do not expand the original again. */
 export function ImageParseReviewPane({
   quality,
   dirty,
@@ -47,9 +47,9 @@ export function ImageParseReviewPane({
   onLoadMore,
 }: ImageParseReviewPaneProps) {
   const { t } = useTranslation('playground');
-  /** 复核后的对比默认展开；只记录被收起的块，切换结果时随组件 key 一起重置。 */
+  /** The comparison after review is expanded by default; only record blocks that were collapsed, and reset them with the component key when the result changes. */
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
-  // 已优化至高分的块仍保留对比条目，不因离开待审核集合而隐藏优化结果。
+  // Blocks already optimized to a high score still keep a comparison entry, and the optimized result is not hidden just because they left the pending-review set.
   const items = all
     ? quality.scored
     : quality.scored.filter((item) => item.suggested || results[item.id]);
@@ -95,7 +95,7 @@ export function ImageParseReviewPane({
               <div className="space-y-4">
                 {items.slice(0, limit).map((item) => {
                   const selected = selectedBlockId === item.id;
-                  // 只有图片/印章这类无可读文字的块清洗后会为空，此时不占一行空白。
+                  // Only blocks with no readable text, such as images or seals, are empty after cleaning, and then they do not take a blank line.
                   const excerpt = qualityExcerpt(item.block);
                   const result = results[item.id];
                   const folded = collapsed.has(item.id);

@@ -19,15 +19,15 @@ export interface ProColumnDef<T> {
   render?: (value: unknown, record: T, index: number) => ReactNode;
   className?: string;
   hideOnMobile?: boolean;
-  /** 固定到右侧：横向滚动时该列（通常是「操作」列）保持可见，常配 text-right 使用。 */
+  /** Pin to the right: this column (usually the "Actions" column) stays visible while scrolling horizontally, often with text-right. */
   fixed?: 'right';
   cardTitle?: boolean;
   cardDesc?: boolean;
   cardTag?: boolean;
 }
 
-/** 右固定列的粘性样式：吸附右侧、盖住下层内容，左侧加细阴影提示可滚动。
- *  背景需与所在行一致——表头用 bg-muted（同表头底色），表体用 bg-card——否则固定列底色会突兀。 */
+/** Sticky styles for a right-pinned column: stick to the right, cover content underneath, and add a thin shadow on the left to show that it can scroll.
+ *  The background must match the row — bg-muted on the header (same as the header fill), bg-card on the body — or the pinned column’s fill looks out of place. */
 function fixedCellClass<T>(col: ProColumnDef<T>, isHeader = false): string | undefined {
   if (col.fixed !== 'right') return undefined;
   return cn(
@@ -43,17 +43,17 @@ export interface ProTablePagination {
   pageSize: number;
   total: number;
   onChange?: (page: number, pageSize: number) => void;
-  /** 每页条数选项；缺省沿用 Pagination 的默认选项。 */
+  /** Page-size options; when omitted, Pagination’s defaults are used. */
   pageSizeOptions?: number[];
-  /** 是否展示每页条数选择器；默认 true。 */
+  /** Whether to show the page-size selector; default true. */
   showSizeChanger?: boolean;
-  /** 是否展示快捷跳页；默认 true。 */
+  /** Whether to show the quick page jump; default true. */
   showQuickJump?: boolean;
-  /** 是否展示页码按钮；默认 true。 */
+  /** Whether to show page-number buttons; default true. */
   showPageNumbers?: boolean;
 }
 
-/** ProTable 展开按钮渲染参数。 */
+/** Render props for a ProTable expand button. */
 export interface ProTableExpandButtonProps {
   record: unknown;
   expanded: boolean;
@@ -67,47 +67,47 @@ export interface ProTableProps<T extends object> {
   dataSource: T[];
   rowKey: keyof T | ((record: T) => string);
   loading?: boolean;
-  /** 顶部裸工具栏（不带卡片背景），用于标题/按钮等。与 filters 互斥使用，优先用 filters。 */
+  /** Bare toolbar at the top (no card background), for a title, buttons, and similar. Mutually exclusive with filters; prefer filters. */
   toolbar?: ReactNode;
   /**
-   * 筛选区：渲染为独立的「筛选卡片」置于表格卡片上方（两段式排版）。
-   * 传入筛选控件（搜索框 + 下拉 + 动作按钮）即可获得统一的「筛选卡片 + 表格卡片」布局。
+   * Filter region: rendered as its own "filter card" above the table card (two-part layout).
+   * Pass filter controls (search box, dropdowns, and action buttons) to get the shared "filter card + table card" layout.
    */
   filters?: ReactNode;
-  /** 结果卡片头部右侧插槽：放视图切换、导出等动作。 */
+  /** Right slot in the result-card header: view switches, export, and similar actions. */
   tableHeader?: ReactNode;
-  /** 结果总数：显式传入则在结果卡片头部展示「共 N 条」；缺省时回退到 pagination.total。 */
+  /** Result total: when passed explicitly, the result-card header shows "N total"; otherwise it falls back to pagination.total. */
   total?: number;
-  /** 计数名词，拼在「共 N 条」之后，如「数据集」「调用」。 */
+  /** Count noun appended after "N total", for example "datasets" or "calls". */
   countNoun?: string;
-  /** 是否展示「共 N 条」计数（默认 true）。分页总数为估算值时可关闭，避免误导。 */
+  /** Whether to show the "N total" count (default true). Turn it off when the page total is an estimate, so it does not mislead. */
   showCount?: boolean;
   empty?: ReactNode;
   className?: string;
   /**
-   * 桌面端表格最小宽度（px）：列多时给足固定宽度，超出容器即横向滚动，
-   * 避免列被压缩成多行折行。缺省则表格自适应容器宽度（原行为）。
+   * Minimum desktop table width (px): when there are many columns, give them a fixed width and scroll horizontally past the container,
+   * instead of squeezing columns into wrapped lines. When omitted, the table sizes to the container (previous behavior).
    */
   minWidth?: number;
   skeletonRows?: number;
   forceMobile?: boolean;
-  /** 桌面端是否填满所在网格行高度，并将分页器贴到底部。 */
+  /** On desktop, fill the grid row height and pin the paginator to the bottom. */
   fillHeight?: boolean;
   pagination?: ProTablePagination | false;
-  /** 可选展开行：展开内容由业务页按行提供，展开状态由业务页管理。 */
+  /** Optional expandable rows: the page supplies expanded content per row and owns the expanded state. */
   expandable?: {
     expandedRowKeys: string[];
     onExpandedChange: (keys: string[]) => void;
     renderExpandedRow: (record: T) => ReactNode;
-    /** 展开控制列的表头文案，默认不显示。 */
+    /** Header copy for the expand-control column; hidden by default. */
     columnTitle?: string;
-    /** 展开控制列的附加样式，适用于带文字的展开控件。 */
+    /** Extra styles for the expand-control column, for expand controls that include text. */
     columnClassName?: string;
-    /** 按行控制是否显示展开按钮；不可展开的行仍保留空白控制列以保持表格对齐。 */
+    /** Per row, whether to show the expand button; rows that cannot expand still keep a blank control cell so the table stays aligned. */
     isRowExpandable?: (record: T) => boolean;
-    /** 按行控制展开后是否渲染详情内容；可用于将展开状态复用于树形数据。 */
+    /** Per row, whether expanded state renders detail content; the expanded state can also be reused for tree data. */
     hasExpandedContent?: (record: T) => boolean;
-    /** 自定义展开按钮，用于区分不同展开语义。 */
+    /** Custom expand button, to distinguish different expand meanings. */
     renderExpandButton?: (props: ProTableExpandButtonProps) => ReactNode;
   };
 }

@@ -27,7 +27,7 @@ describe('pdfFromJpegs', () => {
 
     expect(text.startsWith('%PDF-1.4')).toBe(true);
     expect(text).toContain('/Count 2');
-    // 预览按 2 倍渲染，页面尺寸取像素的一半。
+    // Preview renders at 2x; page size is half the pixel dimensions.
     expect(text).toContain('/MediaBox [0 0 500 1000]');
     expect(text).toContain('/MediaBox [0 0 400 300]');
     expect(text).toContain('/DCTDecode');
@@ -128,7 +128,7 @@ describe('prepareDocumentFiles', () => {
     expect(result.file.type).toBe('application/pdf');
     expect(result.file.name).toBe('1 等2张.pdf');
     expect(context.drawImage).toHaveBeenCalledTimes(2);
-    // 长边超过上限时按比例缩小。
+    // When the long edge exceeds the limit, scale down proportionally.
     expect(context.drawImage).toHaveBeenCalledWith(bitmap, 0, 0, 2000, 1333);
     expect(close).toHaveBeenCalledTimes(2);
   });

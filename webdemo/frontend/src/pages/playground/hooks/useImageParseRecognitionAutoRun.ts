@@ -3,17 +3,17 @@ import { useEffect, useRef } from 'react';
 interface ImageParseRecognitionAutoRunOptions {
   upright: boolean;
   recognizeSeal: boolean;
-  /** 当前附件是否已有稳定结果；回到识别中时仍保留上一轮的结果标记。 */
+  /** Whether the current attachment already has a stable result; while it returns to recognizing, the previous round's result mark is still kept. */
   hasResult: boolean;
-  /** 附件身份变化时重置上一轮结果标记。 */
+  /** Reset the previous round's result mark when the attachment identity changes. */
   identity?: string;
-  /** 使用最新识别参数重新执行当前任务。 */
+  /** Run the current task again with the latest recognition parameters. */
   onReRun: () => void;
 }
 
 /**
- * 摆正变化时自动重跑；印章开关只影响展示，不触发请求。
- * @param options 当前识别参数、结果状态、附件身份和重跑入口
+ * Re-run automatically when rotation adaptation changes; the seal switch only affects display and does not trigger a request.
+ * @param options current recognition parameters, result state, attachment identity, and the rerun entry
  */
 export function useImageParseRecognitionAutoRun({
   upright,

@@ -31,9 +31,9 @@ const FORMATS = [
 ] as const;
 
 /**
- * OCR 下载格式菜单；保留原图标入口，按选择导出当前结果。
- * @param props 禁用状态、生成状态与格式选择回调
- * @returns Markdown、JSON 和 Word 命令菜单
+ * OCR download-format menu; keep the original icon entry and export the current result by the selection.
+ * @param props Disabled state, generation state, and format-selection callback
+ * @returns A command menu for Markdown, JSON, and Word
  */
 export function ImageParseDownloadMenu({
   disabled,

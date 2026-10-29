@@ -2,7 +2,7 @@ import type { ImageParseTextRange } from './imageParseBlocks';
 import { comparableImageParseFormula } from './imageParseFormulaMarkdown';
 import { groupImageParseHighlightNodes } from './imageParseHighlightGroups';
 
-/** 消毒后的预览语法树节点；定位与分组只添加可信属性。 */
+/** Sanitized preview syntax-tree node; positioning and grouping only add trusted attributes. */
 export interface ImageParsePreviewNode {
   type: string;
   tagName?: string;
@@ -12,7 +12,7 @@ export interface ImageParsePreviewNode {
   position?: { start: { offset?: number }; end: { offset?: number } };
 }
 
-/** 渲染后的语义节点与原图识别块的对应关系。 */
+/** Correspondence between a rendered semantic node and an original-image recognition block. */
 export interface ImageParseLinkedRange {
   id: string;
   range: ImageParseTextRange;
@@ -33,8 +33,8 @@ const BLOCK_TAGS = new Set([
 ]);
 
 /**
- * 在 Markdown 语法树上标记对应的语义块，不注入 HTML，也不拆散表格或公式。
- * 高亮保留整块的 Markdown 结构，源偏移必须与传入渲染器的文本一致。
+ * Mark the matching semantic block on the Markdown syntax tree, without injecting HTML and without breaking tables or formulas apart.
+ * Highlighting keeps the whole block's Markdown structure, and source offsets must match the text passed to the renderer.
  */
 export function imageParseHighlight(
   range?: ImageParseTextRange,
@@ -51,7 +51,7 @@ export function imageParseHighlight(
       maxEnds.push(Math.max(maxEnds[index - 1] ?? -Infinity, item.range.end));
     });
     const matches = (start: number, end: number) => {
-      // 前缀最大终点支持重叠范围；普通按阅读顺序排列的块只访问相邻命中项。
+      // The prefix maximum end supports overlapping ranges; blocks in ordinary reading order only visit adjacent hits.
       let low = 0;
       let high = indexed.length;
       while (low < high) {
@@ -92,8 +92,8 @@ export function imageParseHighlight(
     }
     collect(tree);
 
-    // 兼容已经打开的旧草稿：只合并紧邻的重复表示，将旧范围转移到显示公式。
-    // 不跨正文寻找相同公式，也不把两个不同原图区域合并为一个点击目标。
+    // Compatible with old drafts already open: only merge an adjacent duplicate representation, and move the old range onto the display formula.
+    // Do not search across the body for the same formula, and do not merge two different original-image regions into one click target.
     if (deduplicateFormulas) {
       const children: ImageParsePreviewNode[] = [];
       let previousMath: ImageParsePreviewNode | undefined;
@@ -146,18 +146,18 @@ export function imageParseHighlight(
         const highlighted =
           aliasedHighlights.has(node) || Boolean(range && start < range.end && end > range.start);
         const matching = matchingIds.get(node) ?? [];
-        // 同一个语义节点对应多个原图块时不猜测，避免点错位置。
+        // When one semantic node corresponds to several original-image blocks, do not guess, so the click does not land in the wrong place.
         const linkedId = matching.length === 1 ? matching[0] : undefined;
         if (highlighted || matching.length) {
           const existingClass = node.properties?.className;
           const classes = Array.isArray(existingClass) ? existingClass : [];
-          // 表格由专用外壳控制描边与圆角，不能被普通文本选中样式覆盖。
+          // Tables are stroked and rounded by a dedicated shell and must not be covered by the ordinary text selection style.
           const highlightClasses =
             highlighted && node.tagName !== 'table'
               ? ['ring-1', 'ring-inset', 'ring-primary/60', 'rounded-sm']
               : [];
           if (node.tagName === 'pre') {
-            // KaTeX 会替换 display-math 的 pre 节点，用外壳保留定位标记。
+            // KaTeX replaces the pre node of display-math; a shell keeps the positioning marker.
             const original = { ...node };
             node.tagName = 'div';
             node.children = [original];
@@ -189,7 +189,7 @@ export function imageParseHighlight(
                 }
               : {}),
           };
-          // 已命中一个语义块，避免列表项与内部段落重复创建点击目标。
+          // One semantic block has already been hit, so a list item and its inner paragraph do not each create a click target.
           return;
         }
       }

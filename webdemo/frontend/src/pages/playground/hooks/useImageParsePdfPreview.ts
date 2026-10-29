@@ -10,7 +10,7 @@ import type { useImageParse } from './useImageParse';
 
 type PdfState = NonNullable<ReturnType<typeof useImageParse>['pdf']>;
 
-/** 连续结果按页测量并缓存高度；编辑页与当前定位页必须保持挂载。 */
+/** Continuous results measure and cache height per page; the page being edited and the page currently positioned must stay mounted. */
 export function useImageParsePdfPreview(
   pdf: PdfState,
   pageKey: (page: number) => string,
@@ -25,7 +25,7 @@ export function useImageParsePdfPreview(
   const reportedPage = useRef(pdf.page);
   const previousPage = useRef(0);
   const previousFocus = useRef(focusRequest);
-  // 保留全部页骨架；未完成页显示等待态，左右滚动才能始终按页码联动。
+  // Keep every page skeleton; an unfinished page shows a waiting state, so left and right scrolling can always stay linked by page number.
   const pages = useMemo(
     () => Array.from({ length: pdf.pages }, (_, index) => index + 1),
     [pdf.pages],
@@ -58,7 +58,7 @@ export function useImageParsePdfPreview(
     paddingStart: 0,
     measureElement: (element, entry, instance) => {
       const height = entry?.borderBoxSize?.[0]?.blockSize ?? element.getBoundingClientRect().height;
-      // 标签隐藏时 ResizeObserver 报零高度，不能清掉已测量的页面尺寸。
+      // When the tab is hidden, ResizeObserver reports zero height, and the page size already measured must not be cleared.
       return (
         height || instance.itemSizeCache.get(pageKey(Number(element.dataset.ocrResultPage))) || 720
       );

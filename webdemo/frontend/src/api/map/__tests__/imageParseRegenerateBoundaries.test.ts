@@ -67,7 +67,7 @@ interface Boundary {
   mutate: (value: ReturnType<typeof fixture>) => void;
 }
 
-// 记录现有拒绝行为用于排查，不代表这些边界都是合理的产品要求。
+// Record the current rejection behavior for debugging; it does not mean every boundary is a reasonable product requirement.
 const rejected: Boundary[] = [
   {
     name: '聚合 Markdown 为空但块正文非空',
@@ -315,7 +315,7 @@ describe('单块重生成红字的诊断边界', () => {
       ).rejects.toThrow('imageParseInvalidResult');
       expect(onApply).not.toHaveBeenCalled();
       expect(mocks.request).toHaveBeenCalledOnce();
-      // 只修改聚合 Markdown 即可通过，隔离空正文与分数、轮次、身份校验的影响。
+      // Changing only the aggregated Markdown is enough to pass, isolating the effects of an empty body and of score, round, and identity checks.
       value.response.choices[0].message.content = '优化后的文字';
       await expect(
         regenerateImageParseV4(source, target, signal, 'minicpm-ocr-aio', 'plain-secret'),

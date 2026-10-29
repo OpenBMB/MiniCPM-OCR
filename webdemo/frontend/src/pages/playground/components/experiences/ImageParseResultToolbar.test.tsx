@@ -49,7 +49,7 @@ const props = {
   recognizeSeal: true,
   onRecognizeSealChange: vi.fn(),
   hasScoredBlocks: true,
-  // 保留待复核实现的单测开关；生产默认隐藏。
+  // Keep the unit-test switch for the pending-review implementation; hidden by default in production.
   reviewEnabled: true,
   reviewAll: false,
   onToggleReviewAll: vi.fn(),
@@ -290,7 +290,7 @@ describe('OCR 结果工具栏', () => {
       expect(screen.queryByRole('button', { name: hidden })).toBeNull();
     }
 
-    // 批量重生成期间不再额外展示顶部命令行。
+    // During batch regeneration, do not also show a command row at the top.
     view.rerender(
       <Tabs value="review" onValueChange={() => undefined}>
         <ImageParseResultToolbar

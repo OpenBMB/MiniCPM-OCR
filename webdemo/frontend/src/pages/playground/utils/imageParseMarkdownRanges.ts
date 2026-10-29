@@ -53,12 +53,12 @@ function possibleRanges(nodes: SourceNode[], target: string): ImageParseTextRang
 }
 
 /**
- * 检测服务块候选范围的实际交集，避免把已属于另一块的正文再次补入。
- * @param source 原始 Markdown
- * @param texts 识别块文字
- * @param matches 消耗阅读位置后的匹配结果
- * @param replacements 已确认的完整替换范围，避免用整个列表的定位锚点误判相邻条目
- * @returns 存在范围冲突的块序号，禁止补齐或覆盖这些块
+ * Detect the real overlap of candidate ranges of service blocks, so body text that already belongs to another block is not inserted again.
+ * @param source original Markdown
+ * @param texts recognition-block text
+ * @param matches match results after reading positions have been consumed
+ * @param replacements confirmed complete replacement ranges, so a positioning anchor of the whole list is not used to misjudge a neighboring item
+ * @returns indexes of blocks whose ranges conflict; those blocks must not be filled in or overwritten
  */
 export function imageParseMarkdownOverlaps(
   source: string,
@@ -97,7 +97,7 @@ function listRange(node: SourceNode, match: MatchedText): ImageParseTextRange | 
   for (const item of node.children ?? []) {
     const range = nodeRange(item);
     if (!range || item.type !== 'listItem') return undefined;
-    // 只在完整条目的语义边界处替换；不能把同列表的其它条目包含进来。
+    // Replace only at the semantic boundary of a complete item; do not include other items of the same list.
     if (cursor === match.textStart) start = range.start;
     cursor += imageParseNodeText(item).replace(/\s+/g, '').length;
     if (start !== undefined && cursor === match.textEnd) return { start, end: range.end };
@@ -107,11 +107,11 @@ function listRange(node: SourceNode, match: MatchedText): ImageParseTextRange | 
 }
 
 /**
- * 将文字匹配提升为完整 Markdown 语义范围，包含标题、列表和加粗等原有标记。
- * @param source 原始整页 Markdown
- * @param texts 按阅读顺序返回的识别文字
- * @param matches 已消耗重复文字位置的匹配结果
- * @returns 唯一且完整的替换范围；段落内的局部文字仍作定位锚点，但不允许重算覆盖
+ * Promote a text match to a complete Markdown semantic range, including existing markers such as headings, lists, and bold.
+ * @param source original whole-page Markdown
+ * @param texts recognition text returned in reading order
+ * @param matches match results that have already consumed repeated-text positions
+ * @returns unique and complete replacement ranges; partial text inside a paragraph remains a positioning anchor, but must not be recomputed over
  */
 export function imageParseMarkdownReplacementRanges(
   source: string,
@@ -155,7 +155,7 @@ export function imageParseMarkdownReplacementRanges(
   const anchors = matchedRanges.map((range, index) => (ambiguous[index] ? undefined : range));
   return matchedRanges.map((range, index) => {
     if (!range || !ambiguous[index]) return range;
-    // 漏检一个重复编号不应禁用其它章节；只接受前后完整块之间唯一且已匹配的候选。
+    // Missing one repeated number must not disable other sections; accept only a unique already-matched candidate between complete blocks before and after.
     const previous = anchors
       .slice(0, index)
       .reverse()

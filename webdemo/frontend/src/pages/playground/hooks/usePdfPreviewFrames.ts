@@ -3,7 +3,7 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 
 import type { PdfPageFrame } from '../utils/pdfPreviewRender';
 
-/** 已提交的页面只保存视图身份；离屏 canvas 移除时立即清空像素与缓存。 */
+/** A committed page stores only the view identity; when an offscreen canvas is removed, clear its pixels and cache immediately. */
 export interface RenderedPdfPage {
   key: string;
   canvas: HTMLCanvasElement;
@@ -14,10 +14,10 @@ export interface RenderedPdfPage {
 }
 
 /**
- * 管理可见画布和提交帧的生命周期，不让帧提交改变渲染任务依赖。
- * @param document 当前 PDF 文档
- * @param revision 用户重试版本
- * @returns 画布注册、帧缓存、状态发布和重试入口
+ * Manage the lifetime of the visible canvas and committed frames, without letting a frame commit change render-task dependencies.
+ * @param document current PDF document
+ * @param revision user retry version
+ * @returns canvas registration, the frame cache, state publishing, and the retry entry
  */
 export function usePdfPreviewFrames(document: PDFDocumentProxy | undefined, revision: number) {
   const scope = useMemo(() => ({ document, revision }), [document, revision]);
@@ -41,10 +41,10 @@ export function usePdfPreviewFrames(document: PDFDocumentProxy | undefined, revi
       if (!frame?.buffer.width || canvasNodes.current[Number(pageNumber)] !== item.canvas) return;
       const context = item.canvas.getContext('2d');
       if (!context) return;
-      // 像素、方向、缩放和识别框在同一布局提交中生效，不能在异步回调里先换像素。
+      // Pixels, orientation, zoom, and recognition boxes take effect in the same layout commit, and pixels must not be swapped first inside an async callback.
       item.canvas.width = frame.buffer.width;
       item.canvas.height = frame.buffer.height;
-      // 各页高清帧逐页提交，显示尺寸只跟随各自骨架，不能共享当前页的帧倍率。
+      // Each page's high-resolution frame is committed page by page; display size follows only that page's skeleton, and must not share the current page's frame scale.
       item.canvas.style.width = '100%';
       item.canvas.style.height = '100%';
       context.drawImage(frame.buffer, 0, 0);
@@ -110,7 +110,7 @@ export function usePdfPreviewFrames(document: PDFDocumentProxy | undefined, revi
   };
 }
 
-/** 清空尚未提交或已离屏的缓冲区，不保留高分辨率像素副本。 */
+/** Clear buffers that have not been committed or are already offscreen, and do not keep a high-resolution pixel copy. */
 function releaseBuffer(item: RenderedPdfPage) {
   if (item.frame) item.frame.buffer.width = item.frame.buffer.height = 0;
 }

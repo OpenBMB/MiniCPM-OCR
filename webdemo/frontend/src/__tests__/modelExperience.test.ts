@@ -1,5 +1,5 @@
 /**
- * modelExperience 分类单测：分流只认管理端勾选的 capabilities，不再按模型名关键词猜测。
+ * modelExperience classification tests: routing trusts only the capabilities checked in admin, and no longer guesses from model-name keywords.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -11,7 +11,7 @@ import {
   modelsByExperience,
 } from '../utils/modelExperience';
 
-/** 构造最小可用模型，只关心 id / display_name / capabilities 三个判定输入 */
+/** Build a minimal usable model; only id, display_name, and capabilities matter for the decision. */
 function model(id: string, capabilities: Record<string, boolean> = {}, displayName = ''): MapModel {
   return {
     id,

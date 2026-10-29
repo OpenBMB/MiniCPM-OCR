@@ -24,7 +24,7 @@ interface ImageParseStageToolbarProps {
 }
 
 /**
- * 原图头部工具组：缩放和方向操作按组排列，与 PDF 原图工具栏保持一致。
+ * Tool group at the head of the original image: zoom and orientation actions are grouped, consistent with the PDF original-image toolbar.
  */
 export function ImageParseStageToolbar({
   zoom,

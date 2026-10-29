@@ -1,28 +1,28 @@
 /**
- * 体验中心的模型分类工具。
+ * Model classification helpers for the Playground.
  *
- * 用途：后端返回同一份「全量可调用模型」，前端按管理端配置的能力位筛选四类体验：
- * - tts：勾了「语音合成」，走 /v1/audio/speech
- * - realtime：勾了「实时对话」，走 /v1/realtime
- * - image-parse：勾了「图像解析」且支持图像输入，走 Chat Completions 做图像 → Markdown
- * - language：普通对话模型，以及同时支持文本输入的图像解析模型
- * 支持文本输入的图像解析模型可同时出现在语言对话与图像解析列表中。
+ * Purpose: the backend returns one list of "all callable models", and the frontend filters four experiences from capability flags configured in admin:
+ * - tts: "speech synthesis" is checked, and it uses /v1/audio/speech
+ * - realtime: "realtime conversation" is checked, and it uses /v1/realtime
+ * - image-parse: "image parse" is checked and image input is supported; Chat Completions turns an image into Markdown
+ * - language: ordinary chat models, plus image-parse models that also accept text input
+ * An image-parse model that accepts text can appear in both the language chat list and the image-parse list.
  *
- * 判定**只认 capabilities**（管理端显式勾选、migration 0032 已归一存量数据），不再按模型名
- * 关键词猜测——改个模型名就分错、新接入模型必须改代码，都是关键词方案的老毛病。
- * 模型没进对体验，就去管理台把能力位勾上。
+ * The decision trusts capabilities only (explicitly checked in admin; migration 0032 already normalized existing data), and no longer guesses from model-name
+ * keywords — a renamed model landing in the wrong place, and every new model requiring a code change, were the old problems with keywords.
+ * If a model is in the wrong experience, check the capability flag in the admin console.
  */
 
 import type { MapModel } from '@/api/map';
 
-/** 模型在体验中心的类别 */
+/** A model’s experience category in the Playground. */
 export type ModelExperience = 'language' | 'tts' | 'realtime' | 'image-parse';
 
 /**
- * 体验中心分流所依据的能力 key（管理端「能力支持」里勾选，与后端门禁同名）。
- * - speech_synthesis：语音合成（历史数据里叫 audio_speech，见 migration 0032）
- * - realtime_dialog：实时对话
- * - document_parse：图像 → Markdown 解析；必须同时具备 input_image，避免纯文本模型误入
+ * Capability keys the Playground uses to route models (checked under admin "capability support", same names as the backend gate).
+ * - speech_synthesis: speech synthesis (called audio_speech in historical data; see migration 0032)
+ * - realtime_dialog: realtime conversation
+ * - document_parse: image → Markdown parsing; input_image is also required so a text-only model is not admitted
  */
 export const EXPERIENCE_CAPABILITY_KEYS = {
   speechSynthesis: 'speech_synthesis',
@@ -31,12 +31,12 @@ export const EXPERIENCE_CAPABILITY_KEYS = {
 } as const;
 
 /**
- * 判断模型是否启用指定协议。
+ * Whether a model has a given protocol enabled.
  *
- * `protocols` 为空数组时明确表示未定义协议；字段缺失时兼容旧后端，按历史默认协议处理。
- * @param model 单个可调用模型
- * @param protocol 目标协议
- * @returns 是否支持该协议
+ * An empty `protocols` array means no protocol is defined; when the field is missing, stay compatible with older backends and use the historical default protocol.
+ * @param model One callable model.
+ * @param protocol Target protocol.
+ * @returns Whether that protocol is supported.
  */
 export function modelSupportsProtocol(
   model: MapModel,
@@ -48,16 +48,16 @@ export function modelSupportsProtocol(
 }
 
 /**
- * speech_synthesis 归一前的历史 key。migration 0032 会把它改写掉，
- * 但迁移与前端发版存在时间差，兼容期一并认，避免语音合成体验短时空列表。
+ * Historical key from before speech_synthesis was normalized. Migration 0032 rewrites it,
+ * but migration and the frontend release can be apart in time, so the compatibility window accepts both and the speech-synthesis experience does not briefly show an empty list.
  */
 const LEGACY_SPEECH_KEY = 'audio_speech';
 
 /**
- * 判定单个模型的主要体验类别，供接入示例选择协议。
- * 同时具备时：实时优先于语音合成；图像解析模型仍可按文本能力进入语言对话列表。
- * @param model 单个可调用模型
- * @returns 该模型所属体验类别
+ * Decide one model’s primary experience category, so integration examples can pick a protocol.
+ * When several apply: realtime wins over speech synthesis; an image-parse model can still enter the language chat list by its text capability.
+ * @param model One callable model.
+ * @returns The experience category that model belongs to.
  */
 export function classifyModel(model: MapModel): ModelExperience {
   const caps = model.capabilities;
@@ -68,10 +68,10 @@ export function classifyModel(model: MapModel): ModelExperience {
 }
 
 /**
- * 取某一体验类别下的全部可选模型（保持后端返回顺序）。
- * @param models 全量可调用模型
- * @param experience 目标体验类别
- * @returns 该类别下的模型列表，可能为空
+ * All selectable models in one experience category (keeps the backend order).
+ * @param models All callable models.
+ * @param experience Target experience category.
+ * @returns Models in that category; may be empty.
  */
 export function modelsByExperience(models: MapModel[], experience: ModelExperience): MapModel[] {
   return models.filter((m) => {
@@ -89,19 +89,19 @@ export function modelsByExperience(models: MapModel[], experience: ModelExperien
 }
 
 /**
- * 语言对话可选模型（排除语音合成、实时对话及未声明文本输入的图像解析模型）。
- * @param models 全量可调用模型
- * @returns 仅语言对话模型
+ * Models selectable for language chat (excludes speech synthesis, realtime conversation, and image-parse models that do not declare text input).
+ * @param models All callable models.
+ * @returns Language-chat models only.
  */
 export function languageModels(models: MapModel[]): MapModel[] {
   return modelsByExperience(models, 'language');
 }
 
 /**
- * 判定模型是否正处于免费调用期（后端按定价时间窗实时计算）。
- * 免费模型对所有用户免费调用，体验中心据此展示「免费」标签。
- * @param model 单个可调用模型
- * @returns 是否限时免费
+ * Whether a model is currently in its free-call window (the backend computes this live from the pricing window).
+ * A free model is free for every user, and the Playground shows a "Free" tag from this.
+ * @param model One callable model.
+ * @returns Whether it is free for a limited time.
  */
 export function isFreeModel(model: MapModel): boolean {
   return Boolean(model.is_free);

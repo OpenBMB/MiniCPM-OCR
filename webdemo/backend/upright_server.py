@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""无卡机器上的摆正服务。
+"""Rotation-adaptation service for a machine without a GPU.
 
-本机解析进程把页面 PNG 发到 POST /v1/upright。没旋转时只回记录，不回图片。
-服务起来后把地址写到 OCR_UPRIGHT_REGISTRY，解析进程按这个目录来发现工人。
+The local parse process posts a page PNG to POST /v1/upright. When the page
+is not rotated, the response is the record only, with no image. After startup
+the address is written to OCR_UPRIGHT_REGISTRY, and the parse process finds
+workers from that directory.
 """
 from __future__ import annotations
 

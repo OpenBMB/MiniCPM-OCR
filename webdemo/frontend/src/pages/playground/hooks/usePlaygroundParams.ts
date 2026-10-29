@@ -1,8 +1,8 @@
 /**
- * 对话参数偏好 hook（按模型持久化）。
+ * Conversation parameter-preference hook (persisted per model).
  *
- * 用途：托管温度/top_p/最大输出/思考深度/思考风格/流式等参数。这些参数**按模型分别记忆**——
- * 用户设置优先于模型 parameter_config；两者都未设置的数值字段保持空值。
+ * Purpose: own parameters such as temperature, top_p, maximum output, reasoning depth, reasoning style, and streaming. These parameters are **remembered per model** —
+ * a user setting takes priority over the model parameter_config; a numeric field set by neither stays empty.
  */
 
 import { useCallback, useMemo } from 'react';
@@ -12,32 +12,32 @@ import { DEFAULT_PARAMS, type PlaygroundParams, type ThinkingDepth } from '../ty
 import { requiresNonStreaming } from '../utils/params';
 import { resolveModelParameterDefaults } from '../utils/modelParameterDefaults';
 
-/** usePlaygroundParams 返回 */
+/** usePlaygroundParams return value */
 interface UsePlaygroundParamsReturn {
   params: PlaygroundParams;
-  /** 增量更新参数（写入当前模型那份） */
+  /** Update parameters incrementally (written into the copy for the current model) */
   update: (patch: Partial<PlaygroundParams>) => void;
-  /** 单独设置思考深度 */
+  /** Set reasoning depth on its own */
   setThinkingDepth: (depth: ThinkingDepth) => void;
-  /** 切换联网搜索 */
+  /** Toggle web search */
   setWebSearch: (webSearch: boolean) => void;
-  /** 设置联网启用的工具列表（webSearch=true 时生效） */
+  /** Set the tool list enabled for web search (takes effect when webSearch=true) */
   setEnabledTools: (tools: string[]) => void;
-  /** 设置用户位置（用于 datetime 工具） */
+  /** Set the user location (used by the datetime tool) */
   setUserLocation: (location: string) => void;
-  /** 切换流式输出 */
+  /** Toggle streaming output */
   setStream: (stream: boolean) => void;
-  /** 重置当前模型为默认值 */
+  /** Reset the current model to defaults */
   reset: () => void;
 }
 
 /**
- * 参数偏好状态机（按模型）。
- * @param modelId 当前选中模型 id；为空时退化为一份临时默认参数（仍可调，但不落到具体模型）
- * @param capabilities deep_thinking 决定能力，show_reasoning 仅决定未设置用户偏好时的默认值。
- *   不支持时覆盖存档与模型参数，强制关闭；支持时保留用户按模型保存的选择。
- * @param parameterConfig 管理端配置的模型级默认请求参数。
- * @param allowWebSearch 当前模型是否显式支持联网搜索；缺省按不支持处理。
+ * Parameter-preference state machine (per model).
+ * @param modelId currently selected model id; when empty, fall back to one temporary set of default parameters (still adjustable, but not stored on a specific model)
+ * @param capabilities deep_thinking decides the capability, and show_reasoning only decides the default when the user has not set a preference.
+ *   When unsupported, override the archive and model parameters and force it off; when supported, keep the choice the user saved per model.
+ * @param parameterConfig model-level default request parameters configured in the admin console.
+ * @param allowWebSearch whether the current model explicitly supports web search; treated as unsupported when omitted.
  */
 export function usePlaygroundParams(
   modelId: string,
@@ -61,7 +61,7 @@ export function usePlaygroundParams(
   const thinkingDepth =
     stored?.thinkingDepth ?? modelDefaults.values.thinkingDepth ?? defaultThinkingDepth;
 
-  // raw 是当前生效参数，但模型默认值不会写入用户偏好，避免后续管理端调整失效。
+  // raw is the parameters currently in effect, but model defaults are not written into user preferences, so a later admin-console change does not stop taking effect.
   const raw = useMemo<PlaygroundParams>(() => {
     return {
       ...DEFAULT_PARAMS,
@@ -73,7 +73,7 @@ export function usePlaygroundParams(
       thinkingDepth,
       thinkingStyle:
         stored?.thinkingStyle ?? modelDefaults.values.thinkingStyle ?? DEFAULT_PARAMS.thinkingStyle,
-      // 客户端开关与模型默认一致时仍由 L2 原样注入；不一致时显式覆盖整组思考参数。
+      // When the client switch matches the model default, L2 still injects it as-is; when they differ, explicitly override the whole reasoning-parameter group.
       includeThinkingParams:
         storedHasThinkingOverride ||
         !modelDefaults.hasThinkingDefaults ||
@@ -81,13 +81,13 @@ export function usePlaygroundParams(
       thinkingControlFormat:
         stored?.thinkingStyle === 'thinking' ? 'thinking' : modelDefaults.thinkingControlFormat,
       thinkingDefaults: modelDefaults.values.thinkingDefaults,
-      // MiniCPM-OCR-Jev 默认非流式；用户显式打开只保留 UI 偏好，实际请求由补全链路强制非流式。
+      // MiniCPM-OCR-Jev defaults to non-streaming; the user turning it on explicitly keeps only the UI preference, and the actual request is forced non-streaming by the completion path.
       stream:
         stored?.stream ??
         (forceNonStreaming ? false : (modelDefaults.values.stream ?? DEFAULT_PARAMS.stream)),
       webSearch: allowWebSearch ? (stored?.webSearch ?? DEFAULT_PARAMS.webSearch) : false,
-      // 不回落到默认值：未存过工具选择时保持 undefined，请求体里不出现 enabled_tools，
-      // 后端据此启用全部工具（见 types.ts 中 enabledTools 的三态说明）。
+      // Do not fall back to a default: when no tool selection has been stored, keep it undefined, so enabled_tools does not appear in the request body,
+      // and the backend enables every tool from that (see the three-state note on enabledTools in types.ts).
       enabledTools: stored?.enabledTools,
       userLocation: stored?.userLocation,
     };
@@ -100,7 +100,7 @@ export function usePlaygroundParams(
     forceNonStreaming,
   ]);
 
-  // 不支持深度思考时必须显式关闭，避免旧偏好或 L2 默认参数重新开启。
+  // When deep reasoning is unsupported it must be turned off explicitly, so an old preference or an L2 default parameter does not turn it back on.
   const params = useMemo<PlaygroundParams>(
     () =>
       allowReasoning

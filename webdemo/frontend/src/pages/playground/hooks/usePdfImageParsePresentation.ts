@@ -9,7 +9,7 @@ import type { PdfImageParseSnapshot } from '../utils/imageParseHistoryTypes';
 import type { PdfPageResult } from '../utils/pdfImageParse';
 import { usePdfImageParseCrops } from './usePdfImageParseCrops';
 
-// 仅缓存纯派生结果；WeakMap 随原始结果释放，不额外持有文档。
+// Cache only a pure derived result; the WeakMap is released with the raw result and does not hold the document extra.
 const hiddenCache = new WeakMap<ImageParseSdkResult, ImageParseSdkResult>();
 
 interface PdfImageParsePresentationOptions {
@@ -24,9 +24,9 @@ interface PdfImageParsePresentationOptions {
 }
 
 /**
- * 派生 PDF 可见结果与历史快照；裁图始终根据原始结果，避免过滤后身份变化。
- * @param options 页结果及当前可见页状态
- * @returns 过滤后的页结果和可恢复快照
+ * Derive the visible PDF result and the history snapshot; crops always come from the raw result, so identity does not change after filtering.
+ * @param options page results and the current visible-page state
+ * @returns filtered page results and a snapshot that can be restored
  */
 export function usePdfImageParsePresentation({
   source,

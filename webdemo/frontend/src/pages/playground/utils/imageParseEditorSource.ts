@@ -95,7 +95,7 @@ const HTML_ATTRIBUTES = new Set([
 function supportedHtml(value: string) {
   const fragment = new DOMParser().parseFromString(value, 'text/html');
   if (fragment.head.childNodes.length) return false;
-  // 注释与特殊 HTML 不能经过 schema 导入时静默消失。
+  // Comments and special HTML must not silently disappear when imported through the schema.
   const walker = fragment.createTreeWalker(fragment, NodeFilter.SHOW_COMMENT);
   if (walker.nextNode()) return false;
   return [...fragment.body.querySelectorAll('*')].every((element) => {
@@ -105,7 +105,7 @@ function supportedHtml(value: string) {
       if (name === 'class' && element.tagName === 'CODE') {
         return /^(language-[\w-]+|math-inline|math-display)$/.test(attribute);
       }
-      // Tiptap 导出的列宽与 GFM 对齐是可重建属性，其它样式保留原文。
+      // Column widths and GFM alignment exported by Tiptap are rebuildable attributes; other styles keep the original text.
       return (
         name === 'style' &&
         /^(TABLE|COL|TD|TH)$/.test(element.tagName) &&
@@ -122,7 +122,7 @@ function supported(node: SourceNode): boolean {
   return node.children?.every(supported) ?? true;
 }
 
-/** OCR 源文本中的一或双层转义 br；仅进入文字内容，代码和公式由 AST 边界保护。 */
+/** A single- or double-escaped br in OCR source text; it only enters text content. Code and formulas are protected by AST boundaries. */
 const ESCAPED_LINE_BREAK = /(?:&amp;|&)(?:lt|#60|#x3c);br\s*\/?\s*(?:&amp;|&)(?:gt|#62|#x3e);/gi;
 
 interface SourceRange {
@@ -150,7 +150,7 @@ function collectTextLineBreaks(
   node.children?.forEach((child) => collectTextLineBreaks(child, blockStart, block, ranges));
 }
 
-/** 可编辑 HTML 先识别单元格公式再恢复换行，避免公式中的 br 被误转为 DOM 节点。 */
+/** Editable HTML recognizes cell formulas before restoring line breaks, so a br inside a formula is not turned into a DOM node by mistake. */
 function normalizeSupportedLineBreaks(block: string, node: SourceNode) {
   if (node.type === 'html') {
     if (!/[$\\]/.test(block) && !new RegExp(ESCAPED_LINE_BREAK.source, 'i').test(block))
@@ -170,15 +170,15 @@ function normalizeSupportedLineBreaks(block: string, node: SourceNode) {
     );
 }
 
-/** 判断完整语义块是否能进入可视化编辑，图片占位符与未知结构继续保持预览。 */
+/** Whether a complete semantic block can enter visual editing; image placeholders and unknown structure stay in preview. */
 export function isImageParseSourceBlockEditable(node: SourceNode): boolean {
   return node.type !== 'definition' && supported(node);
 }
 
 /**
- * 使用 Markdown AST 识别编辑器不支持的完整块，将其作为保留节点导入。
- * 保留块仍由原预览器安全展示，导出时直接恢复原文，不做有损转换。
- * @param source 原始 OCR 草稿
+ * Use the Markdown AST to recognize complete blocks the editor does not support, and import them as preserved nodes.
+ * Preserved blocks are still shown safely by the original previewer, and export restores the original text directly, with no lossy conversion.
+ * @param source original OCR draft
  */
 export function prepareImageParseEditorSource(source: string): string {
   const tree = SOURCE_PARSER.parse(source) as SourceNode;
@@ -192,7 +192,7 @@ export function prepareImageParseEditorSource(source: string): string {
     result += normalizeMathDelimiters(source.slice(cursor, start), { detectBareMath: false });
     if (supported(node)) {
       const prepared = normalizeSupportedLineBreaks(block, node);
-      // HTML 单元格公式已生成 code 节点；不能再规范化其内部 LaTeX 或代码内容。
+      // HTML cell formulas have already produced a code node; do not normalize the LaTeX or code inside them again.
       result +=
         node.type === 'html'
           ? prepared
@@ -206,7 +206,7 @@ export function prepareImageParseEditorSource(source: string): string {
   return result + normalizeMathDelimiters(source.slice(cursor), { detectBareMath: false });
 }
 
-/** 从 AST 提取可复制的文字，保留代码、公式与图片说明。 */
+/** Extract copyable text from the AST, keeping code, formulas, and image alt text. */
 export function imageParseNodeText(
   node: SourceNode,
   options?: { mathDelimiters?: boolean },
@@ -234,7 +234,7 @@ export function imageParseNodeText(
   );
 }
 
-/** 把 HTML 里的公式代码还原成带定界符的文本，供复制后贴回 Markdown。 */
+/** Turn formula code in HTML back into text with delimiters, so it can be pasted back into Markdown after copying. */
 function wrapImageParseHtmlMath(root: ParentNode) {
   root.querySelectorAll('code.math-inline, code.math-display').forEach((code) => {
     const latex = code.textContent ?? '';
@@ -246,7 +246,7 @@ function wrapImageParseHtmlMath(root: ParentNode) {
   });
 }
 
-/** 获取统一解析器的顶层块，供表格导出沿用同一套 GFM 语法规则。 */
+/** Get the top-level blocks of the shared parser, so table export follows the same GFM syntax rules. */
 export function imageParseSourceBlocks(source: string): SourceNode[] {
   return (SOURCE_PARSER.parse(source) as SourceNode).children ?? [];
 }

@@ -1,43 +1,43 @@
 import { useMemo, type CSSProperties } from 'react';
 import GoCaptcha from 'go-captcha-react';
 
-/** 后端下发的滑块题目（不含答案）。坐标系与图片原始尺寸（300×220）一致。 */
+/** Slide challenge from the backend (no answer). The coordinate system matches the original image size (300×220). */
 export interface SlideCaptchaChallenge {
-  /** 带缺口的背景大图（data URI） */
+  /** Background image with the gap (data URI). */
   masterB64: string;
-  /** 拼图块（data URI） */
+  /** Puzzle piece (data URI). */
   tileB64: string;
-  /** 拼图块初始展示 x */
+  /** Initial display x of the puzzle piece. */
   tileX: number;
-  /** 拼图块展示 y（与缺口同高） */
+  /** Display y of the puzzle piece (same height as the gap). */
   tileY: number;
-  /** 拼图块宽 */
+  /** Puzzle piece width. */
   tileWidth: number;
-  /** 拼图块高 */
+  /** Puzzle piece height. */
   tileHeight: number;
 }
 
-/** SlideCaptcha 入参 */
+/** SlideCaptcha props. */
 export interface SlideCaptchaProps {
-  /** 题目；为 null 时渲染空白占位（加载中） */
+  /** Challenge; when null, render an empty placeholder (loading). */
   challenge: SlideCaptchaChallenge | null;
-  /** 用户释放滑块时回调，point 为拼图落点；reset 可将滑块复位 */
+  /** Called when the user releases the slider; point is where the piece lands. reset can move the slider back. */
   onConfirm: (point: { x: number; y: number }, reset: () => void) => void;
-  /** 点击刷新换一题 */
+  /** Refresh click loads a new challenge. */
   onRefresh: () => void;
-  /** 点击 go-captcha 标题栏关闭图标时回调（用于取消验证、关闭弹窗） */
+  /** Called when the go-captcha title-bar close icon is clicked (cancel verification and close the dialog). */
   onClose?: () => void;
-  /** 提示文案 */
+  /** Hint copy. */
   title?: string;
-  /** 状态：success 滑块停留并转绿；error 闪红；default 品牌蓝 */
+  /** Status: success leaves the slider in place and turns it green; error flashes red; default is brand blue. */
   status?: 'default' | 'success' | 'error';
 }
 
-// 与后端 go-captcha 默认出题尺寸保持一致，确保前端落点坐标系与服务端答案坐标系对齐。
+// Match the backend go-captcha default challenge size so the frontend drop-point coordinates line up with the server answer coordinates.
 const MASTER_WIDTH = 300;
 const MASTER_HEIGHT = 220;
 
-// 不同状态下滑块（dragBlock/圆点）的主色：default 主色 / success 绿 / error 红。
+// Slider (dragBlock / dot) primary color by status: default is the brand color, success is green, error is red.
 const STATUS_COLOR: Record<NonNullable<SlideCaptchaProps['status']>, string> = {
   default: 'hsl(var(--primary))',
   success: 'hsl(var(--success))',
@@ -45,11 +45,11 @@ const STATUS_COLOR: Record<NonNullable<SlideCaptchaProps['status']>, string> = {
 };
 
 /**
- * 滑块人机验证（拼图）。基于 go-captcha-react 的 Slide 模式封装为纯展示组件：
- * 只负责渲染题目、把用户落点/刷新事件回调出去，不做任何数据请求（取题/校验由调用方编排）。
+ * Slide captcha (puzzle). A presentational wrapper around go-captcha-react Slide mode:
+ * it only renders the challenge and forwards the drop point and refresh events. It makes no requests (the caller fetches and checks the challenge).
  *
- * 关键：data/config/events 均 useMemo 固定引用，避免父组件因状态变更重渲染时
- * 生成新 data 触发 go-captcha 内部「data 变化即复位」的 effect（否则成功后滑块会回退）。
+ * Important: data, config, and events are all stable useMemo references, so a parent re-render from a status change
+ * does not create new data and trip go-captcha’s "data changed, so reset" effect (otherwise the slider jumps back after success).
  */
 export function SlideCaptcha({
   challenge,
@@ -59,7 +59,7 @@ export function SlideCaptcha({
   title = '向右拖动滑块完成拼图',
   status = 'default',
 }: SlideCaptchaProps) {
-  // 仅当题目变化时才生成新的 data 引用，状态变更（变色）不触发 go-captcha 复位。
+  // Create a new data reference only when the challenge changes; a status change (color) does not reset go-captcha.
   const data = useMemo(
     () => ({
       thumbX: challenge?.tileX ?? 0,
@@ -82,7 +82,7 @@ export function SlideCaptcha({
     [onConfirm, onRefresh, onClose],
   );
 
-  // 用设计系统主色覆盖 go-captcha 主题变量；按状态切换滑块颜色（Slide 不消费 type，颜色只能走 CSS 变量）。
+  // Override go-captcha theme variables with the design-system primary color; the slider color follows status (Slide does not consume type, so color can only go through CSS variables).
   const themeVars = useMemo(
     () =>
       ({
@@ -100,7 +100,7 @@ export function SlideCaptcha({
       {challenge ? (
         <GoCaptcha.Slide data={data} config={config} events={events} />
       ) : (
-        // 取题中：渲染等尺寸占位，避免 go-captcha 在空图（image=''）时的「黑屏一闪」与布局跳动。
+        // While the challenge is loading, render a same-size placeholder so go-captcha does not flash black or jump the layout on an empty image (image='').
         <div
           className="flex items-center justify-center rounded-md bg-muted/50"
           style={{ width: MASTER_WIDTH, height: MASTER_HEIGHT }}

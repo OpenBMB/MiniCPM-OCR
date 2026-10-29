@@ -15,10 +15,10 @@ import { useImageParseCrops } from './useImageParseCrops';
 import { useImageParseTaskState } from './useImageParseTaskState';
 
 /**
- * 维护单图原始结果和请求身份；替换文件时统一清理旧状态。
- * @param autoParse 是否兼容上传后自动识别
- * @param autoParseOnUpload 是否仅在新文件就绪时自动启动全文识别
- * @returns 原件、结果、任务选项和状态写入入口
+ * Maintain the single-image raw result and request identity; when the file is replaced, clear the old state together.
+ * @param autoParse whether to stay compatible with automatic recognition after upload
+ * @param autoParseOnUpload whether to start full-text recognition automatically only when a new file is ready
+ * @returns the original, the result, task options, and the state-write entry
  */
 export function useImageParseImageState(
   autoParse: boolean,

@@ -1,5 +1,5 @@
 /**
- * params 映射纯函数单测：思考字段开关需真实下发，采样参数需透传。
+ * Unit tests for params mapping pure functions: reasoning-field switches must actually be sent, and sampling parameters must be passed through.
  */
 
 import { describe, it, expect } from 'vitest';

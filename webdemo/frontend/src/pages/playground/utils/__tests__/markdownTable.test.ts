@@ -1,5 +1,5 @@
 /**
- * Markdown 表格抽取单测：只认规范 GFM 表，宁可漏也不误判公式与代码。
+ * Unit tests for Markdown table extraction: only well-formed GFM tables count; prefer a miss over mistaking formulas and code for tables.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -32,7 +32,7 @@ describe('extractMarkdownTables', () => {
   });
 
   it('ignores pipe-bearing lines without a delimiter row', () => {
-    // LaTeX 的绝对值、代码里的管道都带 `|`，误判成表格会把公式拆碎。
+    // LaTeX absolute values and pipes inside code both contain `|`; treating them as a table would shatter the formula.
     expect(extractMarkdownTables('$$ \\| x \\|_2 $$\ncat a | grep b')).toEqual([]);
   });
 

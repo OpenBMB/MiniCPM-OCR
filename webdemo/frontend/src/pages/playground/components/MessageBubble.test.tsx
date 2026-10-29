@@ -5,7 +5,7 @@ import { ToastProvider, TooltipProvider } from '@map/ui';
 import '@/i18n';
 import { MessageBubble } from './MessageBubble';
 
-/** 助手消息气泡的渲染测试。 */
+/** Render tests for the assistant message bubble. */
 describe('MessageBubble', () => {
   it('不展示用户消息的上下文隔离提示文案', () => {
     render(
@@ -71,7 +71,7 @@ describe('MessageBubble', () => {
       />,
     );
 
-    // 过程区只剩一个开关：思考与联网同属一条时间线，顶行只报「做了什么」
+    // The process area has only one toggle left: reasoning and web search share one timeline, and the top row only reports "what was done"
     const trigger = screen.getByTestId('process-toggle');
     expect(trigger).toHaveAccessibleName('已联网检索并思考');
     expect(screen.getAllByTestId('process-toggle')).toHaveLength(1);
@@ -80,10 +80,10 @@ describe('MessageBubble', () => {
 
     await user.click(trigger);
 
-    // 一次展开同时看到思考与联网，不用再分别点两处
+    // One expand shows reasoning and web search together; there is no need to click two places separately
     expect(screen.getByText('先检索天气，再核对多个来源。')).toBeVisible();
     expect(screen.getByText(/搜索到 4 个网页/)).toBeVisible();
-    // 来源统一收在正文下方的胶囊里
+    // Sources are collected in the chip under the body
     expect(screen.getByTestId('sources-chip')).toHaveTextContent('4 个网页');
   });
 
@@ -112,12 +112,12 @@ describe('MessageBubble', () => {
     );
 
     const trigger = screen.getByTestId('process-toggle');
-    // 顶行带上当前搜的词：收起时它是唯一的进度通道，静态文案挂几秒与卡死无从区分
+    // The top row carries the query currently being searched: while collapsed it is the only progress channel, and static copy sitting for several seconds cannot be told apart from a hang
     expect(trigger).toHaveAccessibleName('正在搜索 MiniCPM 最新进展');
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
-    // 查询词同时是进行中工具行的行内后缀，完成后会被「搜索到 N 个网页」取代
+    // The query is also the inline suffix of the in-progress tool row, and after completion it is replaced by "found N pages"
     expect(screen.getByText('MiniCPM 最新进展')).toBeVisible();
-    // 过程区本身就是状态反馈，其下方不再出现悬空的等待点
+    // The process area itself is the status feedback, so a floating waiting dot no longer appears under it
     expect(screen.queryByLabelText('正在生成')).not.toBeInTheDocument();
   });
 
@@ -163,7 +163,7 @@ describe('MessageBubble', () => {
       await new Promise((resolve) => setTimeout(resolve, 20));
     });
 
-    // 思考区是同一个 DOM 节点在原地改标题，不重新挂载 → 不会有一次视觉跳动
+    // The reasoning area is the same DOM node changing its title in place and is not remounted → there is no visual jump
     expect(screen.getByRole('region', { name: '已思考' })).toBe(processSection);
     expect(screen.getByRole('button', { name: '已思考' })).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('已完成分析。')).toBeVisible();
@@ -184,7 +184,7 @@ describe('MessageBubble', () => {
       />,
     );
 
-    // 失败标题直接用后端原因，比"联网搜索失败"更具体
+    // The failure title uses the backend reason directly, which is more specific than "web search failed"
     const trigger = screen.getByRole('button', { name: '搜索服务暂时不可用' });
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     expect(trigger).toHaveClass('text-destructive');
@@ -218,7 +218,7 @@ describe('MessageBubble', () => {
     );
 
     const chip = screen.getByTestId('sources-chip');
-    // 标题、摘要、序号全部让给抽屉，胶囊只报个数
+    // Title, summary, and index are all left to the drawer; the chip only reports the count
     expect(chip).toHaveTextContent('2 个网页');
     expect(chip).toHaveAccessibleName('2 个网页，查看来源');
     expect(chip).toHaveAttribute('aria-expanded', 'false');
@@ -226,7 +226,7 @@ describe('MessageBubble', () => {
 
     await user.click(chip);
 
-    // 不带第三参：只开面板，不定位到某一条
+    // No third argument: only open the panel, do not locate a particular item
     expect(onOpenCitations).toHaveBeenCalledWith('citation-actions', citations);
   });
 
@@ -255,7 +255,7 @@ describe('MessageBubble', () => {
 
     await user.click(screen.getByRole('link', { name: '第 2 个来源' }));
 
-    // 第三参是被点那条的地址；「查看全部」不带它，两条入口语义由此区分
+    // The third argument is the address of the clicked item; "view all" omits it, which is how the two entries' meanings are distinguished
     expect(onOpenCitations).toHaveBeenCalledWith(
       'citation-badge-activate',
       citations,

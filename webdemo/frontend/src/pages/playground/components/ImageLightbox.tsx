@@ -1,16 +1,11 @@
 /**
- * 图片全屏预览（lightbox）。
+ * Full-screen image preview (lightbox).
  *
- * 用途：点击原图或对话里的缩略图后放大核对。createPortal 到 body，点遮罩 / 关闭键 / Esc 关闭。
- * 受控：src 为空时不渲染。
+ * Purpose: enlarge an original image or a chat thumbnail for checking. createPortal to body; click the mask, the close key, or Esc to close. Controlled: render nothing when src is empty.
  *
- * 校对场景要求能凑近看：滚轮缩放（锚在光标）、拖拽平移、90° 旋转、双击放大。
- * 视图换算全在 useImageZoom 里，和内嵌原图栏共用同一套手感与边界。
- * 遮罩整体作为缩放视口，滚轮落在图外也能缩放；指针手势只挂在图上，
- * 否则在遮罩上拖完松手会被当成「点遮罩关闭」。
+ * Proofreading needs a close look: wheel zoom (anchored at the cursor), drag to pan, 90° rotation, double-click to enlarge. View math all lives in useImageZoom, sharing one feel and the same bounds with the embedded original-image column. The mask as a whole is the zoom viewport, so a wheel event outside the image still zooms; pointer gestures are attached only to the image, otherwise dragging on the mask and releasing is treated as "click the mask to close."
  *
- * 无障碍上补齐了模态该有的东西——aria-modal、Tab 焦点不逸出、关闭后焦点还给来源元素。
- * 层级用 z-50（模态层）；此前误用 z-[100]，那是 toast 的层，会压住提示。
+ * Accessibility fills in what a modal should have — aria-modal, Tab focus that does not escape, and focus returned to the source element on close. The layer is z-50 (the modal layer); z-[100] was used by mistake before, and that is the toast layer, which would cover toasts.
  */
 
 import { useCallback, useEffect, useRef } from 'react';
@@ -21,7 +16,7 @@ import { cn } from '@map/ui';
 import { useImageZoom, type ImageZoom } from '../hooks/useImageZoom';
 
 interface ImageLightboxProps {
-  /** 预览图片地址；为空表示关闭 */
+  /** Preview image address; empty means closed */
   src: string | null;
   onClose: () => void;
 }
@@ -29,20 +24,20 @@ interface ImageLightboxProps {
 const FOCUSABLE = 'button:not([disabled])';
 
 /**
- * 图片预览遮罩。
- * @param src 图片地址，为空则不渲染
- * @param onClose 关闭回调
+ * Image preview mask.
+ * @param src Image address; render nothing when empty
+ * @param onClose Close callback
  */
 export function ImageLightbox({ src, onClose }: ImageLightboxProps) {
   const { t } = useTranslation('playground');
   const zoom = useImageZoom();
   const dialogRef = useRef<HTMLDivElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
-  // ref 回调先解构出来：把 zoom 的属性直接塞进 ref 属性，lint 会把整个 zoom 当成 ref。
+  // Destructure the ref callback first: stuffing zoom's properties straight into the ref prop makes lint treat the whole zoom object as the ref.
   const { reset, setViewport, setContent } = zoom;
 
-  // 遮罩既要留给键盘/焦点逻辑用，又要交给 zoom 当缩放视口，所以这里合并两个 ref。
-  // 回调体必须用花括号：React 19 会把 ref 回调的返回值当成清理函数。
+  // The mask is used both by keyboard/focus logic and by zoom as the zoom viewport, so the two refs are merged here.
+  // The callback body must use braces: React 19 treats a ref callback's return value as a cleanup function.
   const attachDialog = useCallback(
     (node: HTMLDivElement | null) => {
       dialogRef.current = node;
@@ -51,7 +46,7 @@ export function ImageLightbox({ src, onClose }: ImageLightboxProps) {
     [setViewport],
   );
 
-  // Esc 关闭 + Tab 循环。模态不锁 Tab，焦点会跑到背后的页面上去。
+  // Esc closes and Tab cycles. If a modal does not trap Tab, focus runs off onto the page behind it.
   useEffect(() => {
     if (!src) return undefined;
     function onKey(event: KeyboardEvent) {
@@ -77,7 +72,7 @@ export function ImageLightbox({ src, onClose }: ImageLightboxProps) {
     return () => window.removeEventListener('keydown', onKey);
   }, [src, onClose]);
 
-  // 打开时记住来源元素并把焦点收进来，关闭时还回去。
+  // On open, remember the source element and pull focus in; on close, give it back.
   useEffect(() => {
     if (!src) return undefined;
     restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -85,7 +80,7 @@ export function ImageLightbox({ src, onClose }: ImageLightboxProps) {
     return () => restoreFocusRef.current?.focus();
   }, [src]);
 
-  // 换图时回到初始视图，避免带着上一张的缩放和角度。
+  // On image change, return to the initial view so the previous image's zoom and angle are not carried over.
   useEffect(() => {
     if (src) reset();
   }, [src, reset]);
@@ -120,10 +115,10 @@ export function ImageLightbox({ src, onClose }: ImageLightboxProps) {
         onPointerCancel={zoom.onPointerUp}
         style={{ transform: zoom.transform }}
         className={cn(
-          // touch-none：触屏上要拿到 pointermove 才能平移
-          // 不加圆角：原图是直角，削角等于改了用户的图；边界靠投影而不是裁切
+          // touch-none: on a touch screen, pointermove has to be received before panning works
+          // No border radius: the original image has square corners, and clipping the corners changes the user's image; the boundary comes from shadow, not clipping
           'max-h-full max-w-full touch-none select-none object-contain shadow-2xl will-change-transform',
-          // 滚轮与拖拽期间关掉过渡才跟手，按钮与旋转这类离散操作仍然走动画
+          // Turn transitions off during wheel and drag so they track the hand; discrete actions such as buttons and rotation still animate
           zoom.animated && 'transition-transform duration-150 ease-out motion-reduce:transition-none',
           cursorClass(zoom),
         )}
@@ -161,12 +156,12 @@ export function ImageLightbox({ src, onClose }: ImageLightboxProps) {
   );
 }
 
-/** 光标：任何倍数都能拖，拖到哪停哪，所以只分抓着与没抓着。 */
+/** Cursor: it can be dragged at any scale and stops where it is released, so the only distinction is grabbing versus not grabbing. */
 function cursorClass(zoom: ImageZoom): string {
   return zoom.dragging ? 'cursor-grabbing' : 'cursor-grab';
 }
 
-/** 预览工具按钮：反色圆形图标键，触摸目标不小于 44px。 */
+/** Preview tool button: an inverted circular icon key, with a touch target no smaller than 44px. */
 function ToolButton({
   label,
   onClick,

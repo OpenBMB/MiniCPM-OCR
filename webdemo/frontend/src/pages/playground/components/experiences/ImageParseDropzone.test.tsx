@@ -1,5 +1,5 @@
 /**
- * 图像解析上传区单测：空态引导、拖拽/粘贴入图、已选图后的看图控制与更换/移除。
+ * Image-parse upload-area unit tests: empty-state guidance, drag/paste an image in, and view controls plus replace/remove after an image is selected.
  */
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -171,7 +171,7 @@ describe('ImageParseDropzone', () => {
     expect(onPreview).toHaveBeenCalledWith('data:image/png;base64,AAA');
 
     expect(screen.queryByRole('button', { name: 'imageParseRemove' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'imageParseReplace' })).toBeNull(); // 底栏更换按钮已移除
+    expect(screen.queryByRole('button', { name: 'imageParseReplace' })).toBeNull(); // The bottom-bar replace button has been removed
   });
 
   it('exposes the view controls next to the image', () => {
@@ -184,7 +184,7 @@ describe('ImageParseDropzone', () => {
       />,
     );
 
-    // 缩放旋转是核对时的主操作，必须常显而不是悬停才出现。
+    // Zoom and rotation are the main actions while checking, so they must stay visible rather than appear only on hover.
     for (const name of [
       'imageParseZoomOut',
       'imageParseZoomIn',
@@ -212,7 +212,7 @@ describe('ImageParseDropzone', () => {
     expect(screen.getByText('125%')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'imageParseZoomReset' })).toBeNull();
 
-    // 缩到 25% 后仍能按同一档距回到 100%。
+    // After zooming to 25%, the same step size can still return to 100%.
     for (let step = 0; step < 5; step += 1) {
       fireEvent.click(screen.getByRole('button', { name: 'imageParseZoomOut' }));
     }

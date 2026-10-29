@@ -1,7 +1,7 @@
 /**
- * Playground 历史会话详情加载器。
+ * Playground history-conversation detail loader.
  *
- * 用途：给每次详情请求分配序号，连续选择或新建会话时让迟到响应自动失效。
+ * Purpose: assign a sequence number to each detail request, so a late response is invalidated automatically when conversations are selected in succession or a new one is created.
  */
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
@@ -22,8 +22,8 @@ interface UseConversationDetailLoaderReturn {
 }
 
 /**
- * 管理会话详情请求的竞态。
- * @param messages 当前消息，用于在用户已发送新内容时取消初始恢复。
+ * Manage races among conversation-detail requests.
+ * @param messages current messages, used to cancel the initial restore when the user has already sent new content.
  */
 export function useConversationDetailLoader(
   messages: ChatMessage[],

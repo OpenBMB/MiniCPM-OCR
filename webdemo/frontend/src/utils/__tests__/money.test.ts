@@ -1,9 +1,9 @@
 /**
- * 积分换算与展示格式化（money.ts）单测：
- *   - formatPoints：账本金额按 1:1 展示为固定两位积分 + 千分位；
- *   - formatPointsPerMillion：定价按 1:1 展示为固定两位小数积分/1M；
- *   - formatPointsQuota：可空额度 NullDecimal → 积分或「不限」。
- * 约束：1 元 = 1 积分，展示层不做换算。
+ * Points conversion and display formatting tests (money.ts):
+ *   - formatPoints: ledger amounts are shown 1:1 as points with two fixed decimals plus thousands separators;
+ *   - formatPointsPerMillion: pricing is shown 1:1 as points per 1M with two fixed decimals;
+ *   - formatPointsQuota: a nullable NullDecimal quota becomes points or "unlimited".
+ * Constraint: 1 yuan = 1 point, and the display layer does not convert.
  */
 
 import { describe, it, expect } from 'vitest';

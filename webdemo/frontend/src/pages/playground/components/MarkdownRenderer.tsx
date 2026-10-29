@@ -1,9 +1,7 @@
 /**
- * Markdown 渲染组件。
+ * Markdown renderer.
  *
- * 用途：渲染助手回复的 markdown 正文，支持 GFM（表格/删除线/任务列表）、代码块语法高亮，
- * 以及数学公式（`$...$` 行内 / `$$...$$` 块级，经 remark-math + KaTeX 渲染）。
- * 高亮用 highlight.js（同步、与 rehype 管线天然集成，流式 re-render 无异步闪烁）。
+ * Purpose: render an assistant reply's markdown body, with GFM (tables/strikethrough/task lists), syntax highlighting for code blocks, and math (`$...$` inline / `$$...$$` display, via remark-math + KaTeX). Highlighting uses highlight.js (synchronous and naturally integrated with the rehype pipeline, so streaming re-renders do not flash asynchronously).
  */
 
 import { memo, useEffect, useMemo, useRef, useState, type AriaRole, type ReactNode } from 'react';
@@ -40,35 +38,35 @@ import { CitationBadge } from './CitationBadge';
 import { ImageParseMarkdownBlock } from './experiences/ImageParseMarkdownBlock';
 
 interface MarkdownRendererProps {
-  /** markdown 源文本 */
+  /** markdown source text */
   content: string;
   /**
-   * 渲染场景。
-   * - `default`：对话正文；
-   * - `reasoning`：思考过程，更紧凑的字号、间距和弱化配色；
-   * - `document`：整页文档结果（图像解析），表格使用单层矩形网格，任务列表自绘复选框。
+   * Render scene.
+   * - `default`: conversation body;
+   * - `reasoning`: reasoning, with tighter type size, spacing, and muted color;
+   * - `document`: a full-page document result (image parse). Tables use a single-layer rectangular grid, and task lists draw their own checkboxes.
    */
   variant?: 'default' | 'reasoning' | 'document';
-  /** 是否仍在流式生成；流式期间仅渲染显式且已闭合的数学定界符。 */
+  /** Whether generation is still streaming; while streaming, render only explicit and already-closed math delimiters. */
   streaming?: boolean;
-  /** OCR 选中块的源范围，供文档预览高亮。 */
+  /** Source range of the selected OCR block, for highlighting in the document preview. */
   highlightRange?: ImageParseTextRange;
-  /** 当前回答的联网引用，用于把命中的 Markdown 链接增强为来源标签。 */
+  /** Web citations for the current answer, used to enhance matching Markdown links into source labels. */
   citations?: Citation[];
   /**
-   * 点击正文角标时的回调（序号从 1 起，与来源面板同号）。
-   * 必须是稳定引用：它进 `createMarkdownComponents` 的 useMemo 依赖，每渲染新建会让整篇正文重渲。
+   * Callback when a body badge is clicked (index starting at 1, the same number as the source panel).
+   * It must be a stable reference: it is a useMemo dependency of `createMarkdownComponents`, and a new one on every render re-renders the whole body.
    */
   onCitationActivate?: (citation: Citation, index: number) => void;
-  /** 可定位到原图的 OCR 块；只有服务提供有效映射时传入。 */
+  /** OCR blocks that can be located on the original image; pass them only when the service provides a valid mapping. */
   linkedRanges?: readonly ImageParseLinkedRange[];
-  /** OCR 原图裁出的占位符图片，仅用于文档预览，不写回 Markdown。 */
+  /** Placeholder images cropped from the OCR original, used only in the document preview and not written back into Markdown. */
   imageCrops?: readonly string[];
-  /** 在消毒后的顶层节点添加双击编辑入口。 */
+  /** Add a double-click edit entry on sanitized top-level nodes. */
   editableBlocks?: boolean;
 }
 
-/** 超过该长度的已完成回答才延迟解析，避免短回答出现可感知的加载占位。 */
+/** Only completed answers longer than this are parsed lazily, so short answers do not show a perceptible loading placeholder. */
 export const LAZY_MARKDOWN_THRESHOLD = 12_000;
 
 const MARKDOWN_BASE_CLASSES = `
@@ -90,10 +88,7 @@ const MARKDOWN_BASE_CLASSES = `
 `;
 
 /*
-  尾元素清掉下边距（[&>*:last-child]:mb-0）：块级兄弟之间外边距会合并，这 8px 平时被后面
-  元素的 mt 吃掉、看不出来；但来源胶囊是 inline-flex（要收窄成药丸），行内级盒子不参与合并，
-  于是它上方白白多出一截——同一段正文，后面跟什么就给出两种间距。间距该由父容器决定，
-  渲染器只负责内部节奏。
+  Clear the bottom margin on the last element ([&>*:last-child]:mb-0): margins between block siblings collapse, so this 8px is normally eaten by the following element's mt and is invisible. The source chip is inline-flex (it has to shrink into a pill), and an inline-level box does not participate in collapsing, so a stretch of space appears above it for nothing — the same body gives two spacings depending on what follows. Spacing should be decided by the parent; the renderer is only responsible for its internal rhythm.
 */
 const DEFAULT_MARKDOWN_CLASSES = `
   text-[14px] leading-7 text-foreground
@@ -108,14 +103,12 @@ const DEFAULT_MARKDOWN_CLASSES = `
 `;
 
 /*
-  pre-wrap 必须下沉到 `p` 内部，不能挂在容器上。两件事都要成立：
+  pre-wrap must sink into `p` and must not hang on the container. Both of these have to hold:
 
-  - 思考文本里模型常用单换行分行，那些软换行落在段落内部，得靠 pre-wrap 保住；
-  - react-markdown 会在相邻块级元素之间输出一个换行文本节点（`</p>` 与 `<p>` 之间）。
-    容器一旦 pre-wrap，这个分隔符就成了真实硬换行——段落之间凭空多出一个空行（leading-6
-    即 24px），把 my-1.5 的 6px 间距顶到 30px，读起来像每段都被隔开成了独立的块。
+  - In reasoning text the model often breaks lines with a single newline. Those soft breaks land inside paragraphs and have to be kept with pre-wrap;
+  - react-markdown emits a newline text node between adjacent block elements (between `</p>` and `<p>`). Once the container is pre-wrap, that separator becomes a real hard break — an empty line appears between paragraphs from nowhere (leading-6 is 24px), pushing the 6px of my-1.5 up to 30px, so it reads as if every paragraph were separated into its own block.
 
-  容器保持默认的空白折叠，分隔符不可见；pre-wrap 只管段落内部。
+  The container keeps the default whitespace collapse, so the separator is invisible; pre-wrap only covers the inside of paragraphs.
 */
 const REASONING_MARKDOWN_CLASSES = `
   break-words text-[13px] leading-6 text-foreground/70
@@ -131,11 +124,11 @@ const REASONING_MARKDOWN_CLASSES = `
 `;
 
 /**
- * 文档型排版。与对话正文的三处关键差别，都是为了让整页 OCR 结果读起来像一份文档而不是一条回复：
+ * Document typography. The three key differences from conversation body are all so a full-page OCR result reads as a document rather than a reply:
  *
- * 1. 标题靠字号与留白分层，不再画分隔线——h1/h2 各带一条线再叠上原文的 `---`，整页会被横线切碎；
- * 2. 正文压到 80% 前景色，标题与加粗保持纯前景色——层级由明度差承担；
- * 3. 表格使用完整单元格网格、表头铺浅底（见 DOCUMENT_COMPONENTS），合并行列沿用 HTML 结构。
+ * 1. Headings layer by type size and whitespace, and no longer draw rules — an h1/h2 each carrying a line, stacked on the original `---`, would slice the page into strips;
+ * 2. Body text is pressed to 80% foreground, while headings and bold stay pure foreground — hierarchy is carried by the lightness difference;
+ * 3. Tables use a full cell grid with a light header background (see DOCUMENT_COMPONENTS). Merged rows and columns keep the HTML structure.
  */
 const DOCUMENT_MARKDOWN_CLASSES = `
   text-sm leading-[1.85] text-foreground/80
@@ -170,11 +163,10 @@ const DOCUMENT_MARKDOWN_CLASSES = `
 `;
 
 /**
- * 文档型表格滚动容器：网格边线由单元格统一绘制，避免外框叠加。
+ * Document table scroll container: grid borders are drawn by the cells, so an outer frame is not stacked on top.
  *
- * 包一层而不是让 table 自己滚——table 的 overflow 按规范就是 visible，
- * 宽表格会直接撑破对照栏。选中使用外轮廓，不改变网格尺寸或遮挡单元格。
- * @param children 表格行内容
+ * Wrap a layer instead of letting the table scroll itself — a table's overflow is visible by spec, and a wide table would burst the comparison column. Selection uses an outer outline and does not change the grid size or cover cells.
+ * @param children Table row content
  */
 function DocumentTable({
   children,
@@ -216,12 +208,11 @@ function DocumentTable({
 }
 
 /**
- * 文档型任务列表复选框。
+ * Document task-list checkbox.
  *
- * GFM 产出的是 `disabled` 原生 input，浏览器会把它画成灰勾——结果页里那是一份识别结果，
- * 不是一个坏掉的表单控件，所以改成自绘方框。保留 checkbox 语义供读屏使用。
- * @param type 原 input 类型；Markdown 只会生成 checkbox
- * @param checked 是否已勾选
+ * GFM produces a `disabled` native input, and the browser paints it as a gray check — on the result page that is a recognition result, not a broken form control, so it is drawn as a custom box. Checkbox semantics are kept for screen readers.
+ * @param type Original input type; Markdown only generates checkbox
+ * @param checked Whether it is checked
  */
 function DocumentCheckbox({ type, checked }: { type?: string; checked?: boolean }) {
   if (type !== 'checkbox') return null;
@@ -240,14 +231,14 @@ function DocumentCheckbox({ type, checked }: { type?: string; checked?: boolean 
   );
 }
 
-/** 仅文档型排版启用的节点覆盖；对话正文保持原生渲染，避免影响既有气泡样式。 */
+/** Node overrides enabled only for document typography; conversation body keeps native rendering so existing bubble styles are unaffected. */
 const DOCUMENT_COMPONENTS: Components = {
   table: DocumentTable,
   input: DocumentCheckbox,
   div: ImageParseMarkdownBlock,
 };
 
-/** OCR HTML 先过滤再添加定位标记；保留合并单元格和供 KaTeX 解析的公式类名。 */
+/** Filter OCR HTML first, then add location markers; keep merged cells and the formula class names KaTeX parses. */
 const DOCUMENT_HTML_SCHEMA: typeof defaultSchema = {
   ...defaultSchema,
   attributes: {
@@ -276,16 +267,16 @@ const DOCUMENT_HTML_PLUGINS: NonNullable<Parameters<typeof ReactMarkdown>[0]['re
 ];
 
 /**
- * 判断回答是否需要按滚动位置延迟渲染。
- * @param contentLength markdown 字符数
- * @param streaming 是否仍在流式生成
- * @returns 是否应该延迟渲染
+ * Decides whether an answer should be rendered lazily by scroll position.
+ * @param contentLength markdown character count
+ * @param streaming Whether generation is still streaming
+ * @returns Whether rendering should be deferred
  */
 export function shouldDeferMarkdown(contentLength: number, streaming: boolean): boolean {
   return !streaming && contentLength > LAZY_MARKDOWN_THRESHOLD;
 }
 
-/** 场景 → 排版类映射。 */
+/** Scene → typography class map. */
 const VARIANT_CLASSES = {
   default: DEFAULT_MARKDOWN_CLASSES,
   reasoning: REASONING_MARKDOWN_CLASSES,
@@ -293,13 +284,13 @@ const VARIANT_CLASSES = {
 } as const;
 
 /**
- * 渲染 markdown。用 prose 排版类 + 语义 token 控制配色。
- * memo：流式高频更新时，仅 content 变化才重渲染。
- * @param content markdown 源文本
- * @param variant 正文或思考过程样式
- * @param streaming 是否仍在流式生成
- * @param citations 当前回答的联网引用
- * @param onCitationActivate 点击正文角标时的回调
+ * Renders markdown. Prose typography classes plus semantic tokens control color.
+ * memo: on high-frequency streaming updates, re-render only when content changes.
+ * @param content markdown source text
+ * @param variant Body or reasoning style
+ * @param streaming Whether generation is still streaming
+ * @param citations Web citations for the current answer
+ * @param onCitationActivate Callback when a body badge is clicked
  */
 export const MarkdownRenderer = memo(function MarkdownRenderer({
   content,
@@ -312,14 +303,14 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
   imageCrops,
   editableBlocks = false,
 }: MarkdownRendererProps) {
-  // 先把模型偶尔输出的裸角标 `[1]` 改写成 Markdown 链接，正文渲染侧就只需处理 `a` 一种情况。
-  // 文档型排版必须保持原文：OCR 的块位置和图片占位符都依赖原始偏移量，不能被角标改写改变长度。
+  // First rewrite a bare badge such as `[1]` that the model occasionally emits into a Markdown link, so the body renderer only has to handle `a`.
+  // Document typography must keep the original text: OCR block positions and image placeholders depend on the original offsets, and a badge rewrite must not change the length.
   const linkified = useMemo(
     () => (variant === 'document' ? content : linkifyCitationMarkers(content, citations)),
     [citations, content, variant],
   );
-  // 流式前缀会不断变化，禁止对未标记文本猜测公式，避免 KaTeX 节点短暂挂载后又被卸载。
-  // OCR 忠实展示文档；电话号码和编号不得由聊天场景的裸公式推断改写。
+  // A streaming prefix keeps changing. Do not guess formulas in unmarked text, or a KaTeX node mounts briefly and is then unmounted.
+  // OCR displays the document faithfully; phone numbers and identifiers must not be rewritten by the chat scene's bare-formula inference.
   const detectBareMath = variant !== 'document' && !streaming;
   const { normalized, editBlocks, normalizedRange, normalizedLinkedRanges, placeholderOffsets } =
     useMarkdownPreparation({
@@ -330,18 +321,18 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
       highlightRange,
       linkedRanges,
     });
-  // 角标增强只用于对话正文；文档型排版继续使用忠实原文的节点覆盖。
+  // Badge enhancement is only for conversation body; document typography keeps using the node overrides that stay faithful to the original.
   const baseComponents = useMemo(
     () => createMarkdownComponents(citations, onCitationActivate),
     [citations, onCitationActivate],
   );
-  // 文档型排版不继承角标增强：OCR 文档不带引用，链接必须保持消毒后的原样渲染
-  // （角标渲染会把 <a> 变成来源标签，破坏“忠实展示文档”的语义）。
+  // Document typography does not inherit badge enhancement: an OCR document has no citations, and links must keep rendering as sanitized originals
+  // (badge rendering turns <a> into a source label and breaks the meaning of "display the document faithfully").
   const documentComponents = useMemo<Components>(
     () => ({
       ...DOCUMENT_COMPONENTS,
-      // 显式兜底：文档预览里的链接只放行 http/https，其余协议一律去掉 href。
-      // react-markdown 的 defaultUrlTransform 与 rehype-sanitize 仍是第一道防线，这里不依赖它们。
+      // Explicit fallback: links in the document preview allow only http/https, and every other protocol has its href removed.
+      // react-markdown's defaultUrlTransform and rehype-sanitize are still the first line of defense; this does not depend on them.
       a: ({ href, children }) => {
         const safe = href && /^https?:\/\//i.test(href) ? href : undefined;
         return (
@@ -370,12 +361,12 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
         components={variant === 'document' ? documentComponents : baseComponents}
         remarkPlugins={[remarkGfm, remarkMath]}
         rehypePlugins={[
-          // 只在 OCR 文档预览解析 HTML；不信任模型提供的脚本、属性或定位标记。
+          // Parse HTML only in the OCR document preview; do not trust scripts, attributes, or location markers supplied by the model.
           ...(variant === 'document' ? DOCUMENT_HTML_PLUGINS : []),
           [() => imageParseDocumentBlockMarkers(editBlocks)],
           [imageParseHighlight, normalizedRange, normalizedLinkedRanges, variant === 'document'],
           [rehypeHighlight, { detect: true }],
-          // KaTeX 对模型输入禁用受信任命令并限制资源消耗；插件自身负责解析失败回退。
+          // KaTeX disables trusted commands for model input and limits resource use; the plugin itself is responsible for falling back when parsing fails.
           [rehypeKatex, SAFE_KATEX_OPTIONS],
         ]}
       >
@@ -386,23 +377,23 @@ export const MarkdownRenderer = memo(function MarkdownRenderer({
 });
 
 interface LazyMarkdownRendererProps {
-  /** markdown 源文本 */
+  /** markdown source text */
   content: string;
-  /** 是否仍在流式生成；流式回答必须立即渲染。 */
+  /** Whether generation is still streaming; a streaming answer must render immediately. */
   streaming?: boolean;
-  /** 当前回答的联网引用。 */
+  /** Web citations for the current answer. */
   citations?: Citation[];
-  /** 点击正文角标时的回调，需为稳定引用，透传给 MarkdownRenderer。 */
+  /** Callback when a body badge is clicked. It must be a stable reference and is passed through to MarkdownRenderer. */
   onCitationActivate?: (citation: Citation, index: number) => void;
 }
 
 /**
- * 长回答懒渲染器：进入视口前只保留估算高度，接近视口时再运行 Markdown、代码高亮和公式解析。
- * @param content markdown 源文本
- * @param streaming 是否仍在流式生成
- * @param citations 当前回答的联网引用
- * @param onCitationActivate 点击正文角标时的回调
- * @returns 延迟渲染的 Markdown 内容
+ * Lazy renderer for long answers: before entering the viewport it keeps only an estimated height, and near the viewport it runs Markdown, code highlighting, and formula parsing.
+ * @param content markdown source text
+ * @param streaming Whether generation is still streaming
+ * @param citations Web citations for the current answer
+ * @param onCitationActivate Callback when a body badge is clicked
+ * @returns Lazily rendered Markdown content
  */
 export function LazyMarkdownRenderer({
   content,
@@ -458,14 +449,14 @@ export function LazyMarkdownRenderer({
   );
 }
 
-/** 估算未渲染 Markdown 的占位高度，降低滚动过程中布局跳动。 */
+/** Estimates the placeholder height of unrendered Markdown, reducing layout shift while scrolling. */
 function estimateMarkdownHeight(content: string): number {
   const lineCount = content.split(/\r?\n/).length;
   const wrappedLineCount = Math.ceil(content.length / 72);
   return Math.min(2_400, Math.max(240, Math.max(lineCount, wrappedLineCount) * 28));
 }
 
-/** 独占一行的来源链接样式：跟着上下文取色（引用块里即为弱化色），只用点线下划线提示可跳转。 */
+/** Style for a source link that occupies its own line: take color from context (muted inside a quote), and use only a dotted underline to show it can be followed. */
 const CITATION_SOURCE_LINK_CLASSES = `
   inline-flex items-baseline gap-0.5 align-baseline
   underline decoration-dotted decoration-from-font underline-offset-4
@@ -473,9 +464,8 @@ const CITATION_SOURCE_LINK_CLASSES = `
 `;
 
 /**
- * hast 子树的最小节点形状。
- * 本仓没有装 `@types/hast` 的顶层软链，`import type { Element } from 'hast'` 解析不到；
- * 这里只用到判定来源行需要的几个字段，结构化匹配 react-markdown 传进来的 `node`。
+ * Minimal node shape for a hast subtree.
+ * This repo has no top-level symlink for `@types/hast`, so `import type { Element } from 'hast'` does not resolve; only the few fields needed to decide a source row are used here, structurally matching the `node` passed in by react-markdown.
  */
 interface MarkdownNode {
   type: string;
@@ -485,7 +475,7 @@ interface MarkdownNode {
   children?: MarkdownNode[];
 }
 
-/** 收集 hast 子树里的可见文字，用于取回链接的原始标题。 */
+/** Collect visible text in a hast subtree, used to recover a link's original title. */
 function collectNodeText(nodes: readonly MarkdownNode[]): string {
   return nodes
     .map((node) =>
@@ -495,11 +485,11 @@ function collectNodeText(nodes: readonly MarkdownNode[]): string {
 }
 
 /**
- * 判断一个段落是否整段只有一条命中来源的链接，并取出渲染来源行所需的信息。
+ * Decide whether a paragraph is entirely one link that matches a source, and take the information needed to render a source row.
  *
- * @param nodes 段落的 hast 子节点
- * @param citationByURL 归一化 URL → 来源与下标
- * @returns 来源行信息；段落还有别的内容或链接没命中来源时返回 undefined
+ * @param nodes The paragraph's hast child nodes
+ * @param citationByURL Normalized URL → source and index
+ * @returns Source-row information; undefined when the paragraph has other content or the link misses a source
  */
 function soleCitationSource(
   nodes: readonly MarkdownNode[] | undefined,
@@ -523,23 +513,21 @@ function soleCitationSource(
   };
 }
 
-/** 为 Markdown 链接增加安全跳转，并把命中 citations 的链接渲染为同号数字角标。 */
+/** Add a safe navigation to Markdown links, and render links that match citations as same-number digit badges. */
 function createMarkdownComponents(
   citations: Citation[],
   onCitationActivate?: (citation: Citation, index: number) => void,
 ): Components {
-  // 连带下标一起存：后端未下发 ref 的老数据要靠它回退出编号（见 citationDisplayIndex）。
+  // Store the index along with it: old data that never received a ref from the backend falls back to a number from it (see citationDisplayIndex).
   const citationByURL = new Map(
     citations.map((citation, index) => [citationURLKey(citation.url), { citation, index }]),
   );
 
   return {
     /*
-      整段只有一条来源链接时保留标题，不压成裸角标。
+      When a whole paragraph is only one source link, keep the title and do not compress it into a bare badge.
 
-      提示词要求模型把链接跟在它支撑的论断后面，但模型常常改成单独列一行来源
-      （实测多为 `> [标题](url)`）。这种独占一行的链接若照行内规则压成角标，整行就只剩一个
-      灰色数字，标题和可读信息全丢；此时把角标提到行首、标题照原样展示。
+      The prompt asks the model to put the link right after the claim it supports, but the model often lists the source on its own line instead (in practice usually `> [title](url)`). If that full-line link is compressed into a badge by the inline rule, the line is left with only a gray number, and the title and readable information are all lost; in that case move the badge to the start of the line and show the title as-is.
     */
     p({ node, children, ...props }) {
       const source = soleCitationSource(node?.children, citationByURL);

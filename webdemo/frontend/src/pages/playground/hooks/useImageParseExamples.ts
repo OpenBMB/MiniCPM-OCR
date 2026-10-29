@@ -14,11 +14,11 @@ import type { ImageParseSnapshot } from '../utils/imageParseHistoryTypes';
 import { useImageParseExampleMerge } from './useImageParseExampleMerge';
 
 /**
- * 读取数据库共享案例，并在同一页面会话内复用已校验快照。
- * @param onReady 工作台快照恢复入口
- * @param scope 当前账号和项目范围
- * @param attachmentId 当前附件 ID，用于隔离旧案例的翻页回调
- * @returns 案例加载、取消、忙碌状态及图片组分页
+ * Read shared examples from the database, and reuse a validated snapshot within the same page session.
+ * @param onReady workspace snapshot-restore entry
+ * @param scope current account and project scope
+ * @param attachmentId current attachment ID, used to isolate paging callbacks of an old example
+ * @returns example loading, cancellation, busy state, and image-group paging
  */
 export function useImageParseExamples(
   onReady: (snapshot: ImageParseSnapshot) => boolean,
@@ -110,7 +110,7 @@ export function useImageParseExamples(
       return;
     const currentIndex = active.page - 1;
     if (!merged.size) {
-      // 取消合并：撤销上一次写回的合并结果；合并请求没有变化时不应改写快照。
+      // Cancel merge: undo the merge result written back last time; when the merge request has not changed, the snapshot must not be rewritten.
       if (!active.mergedSnapshots) return;
       setGroup((previous) => {
         if (previous !== active) return previous;
@@ -127,7 +127,7 @@ export function useImageParseExamples(
       return result ? { ...snapshot, markdown: result.markdown, layout: result.blocks } : snapshot;
     });
     setGroup((previous) => (previous === active ? { ...previous, mergedSnapshots } : previous));
-    // 只有当前页发生变化时才替换正在展示的结果；其他页在翻页时读取 mergedSnapshots。
+    // Replace the result on display only when the current page changed; other pages read mergedSnapshots when the user turns the page.
     const currentSnapshot = mergedSnapshots[currentIndex];
     if (merged.has(currentIndex) && currentSnapshot) current.current.onReady(currentSnapshot);
   });
@@ -136,7 +136,7 @@ export function useImageParseExamples(
       active.current?.abort();
       sequence.current++;
       setGroup(undefined);
-      // mutation 异步启动前也必须能取消，避免同一事件中的新建/上传被旧案例覆盖。
+      // It must also be cancellable before the mutation starts asynchronously, so a create or upload in the same event is not overwritten by an old example.
       const controller = new AbortController();
       active.current = controller;
       const key = cacheKey(type);

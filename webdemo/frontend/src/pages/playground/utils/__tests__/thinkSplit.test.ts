@@ -7,7 +7,7 @@ import {
   normalizeAssistantReply,
 } from '../thinkSplit';
 
-/** 模拟流式分片喂入拆分器 */
+/** Simulate feeding the splitter with streaming chunks */
 function runThinkSplit(chunks: string[]): { content: string; reasoning: string } {
   const state = createThinkSplitState();
   let content = '';
@@ -21,7 +21,7 @@ function runThinkSplit(chunks: string[]): { content: string; reasoning: string }
   return { content: content + tail.content, reasoning: reasoning + tail.reasoning };
 }
 
-/** think 标签拆分与展示归一化单测 */
+/** Unit tests for think-tag splitting and display normalization */
 describe('splitInlineThinkText', () => {
   it('识别 think 标签', () => {
     const r = splitInlineThinkText('<think>先想</think>正式回答');

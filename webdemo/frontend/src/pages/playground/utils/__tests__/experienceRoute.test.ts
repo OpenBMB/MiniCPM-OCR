@@ -1,5 +1,5 @@
 /**
- * 体验中心 URL 路由单测：合法体验键、加载期不回退、无可见模型时回退。
+ * Unit tests for experience-center URL routing: valid experience keys, no fallback while loading, fallback when no model is visible.
  */
 
 import { describe, expect, it } from 'vitest';

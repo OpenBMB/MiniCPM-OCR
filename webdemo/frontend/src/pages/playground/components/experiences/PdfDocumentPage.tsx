@@ -17,7 +17,7 @@ interface PdfDocumentPageProps {
   ready: boolean;
   showLoading?: boolean;
   rotation: number;
-  /** 这一页服务端摆正角度。0 表示预览保持原方向。 */
+  /** This page's server rotation-adaptation angle. 0 means the preview keeps the original orientation. */
   serverAngle?: number;
   blocks: readonly ImageParseLayoutBlock[];
   showBlocks?: boolean;
@@ -30,7 +30,7 @@ interface PdfDocumentPageProps {
   setPageCanvas: (pageNumber: number, canvas: HTMLCanvasElement | null) => void;
 }
 
-/** PDF 单页骨架与识别框；仅为视口附近页面挂载画布和交互层，联动标记按当前页隔离。 */
+/** PDF single-page skeleton and recognition boxes; mount the canvas and interaction layer only for pages near the viewport, and isolate linkage marks to the current page. */
 export const PdfDocumentPage = memo(function PdfDocumentPage({
   pageNumber,
   width,
@@ -66,7 +66,7 @@ export const PdfDocumentPage = memo(function PdfDocumentPage({
   );
   const userAngle = ((rotation % 360) + 360) % 360;
   const serverTurns = ((serverAngle % 360) + 360) % 360;
-  // 服务端摆正时，框留在摆正坐标系，只旋转底图。框跟着底图一起转时，高亮会落到页底，多页连排就压到下一页页眉上。
+  // During server rotation adaptation, leave the boxes in the rotation-adaptation coordinate system and rotate only the base image. If the boxes rotate with the base image, the highlight lands at the bottom of the page, and in a multi-page run it presses onto the next page's header.
   const serverUpright = serverTurns !== 0 && userAngle === 0;
   const bounds = serverUpright ? rotatedPageBounds(width, height, serverAngle) : { width, height };
   const overlayBlocks = useMemo(

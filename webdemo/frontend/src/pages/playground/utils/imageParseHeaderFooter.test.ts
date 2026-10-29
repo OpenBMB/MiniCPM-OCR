@@ -6,7 +6,7 @@ import {
 } from './imageParseHeaderFooter';
 import type { ImageParseLayoutBlock } from './imageParseSample';
 
-/** 按片段顺序拼正文，并给每块写上显式偏移，模拟 reconcileImageParseMarkdown 的产出。 */
+/** Join the body in fragment order and write an explicit offset on each block, simulating the output of reconcileImageParseMarkdown. */
 function result(parts: Array<[ImageParseLayoutBlock['kind'], string]>) {
   let markdown = '';
   const blocks = parts.map(([kind, text], order) => {

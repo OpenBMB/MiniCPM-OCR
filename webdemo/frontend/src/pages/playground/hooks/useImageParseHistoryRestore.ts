@@ -27,7 +27,7 @@ interface ImageParseHistoryRestoreContext {
   setImage: (attachment?: Attachment) => void;
   cancel: () => void;
   loadCrops: ReturnType<typeof useImageParseCrops>['loadCrops'];
-  /** 图片还没有识别结果时，恢复后继续自动识别。 */
+  /** When the image does not have a recognition result yet, continue automatic recognition after restore. */
   markPending?: () => void;
 }
 
@@ -43,10 +43,10 @@ interface ImageParseHistoryRestoreSetters {
 }
 
 /**
- * 恢复缓存只重建本地结果和裁图，同步取消自动执行与旧 OCR 回调。
- * @param context 当前任务范围、取消边界和 PDF 编排
- * @param setters 原始识别结果的状态写入器
- * @returns 接受快照并报告是否有效的恢复函数；后续识别使用工作台默认档位
+ * A cache restore rebuilds only the local result and crops, and synchronously cancels automatic execution and old OCR callbacks.
+ * @param context current task scope, cancel boundary, and PDF orchestration
+ * @param setters state writers for the raw recognition result
+ * @returns a restore function that accepts a snapshot and reports whether it is valid; later recognition uses the workspace default tier
  */
 export function useImageParseHistoryRestore(
   {
@@ -69,7 +69,7 @@ export function useImageParseHistoryRestore(
     setResultRevision,
   }: ImageParseHistoryRestoreSetters,
 ) {
-  // 固定共享案例快照在当前会话内不变；普通历史每次仍按不可信输入校验。
+  // A fixed shared-example snapshot does not change within the current session; ordinary history is still validated as untrusted input every time.
   const examples = useRef(new WeakMap<ImageParseSnapshot, ImageParseSnapshot>());
   return useCallback(
     (value: ImageParseSnapshot, options?: { previewOnly?: boolean; finished?: boolean }) => {
@@ -82,8 +82,8 @@ export function useImageParseHistoryRestore(
         });
       if (!safe) return false;
       if (reuse) examples.current.set(value, safe);
-      // 既有 LIS 档位恢复后回到默认档位；流水线档位必须保留，否则 KIE 字段与
-      // 印章结果会被下一次识别当成文档解析。
+      // An existing LIS tier returns to the default tier after restore; a pipeline tier must be kept, or KIE fields and
+      // seal results would be treated as document parsing by the next recognition.
       const cached = {
         ...safe,
         mode: isImageParsePipelineMode(safe.mode) ? safe.mode : IMAGE_PARSE_DEFAULT_MODE,
@@ -97,7 +97,7 @@ export function useImageParseHistoryRestore(
       setFields?.(cached.mode === 'kie' ? [...(cached.fields ?? [])] : []);
       setMarkdown(cached.markdown);
       setLayout(cached.layout);
-      // 默认档位仅影响后续解析，不能改写历史 source 中的真实模型和服务端时间。
+      // The default tier affects only later parsing, and must not rewrite the real model and server time in the history source.
       setSource?.(cached.source);
       setRotation?.(cached.rotation);
       const imagePending =

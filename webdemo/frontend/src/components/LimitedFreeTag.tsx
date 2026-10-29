@@ -2,10 +2,10 @@ import { Badge } from '@map/ui';
 import { useTranslation } from 'react-i18next';
 
 /**
- * 「免费调用」标签：模型当前落在定价免费时间窗内时紧跟模型名展示。
- * 门户下拉（顶栏）与模型列表页共用一份，保证文案与样式一致；容器侧用 items-center 令其与名字垂直居中。
- * @param className 额外类名（如列表项内的行内对齐间距）
- * @returns 免费调用小徽标
+ * "Free calls" tag: shown next to the model name while the model is inside its free pricing window.
+ * The portal dropdown (top bar) and the model list share one component so the copy and style stay consistent; the container uses items-center so it lines up with the name.
+ * @param className Extra classes (for example inline spacing inside a list item).
+ * @returns The small free-calls badge.
  */
 export function LimitedFreeTag({ className }: { className?: string }) {
   const { t } = useTranslation('models');

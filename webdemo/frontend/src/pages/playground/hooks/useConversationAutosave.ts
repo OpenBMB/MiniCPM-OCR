@@ -1,8 +1,8 @@
 /**
- * Playground 会话自动保存队列。
+ * Playground conversation autosave queue.
  *
- * 用途：首次发送时立即创建会话并保存用户消息；回答结束后串行保存最终快照。
- * 同一时刻只允许一个写请求，生成期间产生的新快照只保留最新一份，避免旧请求后完成覆盖新内容。
+ * Purpose: on the first send, create the conversation immediately and save the user message; after the answer ends, save the final snapshot serially.
+ * Only one write request is allowed at a time, and new snapshots produced during generation keep only the latest one, so an older request finishing later cannot overwrite newer content.
  */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -30,16 +30,16 @@ interface UseConversationAutosaveArgs {
 }
 
 interface UseConversationAutosaveReturn {
-  /** 标记服务端已持久化的历史消息，避免加载历史后立即重复保存。 */
+  /** Mark history messages the server has already persisted, so loading history does not save them again immediately. */
   markPersisted: (messages: ChatMessage[]) => void;
-  /** 开始新对话时废弃当前排队快照，隔离前后两段会话。 */
+  /** When a new conversation starts, discard the snapshot currently queued, isolating the two conversations. */
   reset: () => void;
 }
 
 /**
- * 串行保存当前 Playground 会话。
- * @param args 当前消息、模型、会话 ID 与 API 写入函数。
- * @returns 历史恢复标记与新会话重置函数。
+ * Save the current Playground conversation serially.
+ * @param args current messages, model, conversation ID, and the API write function.
+ * @returns the history-restore marker and the new-conversation reset function.
  */
 export function useConversationAutosave(
   args: UseConversationAutosaveArgs,
@@ -63,17 +63,17 @@ export function useConversationAutosave(
       ),
   );
 
-  // mutation 与 URL 回调可能在重渲染后换引用，队列始终使用最新实现。
+  // A mutation and a URL callback may change reference after a re-render; the queue always uses the latest implementation.
   useEffect(() => {
     queue.updateHandlers({ createConversation, saveConversation, onConversationCreated });
   }, [createConversation, onConversationCreated, queue, saveConversation]);
 
-  // URL/历史选择改变活动会话时同步给队列。
+  // When the URL or a history selection changes the active conversation, sync it to the queue.
   useLayoutEffect(() => {
     queue.setActiveConversationId(activeConversationId);
   }, [activeConversationId, queue]);
 
-  // 账号切换立即废弃上一账号队列与草稿。
+  // An account switch discards the previous account's queue and draft immediately.
   useLayoutEffect(() => {
     if (previousOwnerRef.current === ownerId) return;
     queue.reset(previousOwnerRef.current);
@@ -81,7 +81,7 @@ export function useConversationAutosave(
     queue.setActiveConversationId(activeConversationId);
   }, [activeConversationId, ownerId, queue]);
 
-  // 页面可见消息提交后立即刷新草稿，确保 pagehide 读取到本次提交的最后增量。
+  // After a visible message on the page is committed, refresh the draft immediately, so pagehide reads the last increment of this commit.
   useLayoutEffect(() => {
     if (!enabled) return;
     const draftable = messagesForDraft(messages);

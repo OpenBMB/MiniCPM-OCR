@@ -1,12 +1,12 @@
 /**
- * 参考音频采集区（语音复刻用）。
+ * Reference-audio capture area (for voice cloning).
  *
- * 用途：TTS「上传复刻」音色下的参考音频三态视图——
- * 1) 空态：上传文件 / 开始录音两个入口；
- * 2) 录制中：实时声纹 + 已录秒数 + 剩余提示，用户看得见自己有没有出声；
- * 3) 已就绪：波形播放器可试听，配「重新录制」与「删除」。重录/重传直接覆盖旧音频。
+ * Purpose: the three-state view of reference audio under the TTS "upload clone" voice —
+ * 1) empty: two entries, upload a file / start recording;
+ * 2) recording: a realtime voiceprint + seconds recorded + remaining hint, so the user can see whether they are making sound;
+ * 3) ready: a waveform player for preview, with "record again" and "delete." Recording or uploading again overwrites the old audio directly.
  *
- * 本组件只吃 props 渲染，录音编排在 useVoiceRecorder / useTtsSynthesis。
+ * This component only renders from props. Recording orchestration is in useVoiceRecorder / useTtsSynthesis.
  */
 
 import { Upload, Mic, Square, Trash2, RotateCcw } from 'lucide-react';
@@ -16,28 +16,28 @@ import { AudioWavePlayer } from './AudioWavePlayer';
 import { TTS_REF_MAX_SECONDS } from '../../utils/ttsVoices';
 
 interface ReferenceAudioFieldProps {
-  /** 是否录制中 */
+  /** Whether recording is in progress */
   recording: boolean;
-  /** 录制中的实时频谱条（0–1） */
+  /** Realtime spectrum bars while recording (0–1) */
   bars: number[];
-  /** 已录秒数 */
+  /** Seconds already recorded */
   seconds: number;
-  /** 已就绪的参考音频 data URI，未采集时 undefined */
+  /** Data URI of the ready reference audio; undefined when nothing has been captured */
   referenceUrl?: string;
-  /** 已就绪音频的展示名 */
+  /** Display name of the ready audio */
   referenceName?: string;
-  /** 录音权限 / 时长错误 */
+  /** Recording permission / duration error */
   error?: string;
   onStart: () => void;
   onStop: () => void;
   onClear: () => void;
-  /** 选择本地文件 */
+  /** Choose a local file */
   onPickFile: (file: File) => void;
 }
 
 /**
- * 参考音频采集区。
- * @param props 三态所需的状态与回调
+ * Reference-audio capture area.
+ * @param props State and callbacks needed by the three states
  */
 export function ReferenceAudioField({
   recording,
@@ -128,7 +128,7 @@ export function ReferenceAudioField({
   );
 }
 
-/** 录音中的实时声纹：频谱条居中镜像，静音时退化为一条细中线（提示"没收到声音"） */
+/** Realtime voiceprint while recording: spectrum bars mirrored around the center, degrading to a thin center line when silent (a hint that "no sound was received") */
 function LiveWave({ bars }: { bars: number[] }) {
   const { t } = useTranslation('playground');
   const silent = bars.length === 0 || bars.every((b) => b < 0.02);
@@ -152,7 +152,7 @@ function LiveWave({ bars }: { bars: number[] }) {
   );
 }
 
-/** 空态的虚线上传区 */
+/** Dashed upload area in the empty state */
 function FilePickLabel({ onPick }: { onPick: (file: File) => void }) {
   const { t } = useTranslation('playground');
   return (
@@ -169,7 +169,7 @@ function FilePickLabel({ onPick }: { onPick: (file: File) => void }) {
   );
 }
 
-/** 已就绪态的「重新上传」按钮（label 包 input 以复用原生文件选择） */
+/** "Upload again" button in the ready state (a label wrapping an input, to reuse the native file picker) */
 function FilePickButton({ label, onPick }: { label: string; onPick: (file: File) => void }) {
   return (
     <label className="flex h-8 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted">
@@ -185,7 +185,7 @@ function FilePickButton({ label, onPick }: { label: string; onPick: (file: File)
   );
 }
 
-/** 秒 → mm:ss */
+/** Seconds → mm:ss */
 function fmtSeconds(sec: number): string {
   const m = Math.floor(sec / 60);
   const s = sec % 60;

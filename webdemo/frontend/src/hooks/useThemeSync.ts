@@ -78,13 +78,13 @@ function applyFallbackDark(isDark: boolean) {
 }
 
 /**
- * 应用明暗主题。
+ * Apply the light or dark theme.
  *
- * 用途：首屏直接同步主题；后续切换优先使用 View Transition 做合成层淡入淡出，
- * 避免给全量 DOM 注入 transition 导致长表格/大量卡片一起重算而卡顿。降级路径只给
- * 主要布局与控件做短色彩过渡，并尊重 reduced motion。
+ * Purpose: the first screen syncs the theme directly. Later switches prefer a View Transition cross-fade on the compositor,
+ * so a transition is not injected on the whole DOM, which would restyle long tables and many cards together and stutter. The fallback only gives
+ * the main layout and controls a short color transition, and it respects reduced motion.
  *
- * @param instant 首屏初始化时直接应用，不放动画。
+ * @param instant On first-screen init, apply directly with no animation.
  */
 function applyDark(isDark: boolean, instant: boolean) {
   if (instant || prefersReducedMotion()) {

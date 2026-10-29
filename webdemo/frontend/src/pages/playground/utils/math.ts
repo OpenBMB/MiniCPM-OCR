@@ -1,9 +1,9 @@
 /**
- * 数学公式定界符规范化。
+ * Math-formula delimiter normalization.
  *
- * 用途：兼容模型输出的 `$...$`、`$$...$$`、`\(...\)`、`\[...\]`、裸 LaTeX
- * 以及无命令的独占行数学表达式。KaTeX 负责判断具体命令和环境是否受支持，MAP 不维护语法白名单。
- * Markdown 代码区和已有公式保持原样，避免把代码、金额、表格或普通说明文字误判为公式。
+ * Purpose: accept model output of `$...$`, `$$...$$`, `\(...\)`, `\[...\]`, bare LaTeX,
+ * and math expressions that occupy a line with no command. KaTeX decides whether a specific command or environment is supported; MAP does not keep a syntax allowlist.
+ * Markdown code regions and existing formulas stay as-is, so code, amounts, tables, or ordinary explanatory text are not mistaken for formulas.
  */
 
 import { unified } from 'unified';
@@ -21,7 +21,7 @@ import {
 import { inlineMathMarkdown, nativeMathRanges, replaceNativeMathDelimiters } from './math-native';
 
 interface NormalizeMathDelimitersOptions {
-  /** 是否识别并补齐模型未显式标记的数学表达式。 */
+  /** Whether to recognize and complete math expressions the model did not mark explicitly. */
   detectBareMath?: boolean;
 }
 
@@ -47,10 +47,10 @@ interface DisplayFenceRepair {
   deletionEnd: number;
 }
 
-/** 行尾 `$ $$`：OCR 偶发把块级公式开头的 `$$` 与一个多余的 `$` 混写在同一行。 */
+/** A trailing `$ $$`: OCR occasionally writes the opening `$$` of a block formula and an extra `$` on the same line. */
 const STRAY_DISPLAY_FENCE = /(^|\n)([^\n$]*)\$[ \t]*\$\$(?=[ \t]*(?:\r?\n|$))/g;
 
-/** 原生公式应在正文内美元符切片之前识别，同时跳过已有美元符公式。 */
+/** Native formulas should be recognized before dollar-sign slices inside the body, and existing dollar-sign formulas are skipped. */
 function dollarRanges(text: string) {
   let cursor = 0;
   return splitDollarMath(text).flatMap((segment) => {
@@ -60,7 +60,7 @@ function dollarRanges(text: string) {
   });
 }
 
-/** 原始 HTML 交由 DOM 公式转换，避免提前规范化属性、代码及单元格内美元符正文。 */
+/** Raw HTML is left to the DOM formula transform, so attributes, code, and dollar-sign body text inside cells are not normalized early. */
 function splitDocumentHtml(content: string): ProtectedTextSegment[] {
   if (!content.includes('<')) return splitMarkdownCode(content);
   const tree = DOCUMENT_PARSER.parse(content);
@@ -91,11 +91,11 @@ function splitDocumentHtml(content: string): ProtectedTextSegment[] {
 }
 
 /**
- * 找出可安全修复的 `prefix$ $$` 残片。
+ * Find a `prefix$ $$` fragment that can be repaired safely.
  *
- * 只有整行前缀本身能通过裸公式校验时才修复，避免把金额、代码或说明文字并进公式。
- * `$ $$` 后面的 `$$` 必须已被识别为成对公式；修复时删除多余的 `$` 与原 `$$` 开头，
- * 并在行首补回 `$$`。
+ * Repair only when the whole-line prefix itself passes the bare-formula check, so amounts, code, or explanatory text are not pulled into the formula.
+ * The `$$` after `$ $$` must already have been recognized as a paired formula; the repair deletes the extra `$` and the original `$$` opening,
+ * and puts `$$` back at the start of the line.
  */
 function displayFenceRepairs(
   text: string,
@@ -108,7 +108,7 @@ function displayFenceRepairs(
     const lineStart = match.index + match[1].length;
     const prefix = match[2];
     if (!isBareMath(prefix.trim())) continue;
-    // 多行公式正文里也可能出现 `$`，不能把公式内部误当成 OCR 残片。
+    // A `$` can also appear inside a multi-line formula body, and must not be mistaken for an OCR fragment inside the formula.
     if (protectedRanges.some((range) => range.start < lineStart && range.end > lineStart)) {
       continue;
     }
@@ -121,9 +121,9 @@ function displayFenceRepairs(
 }
 
 /**
- * 应用文本编辑，并保留原始偏移到规范化文本的单调映射。
+ * Apply a text edit, and keep a monotonic map from original offsets to the normalized text.
  *
- * 删除区间内部的偏移统一落到替换内容末尾；块级高亮只需要稳定落在同一语义块内。
+ * Offsets inside a deleted range all land at the end of the replacement; block highlighting only needs to land stably inside the same semantic block.
  */
 function applyTextEdits(text: string, edits: readonly MathTextEdit[]) {
   const sorted = [...edits].sort((left, right) => left.start - right.start || left.end - right.end);
@@ -184,7 +184,7 @@ function applyTextEdits(text: string, edits: readonly MathTextEdit[]) {
   return { content: output, mapOffset };
 }
 
-/** 文档预览只修复公式定界符，不推断裸 LaTeX；裸公式识别由对话场景单独控制。 */
+/** Document preview only repairs formula delimiters and does not infer bare LaTeX; bare-formula recognition is controlled separately by the chat scene. */
 function documentMathEdits(
   text: string,
   protectedRanges: readonly { start: number; end: number }[],
@@ -213,9 +213,9 @@ function documentMathEdits(
 }
 
 /**
- * 文档公式规范化同时记录分段偏移映射，避免每个 OCR 块重复扫描整段前缀。
- * @param content 原始 Markdown；代码与已有美元符公式保持原样
- * @returns 规范化文本与原始边界到预览边界的二分映射
+ * Document formula normalization also records a segmented offset map, so each OCR block does not rescan the whole prefix.
+ * @param content original Markdown; code and existing dollar-sign formulas stay as-is
+ * @returns normalized text and a binary map from original boundaries to preview boundaries
  */
 export function normalizeDocumentMathDelimiters(content: string) {
   const mappings: {
@@ -271,10 +271,10 @@ export function normalizeDocumentMathDelimiters(content: string) {
 }
 
 /**
- * 文档预览的完整公式规范化。
+ * Full formula normalization for document preview.
  *
- * 先拆开 `\] \[` 收成的粘连 `$$ $$`，再修定界符。没有这些改写时沿用一次扫描的偏移；
- * 拆开后按前缀长度对齐，和原先文档渲染走 `normalizeMathDelimiters` 的结果一致。
+ * First split a stuck-together `$$ $$` that `\] \[` collapsed into, then repair delimiters. When there is no such rewrite, keep the offsets from one scan;
+ * after the split, align by prefix length, consistent with the previous document render going through `normalizeMathDelimiters`.
  */
 export function prepareDocumentMath(content: string) {
   const prepared = splitJoinedDisplayFormulas(unwrapSizedDelimiters(content));
@@ -290,11 +290,11 @@ export function prepareDocumentMath(content: string) {
 }
 
 /**
- * 规范化模型输出中的数学公式，跳过 Markdown 代码区。
+ * Normalize math formulas in model output, skipping Markdown code regions.
  *
- * @param content 原始 Markdown 文本
- * @param options 数学识别选项
- * @returns 可交给 remark-math 与 KaTeX 渲染的 Markdown
+ * @param content original Markdown text
+ * @param options math recognition options
+ * @returns Markdown that can be handed to remark-math and KaTeX
  */
 export function normalizeMathDelimiters(
   content: string,

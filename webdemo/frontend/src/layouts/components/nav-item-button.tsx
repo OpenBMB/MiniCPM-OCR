@@ -5,13 +5,13 @@ import { cn } from '@map/ui';
 interface NavItemButtonProps extends HTMLAttributes<HTMLElement> {
   to: string;
   children: ReactNode;
-  /** 外部链接：设置后渲染为锚点，点击在新标签页打开，不走内部路由 */
+  /** External link: when set, render an anchor that opens in a new tab and does not use internal routing. */
   external?: string;
 }
 
 /**
- * 导航按钮：内部路由用编程式跳转，避免 hover 时浏览器左下角显示链接地址；
- * 传入 external 时渲染为锚点，在新标签页打开外部地址。
+ * Nav button: internal routes use a programmatic jump so hover does not show the URL in the browser status bar;
+ * when external is passed, render an anchor that opens the external address in a new tab.
  */
 export function NavItemButton({
   to,
@@ -23,7 +23,7 @@ export function NavItemButton({
 }: NavItemButtonProps) {
   const navigate = useNavigate();
 
-  // 外部链接：新标签页打开，rel 阻断 opener 引用泄露。
+  // External link: open in a new tab, and use rel to block opener leaks.
   if (external) {
     return (
       <a

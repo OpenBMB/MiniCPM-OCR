@@ -8,7 +8,7 @@ interface ActionPosition {
   height: number;
 }
 
-/** 跟踪选中块的位置；操作条放在块外，不跟随悬停变化。 */
+/** Track the selected block's position; the action bar sits outside the block and does not follow hover. */
 export function useImageParsePreviewAction(
   ref: RefObject<HTMLElement | null>,
   selectedId: string | undefined,

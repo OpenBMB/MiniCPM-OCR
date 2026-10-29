@@ -15,7 +15,7 @@ import {
   mergeImageParseTablesInPage,
 } from '../utils/imageParseTableMerge';
 
-/** 单图表格合并状态。pages 保留给共用工具栏类型，单图没有页码。 */
+/** Single-image table-merge state. pages is kept for the shared toolbar type; a single image has no page number. */
 export interface ImageParseTableMergeState {
   status: 'idle' | 'merging' | 'merged';
   pages: readonly number[];
@@ -50,9 +50,9 @@ const IDLE_RECORD: ImageParseTableMergeRecord = {
 };
 
 /**
- * 合并单图内被识别拆开的相邻表格，并保留原始结果用于撤销。
- * @param options 当前识别结果、状态写入入口与结果身份
- * @returns 工具栏使用的合并状态与操作
+ * Merge adjacent tables that recognition split apart inside a single image, and keep the raw result for undo.
+ * @param options current recognition result, the state-write entry, and the result identity
+ * @returns the merge state and actions the toolbar uses
  */
 export function useImageParseTableMerge({
   enabled,

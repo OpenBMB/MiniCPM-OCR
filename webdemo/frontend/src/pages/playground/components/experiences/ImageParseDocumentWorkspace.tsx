@@ -15,7 +15,7 @@ import { ImageParseDropzone } from './ImageParseDropzone';
 import { PaneDivider } from './ImageParsePanes';
 import { ImageParseTaskPane } from './ImageParseTaskPane';
 
-/** 已上传文档后的双栏工作区。 */
+/** Two-column workspace after a document has been uploaded. */
 interface ImageParseDocumentWorkspaceProps {
   parse: ReturnType<typeof useImageParse>;
   split: ReturnType<typeof useSplitPane>;
@@ -51,9 +51,9 @@ interface ImageParseDocumentWorkspaceProps {
 }
 
 /**
- * 渲染原件与任务结果的双栏布局，不承担上传或识别状态编排。
- * @param props 当前解析状态、分栏与结果交互回调
- * @returns 文档工作区
+ * Renders the two-column layout of the original and the task result. It does not own upload or recognition-state orchestration.
+ * @param props Current parse state, column split, and result interaction callbacks
+ * @returns Document workspace
  */
 export function ImageParseDocumentWorkspace({
   parse,

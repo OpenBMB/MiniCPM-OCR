@@ -1,8 +1,8 @@
 /**
- * 体验中心「一次补全」生命周期 hook。
+ * Experience-center hook for the lifecycle of "one completion".
  *
- * 用途：校验 key → AbortController → 构造请求 → 流式/非流式合并增量 → finish/fail/abort 收尾。
- * send 与 regenerate 在 useChat 中构造 history 后调用 startCompletion。
+ * Purpose: check the key → AbortController → build the request → merge streaming or non-streaming increments → finish/fail/abort.
+ * send and regenerate in useChat call startCompletion after they have built history.
  */
 
 import {
@@ -37,7 +37,7 @@ import { buildChatParams, requiresNonStreaming } from '../utils/params';
 import { refreshAttachmentLinks } from '../utils/refreshAttachmentLinks';
 import { collectPlaygroundRuntimeContext } from '../utils/runtimeContext';
 
-/** useChatCompletion 入参 */
+/** useChatCompletion arguments */
 export interface UseChatCompletionArgs {
   setMessages: Dispatch<SetStateAction<ChatMessage[]>>;
   model: string;
@@ -49,21 +49,21 @@ export interface UseChatCompletionArgs {
   modelMaxOutputTokens?: number;
   onContextTrim?: (trimmedMessageCount: number) => void;
   onContextLimit?: () => void;
-  /** 请求终态后刷新 Playground 免费体验状态。 */
+  /** Refresh Playground free-trial state after a request reaches a terminal state. */
   refreshCredential?: () => void;
 }
 
-/** useChatCompletion 返回 */
+/** useChatCompletion return value */
 export interface UseChatCompletionReturn {
   loading: boolean;
   stop: () => void;
-  /** 发起一次补全；调用前须已入列 assistant 占位，history 不含该占位 */
+  /** Start one completion; the assistant placeholder must already be enqueued, and history must not include that placeholder */
   startCompletion: (history: ChatMessage[], assistantId: string) => void;
 }
 
 /**
- * 托管单次补全的网络生命周期与 loading/abort 状态。
- * @param args setMessages、模型、密钥与参数偏好
+ * Own the network lifecycle and loading/abort state of a single completion.
+ * @param args setMessages, model, secret, and parameter preferences
  */
 export function useChatCompletion(args: UseChatCompletionArgs): UseChatCompletionReturn {
   const { t } = useTranslation('playground');
@@ -97,7 +97,7 @@ export function useChatCompletion(args: UseChatCompletionArgs): UseChatCompletio
   const stop = useCallback(() => {
     const activeCompletion = activeCompletionRef.current;
     if (!activeCompletion) return;
-    // 中断前请求可能已被 L2 消耗免费额度；终态同样刷新，避免 UI 停留在旧剩余次数。
+    // The request may already have consumed free quota at L2 before it was aborted; a terminal state refreshes too, so the UI does not stay on the old remaining count.
     refreshCredential?.();
     activeCompletion.controller.abort();
     if (activeStreamRef.current?.controller === activeCompletion.controller) {
@@ -125,7 +125,7 @@ export function useChatCompletion(args: UseChatCompletionArgs): UseChatCompletio
 
   const startCompletion = useCallback(
     (history: ChatMessage[], assistantId: string) => {
-      // MiniCPM-OCR-Jev 仅验证过完整响应协议；即使用户打开流式开关，也必须走非流式请求。
+      // MiniCPM-OCR-Jev has only been verified against the full-response protocol; even if the user turns streaming on, the request must be non-streaming.
       const useStreaming = !forceNonStreaming && (params.stream || params.webSearch);
       const hostedWebSearch = !forceNonStreaming && params.webSearch;
       const secret = hostedWebSearch ? undefined : getSecret();
@@ -166,14 +166,14 @@ export function useChatCompletion(args: UseChatCompletionArgs): UseChatCompletio
 
       const controller = new AbortController();
       setLoading(true);
-      // 所有 Playground 调用都生成浏览器关联 ID。直连 L2 用它回查调用日志；
-      // 联网搜索由 L3 在最终 L2 调用完成时持久化映射，覆盖 SSE 最后一帧意外丢失。
+      // Every Playground call generates a browser correlation ID. A direct L2 call uses it to look the call log back up;
+      // web search has L3 persist the mapping when the final L2 call finishes, covering an SSE last frame that was lost unexpectedly.
       const clientRequestID = createPlaygroundClientRequestID();
       setMessages((prev) =>
         appendToMessage(prev, assistantId, { clientRequestId: clientRequestID, apiKeyId: keyId }),
       );
 
-      // 请求消息在 begin 内按"刷新后的附件链接"重建，这里只准备运行时上下文。
+      // Request messages are rebuilt inside begin from "refreshed attachment links"; here only the runtime context is prepared.
       const runtimeContext = collectPlaygroundRuntimeContext(locale, params.userLocation);
 
       const startedAt = performance.now();
@@ -195,7 +195,7 @@ export function useChatCompletion(args: UseChatCompletionArgs): UseChatCompletio
 
       const finish = () => {
         if (!isCurrentCompletion()) return;
-        // 直连/联网请求都会消耗体验额度；终态后刷新，让 UI 及时回退用户自有 Key。
+        // Both a direct call and a web-search request consume trial quota; refresh after the terminal state so the UI falls back to the user's own key in time.
         refreshCredential?.();
         setLoading(false);
         abortRef.current = null;

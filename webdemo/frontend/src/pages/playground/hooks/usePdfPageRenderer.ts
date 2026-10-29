@@ -22,9 +22,9 @@ interface PdfPageRendererOptions {
 }
 
 /**
- * 渲染连续滚动 PDF 的可见页，并把离屏帧原子提交到对应 canvas。
- * @param options PDF 文档、页面骨架、当前页、可见页、缩放与加载错误
- * @returns 预览状态、canvas ref 注册函数与渲染状态
+ * Render the visible pages of a continuously scrolling PDF, and atomically commit offscreen frames to the matching canvas.
+ * @param options PDF document, page skeletons, current page, visible pages, zoom, and load error
+ * @returns preview state, the canvas ref registration function, and render state
  */
 export function usePdfPageRenderer({
   document,
@@ -68,7 +68,7 @@ export function usePdfPageRenderer({
     },
     [revision, rotation, scale, viewportWidth],
   );
-  // 观察器可能发布同样页码的新数组，不能因此中止仍在绘制的页面。
+  // The observer may publish a new array of the same page numbers, and that must not abort a page that is still being drawn.
   const visibleKey = visiblePageNumbers.join(',');
   const targets = useMemo(
     () =>

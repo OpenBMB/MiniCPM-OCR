@@ -26,8 +26,8 @@ export function installPreloadErrorRecovery(
       // Storage can be unavailable in privacy-restricted browser contexts.
     }
 
-    // 未刷新时保留原始 import 错误；拦截后 Vite 会以 undefined 完成 Promise，
-    // React.lazy 随后读取 default 才会产生误导性的 TypeError。
+    // Until a reload, keep the original import error; after interception Vite fulfills the Promise with undefined,
+    // and React.lazy only then reads default and throws a misleading TypeError.
     if (shouldReload) {
       event.preventDefault();
       reload();

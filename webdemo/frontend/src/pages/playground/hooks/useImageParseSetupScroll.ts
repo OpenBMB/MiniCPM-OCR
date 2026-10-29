@@ -1,10 +1,10 @@
 import { useEffect, type RefObject } from 'react';
 
 /**
- * 窄屏纵向工作区打开字段配置时，将配置面板带入可见区域。
- * @param visible 是否已显示字段配置
- * @param containerRef 工作区滚动容器
- * @param paneRef 字段配置所在面板
+ * When a narrow-screen vertical workspace opens field configuration, bring the configuration panel into view.
+ * @param visible whether field configuration is already shown
+ * @param containerRef workspace scroll container
+ * @param paneRef panel that contains the field configuration
  */
 export function useImageParseSetupScroll(
   visible: boolean,

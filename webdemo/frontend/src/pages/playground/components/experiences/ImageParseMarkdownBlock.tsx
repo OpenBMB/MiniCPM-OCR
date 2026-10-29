@@ -3,7 +3,7 @@ import type { ExtraProps } from 'react-markdown';
 
 import { ImageParseBlockEditContext } from '../../utils/imageParseBlockEditContext';
 
-/** 可信块标记转为可编辑预览；普通 HTML div 继续沿用原有属性和内容。 */
+/** A trusted block marker becomes an editable preview; an ordinary HTML div keeps its original attributes and content. */
 export function ImageParseMarkdownBlock({
   node,
   children,

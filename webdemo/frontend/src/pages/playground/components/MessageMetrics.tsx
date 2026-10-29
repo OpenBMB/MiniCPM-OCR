@@ -1,9 +1,7 @@
 /**
- * 助手消息底部的性能指标行。
+ * Performance-metrics row at the bottom of an assistant message.
  *
- * 用途：把一轮生成的计时与用量（首 token / 总耗时 / 输出速率 / 共调用 tokens）
- * 呈现为一行带竖线分隔的紧凑指标；数值高亮、指标名弱化，部分项带 info 悬浮说明。
- * 纯展示组件：不含状态与副作用，数据经 buildMetricItems 派生后由父组件传入。
+ * Purpose: present one generation's timing and usage (first token / total duration / output rate / total tokens called) as one compact row separated by vertical rules; values are highlighted, metric names are muted, and some items have an info hover. Pure display component: no state or side effects. Data is derived by buildMetricItems and passed in by the parent.
  */
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@map/ui';
@@ -18,9 +16,9 @@ interface MessageMetricsProps {
 }
 
 /**
- * 渲染一条消息的指标行；无任何可展示指标时不渲染。
- * @param metrics 前端计时指标
- * @param usage 尾块 token 用量
+ * Renders the metrics row for one message; render nothing when there is no metric to show.
+ * @param metrics Frontend timing metrics
+ * @param usage Trailing-chunk token usage
  */
 export function MessageMetrics({ metrics, usage }: MessageMetricsProps) {
   const items = buildMetricItems(metrics, usage);
@@ -38,7 +36,7 @@ export function MessageMetrics({ metrics, usage }: MessageMetricsProps) {
   );
 }
 
-/** 单个指标单元：指标名 + 高亮数值 + 单位 +（可选）info 悬浮 */
+/** One metric unit: metric name + highlighted value + unit + (optional) info hover */
 function MetricCell({ item }: { item: MetricItem }) {
   const { t } = useTranslation('playground');
   return (

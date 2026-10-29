@@ -1,14 +1,14 @@
 import type { MapModel } from '@/api/map';
 
 /**
- * 判断当前模型是否允许 Playground 联网搜索。
+ * Whether the current model is allowed to use Playground web search.
  *
- * 必须两个能力位同时具备，与后端入口（playground_web_search_http.go / l2_web_search_http.go）
- * 保持一致：托管搜索循环靠模型发 tool_calls 驱动，只勾 web_search 却不支持函数调用的模型
- * 不会真去检索，而是照着工具说明捏造一次调用再编出结果。少判一位的后果不是报错，
- * 而是用户拿到一个带假引用的、看起来很正经的回答。
- * @param capabilities 当前模型能力配置
- * @returns 当前模型是否可以展示并使用联网搜索
+ * Both capability bits must be present, consistent with the backend entries (playground_web_search_http.go / l2_web_search_http.go):
+ * the hosted search loop is driven by the model emitting tool_calls. A model with only web_search checked, and no function calling,
+ * will not actually search; it fabricates one call from the tool description and then makes up a result. Missing one bit does not surface as an error,
+ * and the user instead gets a serious-looking answer with fake citations.
+ * @param capabilities capability config of the current model
+ * @returns whether the current model may show and use web search
  */
 export function canUsePlaygroundWebSearch(
   capabilities: MapModel['capabilities'] | undefined,

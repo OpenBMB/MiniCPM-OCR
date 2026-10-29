@@ -14,10 +14,9 @@ interface ImageParseKiePdfPreviewProps {
 }
 
 /**
- * KIE 的 PDF 结果按当前页展示，避免把多页 JSON 连续铺在同一栏。
- * 抽取进行中复用文档解析的页面等待态，完成后再展示当前页字段。
- * @param parse 当前识别状态
- * @param draft 当前页可编辑草稿
+ * KIE PDF results are shown for the current page, so multi-page JSON is not laid out continuously in the same column. While extraction is in progress, reuse the document-parse page waiting state, and show the current page's fields after it finishes.
+ * @param parse Current recognition state
+ * @param draft Editable draft for the current page
  */
 export function ImageParseKiePdfPreview({ parse, draft }: ImageParseKiePdfPreviewProps) {
   const { t } = useTranslation('playground');

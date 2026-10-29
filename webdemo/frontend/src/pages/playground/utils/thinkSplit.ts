@@ -1,11 +1,11 @@
 /**
- * 内联 think 标签流式拆分与一次性归一化。
+ * Streaming split of inline think tags, and one-shot normalization.
  *
- * 用途：把模型输出里内联思考段落（think / redacted_thinking / thinking 等标签）
- * 从正文中拆出，路由到 reasoning 通道；供 SSE 流式增量与消息展示层兜底复用。
+ * Purpose: pull inline reasoning paragraphs in model output (tags such as think / redacted_thinking / thinking)
+ * out of the body and route them to the reasoning channel; reused by SSE streaming increments and as a fallback in the message display layer.
  */
 
-/** 支持的 think 开闭标签对（按常见度排序；流式匹配时取 buffer 内最早出现的开标签） */
+/** Supported think open/close tag pairs (ordered by how common they are; streaming match takes the earliest open tag in the buffer) */
 const THINK_TAG_PAIRS: ReadonlyArray<{ open: string; close: string }> = [
   { open: '<think>', close: '</think>' },
   { open: '<redacted_thinking>', close: '</redacted_thinking>' },
@@ -13,10 +13,10 @@ const THINK_TAG_PAIRS: ReadonlyArray<{ open: string; close: string }> = [
 ];
 
 /**
- * 上游 Agent 偶尔会把内部执行轨迹混入 assistant 文本。
+ * An upstream agent occasionally mixes an internal execution trace into assistant text.
  *
- * 这些内容不是面向用户的回答，也不能进入历史上下文；结构化工具状态已经由
- * tool_status/citations 单独承载，因此这里只过滤明确可识别的执行日志。
+ * This content is not an answer for the user, and must not enter history context; structured tool state is already carried
+ * separately by tool_status/citations, so only an execution log that can be recognized clearly is filtered here.
  */
 const INTERNAL_EXECUTION_LINE_PATTERNS: ReadonlyArray<RegExp> = [
   /^\s*(?:已|正在|刚刚)?查看\s*\d+\s*张(?:图像|图片|截图)/i,
@@ -27,27 +27,27 @@ const INTERNAL_EXECUTION_LINE_PATTERNS: ReadonlyArray<RegExp> = [
   /^\s*(?:tool call|function call|read file|view image|open file|searching|searched)\b/i,
 ];
 
-/** 只有检测到执行轨迹后才移除的内部开发过程说明，避免误伤正常回答。 */
+/** Internal development-process notes that are removed only after an execution trace is detected, so a normal answer is not damaged by mistake. */
 const INTERNAL_PROCESS_LINE_PATTERNS: ReadonlyArray<RegExp> = [
   /^\s*(?:我会|接下来我会|现在我会).*(?:工具调用|工具状态|执行日志|过程轨道|重新收成|检查当前实现|补.*测试|运行.*测试|修改.*代码)/i,
 ];
 
-/** 内联 think 流式拆分状态 */
+/** Streaming split state for inline think */
 export interface ThinkSplitState {
-  /** 当前是否处于 think 块内 */
+  /** Whether the parser is currently inside a think block */
   inThink: boolean;
-  /** 块内时应匹配的闭标签；块外为 null */
+  /** Close tag to match while inside a block; null while outside */
   closeTag: string | null;
-  /** 末尾可能是半个标签的残片，留待下一分片拼接后再判定 */
+  /** A trailing fragment that may be half a tag, kept to decide again after the next chunk is joined */
   pending: string;
 }
 
-/** 新建一条流的 think 拆分状态 */
+/** Create think-split state for a new stream */
 export function createThinkSplitState(): ThinkSplitState {
   return { inThink: false, closeTag: null, pending: '' };
 }
 
-/** 返回 s 末尾与 tag 前缀相等的最长长度（1..tag.length-1），用于跨分片保留半个标签 */
+/** Longest length (1..tag.length-1) where the end of s equals a prefix of tag, used to keep half a tag across chunks */
 function trailingTagPrefixLen(s: string, tag: string): number {
   const max = Math.min(s.length, tag.length - 1);
   for (let k = max; k >= 1; k -= 1) {
@@ -56,7 +56,7 @@ function trailingTagPrefixLen(s: string, tag: string): number {
   return 0;
 }
 
-/** 在 buffer[i..] 中找最早出现的开标签；无则返回 null */
+/** Find the earliest open tag in buffer[i..]; return null when there is none */
 function findEarliestOpenTag(
   buffer: string,
   from: number,
@@ -70,7 +70,7 @@ function findEarliestOpenTag(
   return best;
 }
 
-/** 块外：保留 buffer 末尾可能是任意开/闭标签前缀的最长残片 */
+/** Outside a block: keep the longest trailing fragment of buffer that may be a prefix of any open or close tag */
 function trailingAnyTagPrefixLen(buffer: string, from: number): number {
   let keep = 0;
   for (const pair of THINK_TAG_PAIRS) {
@@ -81,9 +81,9 @@ function trailingAnyTagPrefixLen(buffer: string, from: number): number {
 }
 
 /**
- * 把一段正文增量按 think 标签拆成「正文」与「思考」两路增量（有状态、可跨 SSE 分片）。
- * @param state 该条流的拆分状态（会被就地更新）
- * @param delta 本帧 delta.content 增量
+ * Split one body increment on think tags into a "body" increment and a "reasoning" increment (stateful, and may cross SSE chunks).
+ * @param state split state of this stream (updated in place)
+ * @param delta this frame's delta.content increment
  */
 export function splitThinkDelta(
   state: ThinkSplitState,
@@ -132,7 +132,7 @@ export function splitThinkDelta(
   return { content, reasoning };
 }
 
-/** 流结束时清空 pending，避免半标签或未闭合 think 吞字 */
+/** On stream end, clear pending so a half tag or an unclosed think does not swallow characters */
 export function flushThinkDelta(state: ThinkSplitState): { content: string; reasoning: string } {
   const pending = state.pending;
   state.pending = '';
@@ -141,8 +141,8 @@ export function flushThinkDelta(state: ThinkSplitState): { content: string; reas
 }
 
 /**
- * 对完整字符串一次性拆分 think/正文（无状态，供非流式响应与展示层兜底）。
- * @param text 待拆分全文
+ * Split think and body on a complete string in one pass (stateless, a fallback for non-streaming responses and the display layer).
+ * @param text full text to split
  */
 export function splitInlineThinkText(text: string): { content: string; reasoning: string } {
   const state = createThinkSplitState();
@@ -165,10 +165,10 @@ function hasInternalExecutionTrace(text: string): boolean {
 }
 
 /**
- * 清理正文中可识别的内部执行日志。
+ * Clean recognizable internal execution logs out of the body.
  *
- * 返回 detected 供 reasoning 使用：思考字段一旦混入执行轨迹，整段不再展示，
- * 防止只删掉几行后仍泄露文件名、查询词或内部工作说明。
+ * detected is returned for reasoning: once the reasoning field is mixed with an execution trace, the whole segment is no longer shown,
+ * so deleting only a few lines does not still leak a file name, a query, or an internal work note.
  */
 function stripInternalExecutionTrace(text: string): { text: string; detected: boolean } {
   const detected = hasInternalExecutionTrace(text);
@@ -188,9 +188,9 @@ function stripInternalExecutionTrace(text: string): { text: string; detected: bo
 }
 
 /**
- * 归一化 assistant 展示用正文/思考：剥离 content 与 reasoning 中残留的内联 think 标签。
- * @param content 顶层正文
- * @param reasoning 已有思考字段（可为空）
+ * Normalize body and reasoning for assistant display: strip leftover inline think tags from content and reasoning.
+ * @param content top-level body
+ * @param reasoning existing reasoning field (may be empty)
  */
 export function normalizeAssistantReply(
   content: string,
@@ -200,7 +200,7 @@ export function normalizeAssistantReply(
   let fromReasoningField = '';
   if (reasoning) {
     const splitReasoning = splitInlineThinkText(reasoning);
-    // 无内联标签时 split 会把全文落到 content 路，此处应整段视为思考文本
+    // When there is no inline tag, split puts the whole text on the content path; here the whole segment should be treated as reasoning text
     fromReasoningField = splitReasoning.reasoning || splitReasoning.content;
   }
 
@@ -210,7 +210,7 @@ export function normalizeAssistantReply(
 
   return {
     content: cleanedContent.text,
-    // 思考区不展示任何混入内部执行轨迹的原始内容；搜索过程由结构化状态区承载。
+    // The reasoning area does not show any raw content mixed with an internal execution trace; the search process is carried by the structured status area.
     reasoning: cleanedReasoning.detected ? '' : rawReasoning,
   };
 }

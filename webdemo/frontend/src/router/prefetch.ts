@@ -1,36 +1,36 @@
 import { routePrefetchers } from './routes';
 
-// 记录已触发预加载的前缀,避免重复发起请求
+// Remember prefixes that already triggered a preload, so the request is not sent again.
 const prefetched = new Set<string>();
 
 /**
- * 根据路径前缀找到对应的页面预加载工厂 key。
- * @param path 目标路径(如 /keys、/models)
- * @returns 匹配到的前缀 key,未匹配返回 undefined
+ * Find the page preload factory key for a path prefix.
+ * @param path Target path (for example /keys or /models).
+ * @returns The matched prefix key, or undefined when nothing matches.
  */
 function matchPrefix(path: string): string | undefined {
   return Object.keys(routePrefetchers).find((key) => path === key || path.startsWith(`${key}/`));
 }
 
 /**
- * 预加载指定路径对应的页面 chunk(若有)。
- * 幂等:同一页面只会触发一次;import() 自带模块缓存,后续真正渲染时瞬时命中。
- * @param path 目标路由路径,通常为侧边栏菜单的 to
+ * Preload the page chunk for a path, when one exists.
+ * Idempotent: each page triggers once; import() caches the module, so the later real render hits instantly.
+ * @param path Target route path, usually the sidebar menu’s to.
  */
 export function prefetchRoute(path: string): void {
   const key = matchPrefix(path);
   if (!key || prefetched.has(key)) return;
   prefetched.add(key);
-  // 预加载失败不影响主流程(真正点击时会再次尝试并走重试逻辑),静默吞掉
+  // A preload failure does not affect the main flow (a real click tries again and goes through retry), so swallow it.
   routePrefetchers[key]().catch(() => {
     prefetched.delete(key);
   });
 }
 
 /**
- * 在浏览器空闲时依次预加载全部业务页面,消除首次切换的等待感。
- * 逐个排队而非并发,避免与首屏关键资源争抢带宽。
- * @returns 清理函数,用于在卸载时取消尚未执行的空闲任务
+ * Preload every business page one by one while the browser is idle, so the first switch does not wait.
+ * Queue them instead of fetching concurrently, so they do not compete with critical first-screen resources for bandwidth.
+ * @returns A cleanup function that cancels idle tasks not yet run on unmount.
  */
 export function prefetchAllRoutesOnIdle(): () => void {
   const keys = Object.keys(routePrefetchers);

@@ -1,8 +1,7 @@
 /**
- * 体验中心「语音合成 / 实时音视频」顶栏。
+ * Experience-center top bar for "speech synthesis / realtime audio-video."
  *
- * 用途：语音合成 / 实时语音共用的轻量顶栏——移动端汉堡键 + 图标 + 标题 + 副标题。
- * 图像解析自带文档工作台顶栏，不走这里。区别于语言模型顶栏（含模型选择器等真功能）。
+ * Purpose: a light top bar shared by speech synthesis and realtime voice — mobile hamburger + icon + title + subtitle. Image parse has its own document-workspace top bar and does not come through here. Distinct from the language-model top bar (which has real features such as the model selector).
  */
 import { Link } from 'react-router-dom';
 import { AudioWaveform, BookOpen, Phone } from 'lucide-react';
@@ -13,21 +12,21 @@ import { getPortalRouteTitle } from '@/router/routeCopy';
 import { experienceDocsPath, type ExperienceKey } from '../utils/experienceRoute';
 
 interface ExperienceTopBarProps {
-  /** 顶栏标题（如「语音合成」「实时音视频」） */
+  /** Top-bar title (for example, "Speech synthesis" or "Realtime audio-video") */
   title: string;
-  /** 副标题，一句话说明能力 */
+  /** Subtitle, one sentence describing the capability */
   subtitle?: string;
-  /** 标题前图标 */
+  /** Icon before the title */
   icon: React.ReactNode;
-  /** 当前体验，用于跳转对应模型文档 */
+  /** Current experience, used to jump to the matching model docs */
   experience: Exclude<ExperienceKey, 'language'>;
-  /** 移动端：显示汉堡键以唤出侧栏抽屉 */
+  /** Mobile: show the hamburger to summon the sidebar drawer */
   showMenuButton?: boolean;
   onOpenSidebar?: () => void;
 }
 
 /**
- * 语音体验顶栏。
+ * Voice-experience top bar.
  */
 export function ExperienceTopBar({
   title,
@@ -100,8 +99,8 @@ export function ExperienceTopBar({
 }
 
 /**
- * 非语言体验顶栏图标。语言对话走独立顶栏，不经过这里。
- * @param experience 当前体验键
+ * Top-bar icon for non-language experiences. Language chat uses its own top bar and does not come through here.
+ * @param experience Current experience key
  */
 export function experienceIcon(experience: ExperienceKey): React.ReactNode {
   if (experience === 'tts') return <AudioWaveform className="h-4 w-4" />;

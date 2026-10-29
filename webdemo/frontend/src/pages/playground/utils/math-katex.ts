@@ -1,7 +1,7 @@
 /**
- * 裸数学表达式识别与 KaTeX 语法校验。
+ * Bare math-expression recognition and KaTeX syntax checks.
  *
- * 用途：识别未加定界符的模型数学输出，并由 KaTeX 判断命令与环境是否受支持。
+ * Purpose: recognize model math output that has no delimiters, and let KaTeX decide whether a command or environment is supported.
  */
 
 import katex from 'katex';
@@ -59,14 +59,14 @@ const PROSE_IDENTIFIERS = new Set([
   'with',
 ]);
 
-/** 把普通文本中的裸数学块补成块级公式，已有美元符公式不会进入此函数。 */
+/** Turn a bare math block in ordinary text into a block formula; formulas that already use dollar signs do not enter this function. */
 export function wrapBareMath(text: string): string {
   const withBracketedMath = wrapBracketedMath(text, isBareMath);
   const blocks = withBracketedMath.split(/(\n[ \t]*\n+)/);
   return blocks
     .map((block, index) => {
       if (index % 2 === 1 || !block.trim()) return block;
-      // 全英文/数字表格也可能通过 KaTeX 校验，必须先保护表格行，避免整表误转成公式。
+      // An all-English or all-numeric table can also pass KaTeX checks, so table rows must be protected first, or the whole table would be turned into a formula by mistake.
       if (!block.split('\n').some(isMarkdownTableRow) && isBareMath(block.trim())) {
         return preserveOuterWhitespace(block, wrapDisplayMath);
       }
@@ -88,16 +88,16 @@ export function wrapBareMath(text: string): string {
 }
 
 /**
- * 把模型误用反引号包裹的明确数学表达式转换为行内公式。
+ * Turn an explicit math expression the model wrapped in backticks by mistake into an inline formula.
  *
- * 仅接受 KaTeX 可完整解析，且包含显式命令、Unicode 数学运算符或至少两类数学结构的内容；
- * 单个变量、路径、命令和普通代码继续保留 Markdown 代码语义。
+ * Accept only content KaTeX can parse completely, and that contains an explicit command, a Unicode math operator, or at least two kinds of math structure;
+ * a single variable, a path, a command, and ordinary code keep Markdown code semantics.
  */
 export function normalizeInlineCodeMath(codeSpan: string): string {
   return normalizeMarkdownInlineCodeMath(codeSpan, isBareMath);
 }
 
-/** 将完整且受 KaTeX 支持的任意裸环境转换为块级公式。 */
+/** Turn any complete bare environment that KaTeX supports into a block formula. */
 function wrapSupportedEnvironments(text: string): string {
   let cursor = 0;
   let output = '';
@@ -119,7 +119,7 @@ function wrapSupportedEnvironments(text: string): string {
   return output;
 }
 
-/** 查找下一个配对完整的 LaTeX 环境，支持环境嵌套。 */
+/** Find the next fully paired LaTeX environment, supporting nested environments. */
 function findNextEnvironment(
   text: string,
   from: number,
@@ -146,36 +146,36 @@ function findNextEnvironment(
 }
 
 /**
- * 判断一段文本是否为模型吐出的工具调用/属性标记，而不是公式。
+ * Whether a piece of text is a tool-call or attribute marker the model emitted, rather than a formula.
  *
- * 小模型会把工具调用当正文输出（2026-09-21 实测 MiniCPM5-2B：
- * `name="weather_search"> name="location">Beijing`）。这类残片里的 `=`、`>`、`_`
- * 会被当成关系符和下标，KaTeX 又恰好能解析成功，于是整段被渲染成衬线公式。
- * isBareMath 里的 HTML 标签护栏拦不住它——残片里根本没有 `<`。
+ * Small models emit tool calls as body text (measured 2026-09-21 on MiniCPM5-2B:
+ * `name="weather_search"> name="location">Beijing`). The `=`, `>`, and `_` in such a fragment
+ * are taken as relations and subscripts, and KaTeX happens to parse it, so the whole fragment is rendered as a serif formula.
+ * The HTML-tag guard in isBareMath does not stop it — the fragment has no `<` at all.
  */
 function isToolCallMarkup(value: string): boolean {
-  // 公式基本不含 ASCII 双引号；英寸/角分等写法请显式用 $...$ 包裹。
+  // A formula basically contains no ASCII double quotes; write inches or arcminutes explicitly inside $...$.
   if (value.includes('"')) return true;
-  // key="value" / key='value' 形态的属性赋值。
+  // Attribute assignment of the form key="value" / key='value'.
   if (/[A-Za-z_][\w-]*\s*=\s*["'][^"']*["']/.test(value)) return true;
-  // snake_case 标识符：真实下标几乎都是单字符（x_1、F_{net}），两侧各两个以上字母的更像代码。
+  // A snake_case identifier: a real subscript is almost always a single character (x_1, F_{net}); two or more letters on each side looks more like code.
   if (/[A-Za-z]{2,}_[A-Za-z]{2,}/.test(value)) return true;
   return false;
 }
 
 /**
- * 判断一行是否只由 Markdown 标记符号组成，不含任何被运算的内容。
+ * Whether a line is made only of Markdown marker characters and contains nothing being operated on.
  *
- * `---`、`***` 是分割线，`---`、`===` 紧跟段落时是 setext 标题下划线，落单的 `-`、`+`、`>`
- * 是空列表项或空引用。这些行里的 `-`、`*`、`=` 会被当成运算符和关系符，KaTeX 又恰好能解析成功，
- * 于是分割线被渲染成一串衬线减号，setext 标题也被拆成「段落 + 公式」两块。
- * 真实公式至少含一个被运算的字母、数字或命令，整类排除不会误伤。
+ * `---` and `***` are thematic breaks; `---` and `===` right after a paragraph are a setext heading underline; a lone `-`, `+`, or `>`
+ * is an empty list item or an empty quote. The `-`, `*`, and `=` in these lines are taken as operators and relations, and KaTeX happens to parse them,
+ * so a thematic break is rendered as a string of serif minus signs, and a setext heading is split into "paragraph + formula".
+ * A real formula contains at least one letter, digit, or command being operated on, so excluding the whole class does not cause false misses.
  */
 function isMarkdownPunctuationLine(value: string): boolean {
   return /^[-*_=+>][-*_=+>\t ]*$/.test(value);
 }
 
-/** 判断一段独占内容是否具备明确数学特征且能被 KaTeX 完整解析。 */
+/** Whether a standalone piece of content has clear math features and can be parsed completely by KaTeX. */
 export function isBareMath(value: string): boolean {
   if (!value || value.length > KATEX_MAX_INPUT_LENGTH || value.includes('$')) return false;
   if (isMarkdownPunctuationLine(value)) return false;
@@ -213,7 +213,7 @@ export function isBareMath(value: string): boolean {
 
   const hasMathStructure = hasRelation || hasScript || hasOperator || hasFunctionShape;
   if (!hasEnvironment && !startsWithCommand && !hasMathStructure && !hasCommand) return false;
-  // 以 LaTeX 命令或环境开头是明确的公式意图，不套用工具调用启发式；其余内容一律先排除标记残片。
+  // Starting with a LaTeX command or environment is a clear formula intent and does not use the tool-call heuristic; everything else excludes marker fragments first.
   if (!startsWithCommand && !hasEnvironment && isToolCallMarkup(textMasked)) return false;
   if (containsProseIdentifier) return false;
   if (
@@ -230,9 +230,9 @@ export function isBareMath(value: string): boolean {
 }
 
 /**
- * 用 KaTeX 公共 API 校验完整语法，预览与公式编辑共用安全配置和有界缓存。
- * @param value 不带数学定界符的 LaTeX
- * @returns 是否可以安全解析为公式
+ * Validate complete syntax with the KaTeX public API; preview and formula editing share the safe config and a bounded cache.
+ * @param value LaTeX without math delimiters
+ * @returns whether it can be parsed safely as a formula
  */
 export function isSupportedKatex(value: string): boolean {
   const cached = KATEX_VALIDITY_CACHE.get(value);
@@ -256,7 +256,7 @@ export function isSupportedKatex(value: string): boolean {
   return valid;
 }
 
-/** 屏蔽 `\text{...}` 等文本命令参数，使公式内中文不会被当作外部说明文字。 */
+/** Mask text-command arguments such as `\text{...}`, so Chinese inside a formula is not treated as external explanatory text. */
 function maskTextCommandArguments(value: string): string {
   const chars = value.split('');
   TEXT_COMMAND_PATTERN.lastIndex = 0;
@@ -273,7 +273,7 @@ function maskTextCommandArguments(value: string): string {
   return chars.join('');
 }
 
-/** 找到指定左花括号对应的右花括号。 */
+/** Find the right brace that matches the given left brace. */
 function findClosingBrace(value: string, open: number): number {
   let depth = 0;
   for (let index = open; index < value.length; index += 1) {
@@ -285,7 +285,7 @@ function findClosingBrace(value: string, open: number): number {
   return -1;
 }
 
-/** 流式输出分组尚未闭合时保持纯文本，避免短暂显示 KaTeX 错误。 */
+/** While a streaming-output group is still unclosed, keep plain text, so a KaTeX error is not shown briefly. */
 function hasBalancedBraces(value: string): boolean {
   let depth = 0;
   for (let index = 0; index < value.length; index += 1) {
@@ -297,46 +297,46 @@ function hasBalancedBraces(value: string): boolean {
   return depth === 0;
 }
 
-/** 保留原字符串两侧空白，仅替换中间有效内容。 */
+/** Keep whitespace on both sides of the original string, and replace only the effective content in the middle. */
 function preserveOuterWhitespace(value: string, transform: (content: string) => string): string {
   const leading = value.match(/^\s*/)?.[0] ?? '';
   const trailing = value.match(/\s*$/)?.[0] ?? '';
   return `${leading}${transform(value.slice(leading.length, value.length - trailing.length))}${trailing}`;
 }
 
-/** 生成 remark-math 可识别的块级公式。 */
+/** Build a block formula that remark-math can recognize. */
 function wrapDisplayMath(value: string): string {
   return `$$\n${value.trim()}\n$$`;
 }
 
-/** 排除 Markdown 表格行，同时允许 `|x|` 这类绝对值公式。 */
+/** Exclude Markdown table rows, while still allowing absolute-value formulas such as `|x|`. */
 function isMarkdownTableRow(value: string): boolean {
   return /^\s*\|.*\|\s*$/.test(value) && (value.match(/\|/g)?.length ?? 0) >= 3;
 }
 
-/** 排除日期等外形类似算式的常见非数学字面量。 */
+/** Exclude common non-math literals, such as dates, that look like expressions. */
 function isCommonNonMathLiteral(value: string): boolean {
   return /^\d{4}-\d{1,2}-\d{1,2}$/.test(value) || /^\d{1,2}:\d{2}(?::\d{2})?$/.test(value);
 }
 
 /**
- * 排除联网搜索的引用角标，它长得像下标但不是公式。
+ * Exclude web-search citation markers. They look like subscripts but are not formulas.
  *
- * 提示词要求模型在论断后紧跟 `[ref_N]`，多来源时模型还会合写成 `[ref_3, ref_5]`。这类角标
- * 会把裸数学识别的每一道判据都恰好走通：`_` 命中 hasScript，`ref` 只有三个字母、过得了
- * allIdentifiersShortOrMath，KaTeX 又能把 `ref_1` 当下标解析成功。于是 wrapBracketedMath
- * 把方括号当成公式定界符吃掉，正文里只剩一个斜体下标——角标没了，来源也没了。
+ * The prompt requires the model to follow a claim with `[ref_N]`, and for several sources the model also groups them as `[ref_3, ref_5]`. These markers
+ * happen to pass every bare-math check: `_` hits hasScript, `ref` is only three letters and passes
+ * allIdentifiersShortOrMath, and KaTeX can parse `ref_1` as a subscript. wrapBracketedMath then
+ * eats the brackets as formula delimiters, and the body is left with one italic subscript — the marker is gone, and so is the source.
  *
- * 角标能否改写成链接取决于来源是否已到达（见 citationMarkers），流式途中、编号查不到来源、
- * 或思考文本里没有来源可查时，它都会以裸文本形态走到这里。改写与否是另一回事，但它在任何
- * 情况下都不是公式，所以这道护栏留在数学侧兜底，不依赖上游是否改写成功。
+ * Whether a marker can be rewritten into a link depends on whether the source has arrived (see citationMarkers). Mid-stream, when the number cannot find a source,
+ * or when reasoning text has no source to look up, it arrives here as bare text. Whether it was rewritten is a separate question, but it is never
+ * a formula, so this guard stays on the math side as a fallback and does not depend on the upstream rewrite succeeding.
  */
 function isCitationMarker(value: string): boolean {
-  // 允许可选的外层方括号：wrapBracketedMath 传进来的是括号内的 body，而独占一行时整行仍带括号。
+  // Allow an optional outer pair of brackets: wrapBracketedMath is given the body inside the brackets, while a line on its own still carries the brackets.
   return /^\[?\s*ref_\d{1,3}(?:\s*[,，、;；]\s*ref_\d{1,3})*\s*\]?$/.test(value);
 }
 
-/** 判断当前位置字符是否被奇数个反斜杠转义。 */
+/** Whether the character at the current position is escaped by an odd number of backslashes. */
 function isEscaped(value: string, index: number): boolean {
   let slashes = 0;
   for (let cursor = index - 1; cursor >= 0 && value[cursor] === '\\'; cursor -= 1) slashes += 1;

@@ -45,7 +45,7 @@ describe('useChat', () => {
   }
 
   it('开启联网时占位消息即刻进入搜索态，不等第一个工具事件', () => {
-    // 从发请求到首个 tool_status 有几百毫秒空窗，占位就亮搜索态才不会出现"什么都没有"的一帧
+    // There are a few hundred milliseconds of gap from sending the request to the first tool_status; the placeholder must show the search state or there is a frame of "nothing at all"
     const result = sendWith(true);
 
     expect(result.current.messages[1]).toMatchObject({

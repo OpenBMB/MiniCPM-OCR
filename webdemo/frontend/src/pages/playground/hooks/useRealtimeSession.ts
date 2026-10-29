@@ -1,9 +1,9 @@
 /**
- * 实时全双工会话 Hook（MiniCPM-O realtime，替代原半双工 useVoiceChat）。
+ * Realtime full-duplex session hook (MiniCPM-O realtime, replacing the old half-duplex useVoiceChat).
  *
- * 薄适配层：把 RealtimeConnection 抛出的状态/波形/字幕增量映射到 React 状态，并维护
- * 助手字幕气泡的累积（每轮一条，收到 listen 事件后收尾）。传输/音频/会话时序见
- * utils/realtimeConnection.ts。返回的 VoiceStatus/VoiceMessage/VOICE_BAR_COUNT 供双工组件复用。
+ * A thin adapter: map state, waveform, and caption increments thrown by RealtimeConnection onto React state, and maintain
+ * accumulation of the assistant caption bubble (one per turn, closed when a listen event arrives). Transport, audio, and session timing are in
+ * utils/realtimeConnection.ts. The returned VoiceStatus, VoiceMessage, and VOICE_BAR_COUNT are reused by duplex components.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -26,16 +26,16 @@ export type { VoiceStatus } from '../utils/realtimeConnection';
 
 type PlaygroundModel = ReturnType<typeof usePlaygroundModel>;
 
-/** 波形条数量 */
+/** Number of waveform bars */
 export const VOICE_BAR_COUNT = 40;
 
 /**
- * 模型输出挂断标记后，延迟多久真正挂断。
- * 留一点时间让已缓冲的告别语音播完，避免话没说完就断线。
+ * How long to wait after the model outputs the hang-up marker before actually hanging up.
+ * Leave a little time for the buffered goodbye audio to finish playing, so the line does not drop before the sentence is finished.
  */
 const HANGUP_DELAY_MS = 2500;
 
-/** 一条字幕消息 */
+/** One caption message */
 export interface VoiceEvent {
   id: number;
   at: number;
@@ -50,7 +50,7 @@ export interface VoiceMessage {
   text: string;
 }
 
-/** 上游实时服务下发的排队信息。 */
+/** Queue info issued by the upstream realtime service. */
 export interface RealtimeQueue {
   position?: number;
   estimatedWaitSeconds?: number;
@@ -58,29 +58,29 @@ export interface RealtimeQueue {
 }
 
 /**
- * 频谱可视化帧。
+ * A spectrum visualization frame.
  *
- * 刻意**不进 React 状态**：频谱由 rAF 以 ~60fps 推送，若每帧 setState，整棵双工组件树
- * （舞台/字幕/控制条/参数面板）每秒重渲染 60 次，字幕掉帧且主线程被挤占后下行音频的排队
- * 调度被推迟、播放出现空隙。消费方（VoiceOrb）本就是 canvas 命令式绘制，直接读这个可变
- * 引用即可，不需要 React 参与。
+ * Deliberately **not in React state**: the spectrum is pushed by rAF at ~60fps. If every frame called setState, the whole duplex component tree
+ * (stage, captions, control bar, parameter panel) would re-render 60 times a second, captions would drop frames, and once the main thread is crowded the downlink audio queue
+ * scheduling would be delayed and playback would gap. The consumer (VoiceOrb) already draws the canvas imperatively, so it can read this mutable
+ * reference directly and does not need React involved.
  */
 export interface VizFrame {
-  /** 平滑后的音量 0–1，驱动中心脉动 */
+  /** Smoothed volume 0–1, driving the center pulse */
   level: number;
-  /** 频谱条 0–1，驱动环形柱高 */
+  /** Spectrum bars 0–1, driving the ring bar height */
   bars: number[];
 }
 
-/** connect 当轮参数（model/secret/barCount 由 Hook 注入） */
+/** Parameters for this connect turn (model, secret, and barCount are injected by the hook) */
 export type ConnectOptions = Omit<RealtimeConnectOptions, 'barCount' | 'model' | 'secret'> & {
-  /** 会话被模型主动结束时回调，供视图同步关摄像头与复位 UI */
+  /** Callback when the session is ended by the model on purpose, so the view can turn the camera off and reset the UI in sync */
   onSessionEnd?: () => void;
 };
 
 const IDLE_BARS = (): number[] => new Array(VOICE_BAR_COUNT).fill(0);
 
-/** 实时全双工会话；返回状态、波形、字幕与会话控制方法。 */
+/** Realtime full-duplex session; returns state, waveform, captions, and session control methods. */
 export function useRealtimeSession(model: PlaygroundModel) {
   const { t } = useTranslation('playground');
   const [status, setStatus] = useState<VoiceStatus>('idle');
@@ -93,10 +93,10 @@ export function useRealtimeSession(model: PlaygroundModel) {
   const [error, setError] = useState<string>();
   const [queue, setQueue] = useState<RealtimeQueue>();
   const [forceListen, setForceListen] = useState(false);
-  /** 模型主动请求结束通话（命中挂断标记），供视图提示"通话已由模型结束" */
+  /** The model requested to end the call on purpose (the hang-up marker was hit), so the view can say "the call was ended by the model" */
   const [endedByModel, setEndedByModel] = useState(false);
 
-  /** 频谱帧：60fps 直写，绕开 React 渲染（见 VizFrame 注释） */
+  /** Spectrum frame: written directly at 60fps, bypassing React render (see the VizFrame comment) */
   const viz = useRef<VizFrame>({ level: 0, bars: IDLE_BARS() });
   const conn = useRef<RealtimeConnection | null>(null);
   const idSeq = useRef(0);
@@ -104,10 +104,10 @@ export function useRealtimeSession(model: PlaygroundModel) {
   const metricsRef = useRef(metrics);
   const metricsPaintAt = useRef(0);
   const assistantId = useRef<number | null>(null);
-  /** 当前轮已累积的字幕（已剔除挂断标记），用于跨 delta 检测被拆断的标记 */
+  /** Caption accumulated for the current turn (hang-up marker already removed), used to detect a marker split across deltas */
   const turnText = useRef('');
   const hangupTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  /** 会话结束回调（由视图注入，用于同步关摄像头/复位 UI） */
+  /** Session-end callback (injected by the view, used to turn the camera off and reset the UI in sync) */
   const onSessionEnd = useRef<(() => void) | undefined>(undefined);
 
   function clearHangupTimer() {
@@ -116,8 +116,8 @@ export function useRealtimeSession(model: PlaygroundModel) {
   }
 
   /**
-   * 命中挂断标记：延迟挂断，留时间播完告别语音。
-   * 幂等——同一轮里标记可能被拆成多个 delta，重复触发只保留第一个定时器。
+   * The hang-up marker was hit: delay the hang-up, leaving time for the goodbye audio to finish.
+   * Idempotent — within one turn the marker may be split across several deltas, and repeated triggers keep only the first timer.
    */
   function scheduleHangup() {
     if (hangupTimer.current) return;
@@ -130,11 +130,11 @@ export function useRealtimeSession(model: PlaygroundModel) {
   }
 
   /**
-   * 助手字幕增量：无进行中气泡则新建，否则续写当前气泡。
+   * Assistant caption increment: if there is no bubble in progress, create one; otherwise continue the current bubble.
    *
-   * 挂断标记在**累积后的整段文本**上检测：标记可能被上游拆进相邻两个 delta
-   * （如 "[[HANG" + "UP]]"），逐段匹配会漏检。命中后从展示文本剔除并安排挂断。
-   * 累积文本用 ref 跟随，避免在 setState updater 里做副作用（updater 须为纯函数）。
+   * The hang-up marker is detected on the **whole accumulated text**: the marker may be split by the upstream into two adjacent deltas
+   * (such as "[[HANG" + "UP]]"), and matching segment by segment would miss it. After a hit, strip it from the displayed text and schedule the hang-up.
+   * Accumulated text is followed with a ref, so a side effect is not done inside a setState updater (an updater must be a pure function).
    */
   function pushUserText(text: string): void {
     if (!text.trim()) return;
@@ -213,7 +213,7 @@ export function useRealtimeSession(model: PlaygroundModel) {
       setMetrics(next);
     }
     if (event.type === 'session_created') {
-      // realtime 免费次数在握手通过后消耗；立即刷新，额度用尽时提示创建 API Key。
+      // Realtime free count is consumed after the handshake succeeds; refresh immediately, and when the quota is used up prompt to create an API Key.
       model.refreshTrial();
       const nextId = event.sessionId || `local-${event.at}`;
       setSessionId(nextId);
@@ -253,7 +253,7 @@ export function useRealtimeSession(model: PlaygroundModel) {
           }
         },
         onViz: (lvl, next) => {
-          // 直写可变引用：60fps 不触发任何重渲染，画布下一帧自然读到新值
+          // Write the mutable reference directly: 60fps triggers no re-render, and the canvas reads the new value on the next frame
           viz.current.level = viz.current.level * 0.7 + lvl * 0.3;
           viz.current.bars = next;
         },
@@ -304,12 +304,12 @@ export function useRealtimeSession(model: PlaygroundModel) {
       setStatus('error');
       return false;
     }
-    // onSessionEnd 是 Hook 层回调，不传给传输层
+    // onSessionEnd is a hook-level callback and is not passed to the transport layer
     const { onSessionEnd: onEnd, ...connectOpts } = o;
     onSessionEnd.current = onEnd;
     return ensureConn().connect({
       ...connectOpts,
-      // 挂断约定追加在发送时，不污染用户在面板里编辑的系统提示词
+      // The hang-up convention is appended at send time, so it does not contaminate the system prompt the user edits in the panel
       system: withHangupProtocol(o.system),
       barCount: VOICE_BAR_COUNT,
       model: modelId,
@@ -342,7 +342,7 @@ export function useRealtimeSession(model: PlaygroundModel) {
     return conn.current?.toggleHD() ?? false;
   }
 
-  // 卸载兜底：断连并清掉待触发的挂断定时器
+  // Unmount fallback: disconnect and clear a hang-up timer that has not fired yet
   useEffect(
     () => () => {
       clearHangupTimer();

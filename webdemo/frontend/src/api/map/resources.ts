@@ -27,64 +27,64 @@ import type {
 } from './types';
 
 /**
- * MAP 资源 API。
+ * MAP resource API.
  *
- * 用途：开发者门户的项目 / API Key / 模型 / 用量 / 日志 / 限额等资源读写，统一经 `mapRequest`
- * 直发 MAP 后端（裸 JSON）。这些是「服务端可缓存状态」，页面侧用 TanStack Query 包裹获取。
- * 由原 `web/portal/src/api.ts` 的 `client` 资源段迁移而来。
+ * Purpose: read and write developer-portal resources such as projects, API keys, models, usage, logs, and quotas, all through `mapRequest`
+ * directly to the MAP backend (raw JSON). This is server cacheable state, and pages fetch it wrapped in TanStack Query.
+ * Migrated from the `client` resource section of the original `web/portal/src/api.ts`.
  */
 export const mapResourcesApi = {
-  /** 项目列表 */
+  /** Project list */
   projects: () => mapRequest<{ list: MapProject[] }>('/projects'),
 
-  /** 创建项目 */
+  /** Create a project */
   createProject: (name: string) =>
     mapRequest<MapProject>('/projects', { method: 'POST', body: JSON.stringify({ name }) }),
 
-  /** 某项目下的 API Key 列表 */
+  /** API Key list under a project */
   keys: (projectId: string) => mapRequest<{ list: MapApiKey[] }>(`/projects/${projectId}/keys`),
 
-  /** 当前组织名下所有项目的 API Key（跨项目，带 project_name 标注归属） */
+  /** API keys for every project in the current organization (cross-project, with project_name marking ownership) */
   keysAll: () => mapRequest<{ list: MapApiKey[] }>('/keys'),
 
-  /** 在某项目下创建 API Key（返回明文 secret，仅此一次） */
+  /** Create an API Key under a project (returns the plaintext secret, once only) */
   createKey: (projectId: string, payload: { name: string; expires_at?: string }) =>
     mapRequest<{ api_key: MapApiKey; secret: string }>(`/projects/${projectId}/keys`, {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
 
-  /** 启用 / 禁用某 API Key */
+  /** Enable / disable an API Key */
   setKeyStatus: (keyId: string, status: 'active' | 'disabled') =>
     mapRequest<{ status: string }>(`/keys/${keyId}`, {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     }),
 
-  /** 删除某 API Key */
+  /** Delete an API Key */
   deleteKey: (keyId: string) =>
     mapRequest<{ status: string }>(`/keys/${keyId}`, { method: 'DELETE' }),
 
-  /** 轮换某 API Key（旧密钥立即失效，返回新明文 secret） */
+  /** Rotate an API Key (the old secret expires immediately and a new plaintext secret is returned) */
   rotateKey: (keyId: string) =>
     mapRequest<{ secret: string; prefix: string }>(`/keys/${keyId}/rotate`, { method: 'POST' }),
 
-  /** 取某 API Key 的完整明文（后端 AES-GCM 解密；旧 Key 无密文时返回 409） */
+  /** Fetch the full plaintext of an API Key (backend AES-GCM decrypt; 409 when an old key has no ciphertext) */
   revealKeySecret: (keyId: string) => mapRequest<{ secret: string }>(`/keys/${keyId}/secret`),
 
-  /** 可调用模型列表 */
+  /** Callable model list */
   models: () => mapRequest<{ list: MapModel[] }>('/models'),
 
-  /** 当前用户 Playground 四类免费体验剩余次数与内部体验凭据 */
+  /** Remaining counts and internal trial credentials for the current user's four Playground free trials */
   playgroundTrial: () => mapRequest<MapPlaygroundTrial>('/playground/trial'),
 
-  /** 当前用户的私有音色列表 */
+  /** Current user's private voice list */
   voices: () => mapRequest<{ list: MapVoiceResource[] }>('/voices'),
 
-  /** 当前登录用户可使用的产品功能 */
+  /** Product features available to the currently logged-in user */
   featureAccess: () => mapRequest<MapFeatureAccess>('/feature-access'),
 
-  /** 上传并保存一条私有 WAV 音色 */
+  /** Upload and save one private WAV voice */
   createVoice: (file: File, name?: string, idempotencyKey = crypto.randomUUID()) => {
     const form = new FormData();
     form.append('file', file);
@@ -92,13 +92,13 @@ export const mapResourcesApi = {
     return mapUpload<MapVoiceResource>('/voices', form, { 'Idempotency-Key': idempotencyKey });
   },
 
-  /** 删除当前用户自己的音色 */
+  /** Delete a voice owned by the current user */
   deleteVoice: (voiceId: string) =>
     mapRequest<{ status: string }>(`/voices/${encodeURIComponent(voiceId)}`, {
       method: 'DELETE',
     }),
 
-  /** 用量汇总（可指定区间） */
+  /** Usage summary (an optional range may be given) */
   usageSummary: (start?: string, end?: string) => {
     const sp = new URLSearchParams();
     if (start) sp.set('start', start);
@@ -107,10 +107,10 @@ export const mapResourcesApi = {
     return mapRequest<MapUsageSummary>(`/usage/summary${qs ? `?${qs}` : ''}`);
   },
 
-  /** 导出用量 CSV */
+  /** Export usage CSV */
   exportUsage: () => mapDownload('/usage/export', 'usage.csv'),
 
-  /** 调用日志（服务端分页，可按 request_id / 模型 / 结果过滤；page 从 1 起，pageSize 上限 200） */
+  /** Call logs (server pagination, filterable by request_id / model / outcome; page starts at 1, pageSize max 200) */
   logs: (
     params: {
       requestId?: string;
@@ -134,31 +134,31 @@ export const mapResourcesApi = {
     }>(`/request-logs?${sp.toString()}`);
   },
 
-  /** 公开配置（对外 Base URL 等） */
+  /** Public config (external base URL and similar) */
   publicConfig: () => mapRequest<MapPublicConfig>('/config/public'),
 
-  // ===== 计费（本人视角）=====
+  // ===== Billing (current user) =====
 
-  /** 本人计费账户（余额/额度/财务状态） */
+  /** Current user's billing account (balance / quota / financial status) */
   billingAccount: () => mapRequest<MapBillingAccount>('/billing/account'),
 
-  /** 本人可消费体验额度包与其它可用积分 */
+  /** Trial credit packages the current user can spend, and other available credits */
   creditPackages: () => mapRequest<MapCreditPackageSnapshot>('/billing/credit-packages'),
 
-  /** 本人充值流水 */
+  /** Current user's top-up history */
   recharges: () => mapRequest<{ list: MapRechargeRecord[] }>('/billing/recharges'),
 
-  /** 每日签到、邀请码和成功邀请数 */
+  /** Daily check-in, invite code, and successful invite count */
   rewards: () => mapRequest<MapRewardStatus>('/rewards'),
 
-  /** 领取当天签到奖励；后端按业务日和唯一索引保证幂等 */
+  /** Claim today's check-in reward; the backend keeps it idempotent by business day and a unique index */
   claimDailyCheckin: () =>
     mapRequest<{ claimed: boolean; reward_points: string; balance: string }>(
       '/rewards/daily-checkins',
       { method: 'POST' },
     ),
 
-  /** 本人花费统计（按模型/趋势，可指定区间） */
+  /** Current user's spend statistics (by model / trend, optional range) */
   spend: (start?: string, end?: string) => {
     const sp = new URLSearchParams();
     if (start) sp.set('start', start);
@@ -167,40 +167,40 @@ export const mapResourcesApi = {
     return mapRequest<MapSpendStats>(`/billing/spend${qs ? `?${qs}` : ''}`);
   },
 
-  /** 调用详情（含请求/响应正文与计量） */
+  /** Call detail (including request/response body and metering) */
   callLogDetail: (requestId: string) =>
     mapRequest<MapCallLogDetail>(`/call-logs/${encodeURIComponent(requestId)}`),
 
-  /** 本人月账单（按月本人花费明细快照） */
+  /** Current user's monthly bills (monthly snapshot of the current user's spend details) */
   monthlyBills: () => mapRequest<{ list: MapPortalMonthlyBill[] }>('/billing/monthly-bills'),
 
-  /** 预警配置列表 */
+  /** Alert config list */
   alertConfigs: () => mapRequest<{ list: MapAlertConfig[] }>('/billing/alert-configs'),
 
-  /** 新增/更新某 scope 预警配置 */
+  /** Create or update the alert config for a scope */
   upsertAlertConfig: (payload: MapAlertConfigInput) =>
     mapRequest<{ status: string }>('/billing/alert-configs', {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),
 
-  /** 提交充值申请（无在线支付，记审计供管理员处理） */
+  /** Submit a top-up request (no online payment; recorded for audit so an admin can handle it) */
   rechargeRequest: (payload: { amount: string; remark?: string; contact?: string }) =>
     mapRequest<{ status: string }>('/billing/recharge-request', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
 
-  /** 发起易宝在线支付下单：返回收银台 URL，前端跳转付款（1 元 = 1 余额） */
+  /** Start a Yeepay online payment order: returns the cashier URL, and the frontend redirects to pay (1 CNY = 1 balance unit) */
   yeepayOrder: (payload: { amount: string }) =>
     mapRequest<MapYeepayOrder>('/billing/yeepay/order', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
 
-  // ===== Playground 历史对话（每用户私有）=====
+  // ===== Playground history conversations (private per user) =====
 
-  /** 历史对话列表（服务端分页；page 从 1 起，pageSize 上限 100） */
+  /** History conversation list (server pagination; page starts at 1, pageSize max 100) */
   conversations: (params: { page?: number; pageSize?: number } = {}) => {
     const sp = new URLSearchParams();
     sp.set('page', String(params.page ?? 1));
@@ -213,31 +213,31 @@ export const mapResourcesApi = {
     }>(`/conversations?${sp.toString()}`);
   },
 
-  /** 新建空会话（返回会话元信息，含 id） */
+  /** Create an empty conversation (returns conversation metadata, including id) */
   createConversation: (payload: { title?: string; model?: string } = {}) =>
     mapRequest<MapConversation>('/conversations', {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
 
-  /** 取会话详情（元信息 + 消息明细） */
+  /** Fetch conversation detail (metadata plus message details) */
   getConversation: (id: string) =>
     mapRequest<MapConversationDetail>(`/conversations/${encodeURIComponent(id)}`),
 
-  /** 整段覆盖式保存会话消息 */
+  /** Save conversation messages by full overwrite */
   saveConversation: (id: string, payload: MapSaveConversationInput) =>
     mapRequest<{ status: string }>(`/conversations/${encodeURIComponent(id)}/messages`, {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),
 
-  /** 删除会话（软删） */
+  /** Delete a conversation (soft-delete) */
   deleteConversation: (id: string) =>
     mapRequest<{ status: string }>(`/conversations/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     }),
 
-  /** 提交体验中心对话反馈（点赞/点踩） */
+  /** Submit experience-center conversation feedback (like/dislike) */
   submitFeedback: (payload: MapFeedbackInput) =>
     mapRequest<MapFeedback>('/feedback', {
       method: 'POST',

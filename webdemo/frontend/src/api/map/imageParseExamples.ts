@@ -1,7 +1,7 @@
 import { mapRequest } from './request';
 import type { ImageParseExampleType } from '@/pages/playground/utils/imageParseExamples';
 
-/** 数据库预采集的共享案例单页结果。 */
+/** One pre-captured page result for a shared example stored in the database. */
 export interface ImageParseExampleCapture {
   resultIndex: number;
   sourcePage: number;
@@ -11,7 +11,7 @@ export interface ImageParseExampleCapture {
   response: unknown;
 }
 
-/** 单个共享案例的全部预采集页。 */
+/** Every pre-captured page of one shared example. */
 export interface ImageParseExample {
   type: ImageParseExampleType;
   captures: ImageParseExampleCapture[];
@@ -41,11 +41,11 @@ function isCapture(value: unknown): value is ImageParseExampleCapture {
 }
 
 /**
- * 读取并校验数据库预采集结果；不触发 OCR，也不回退为前端演示数据。
- * @param type 固定案例类型
- * @param version 原件版本，避免使用旧图的缓存结果
- * @param signal 切换案例、账号或项目时的取消信号
- * @returns 该案例全部页的服务端识别结果
+ * Read and validate pre-captured database results; do not trigger OCR, and do not fall back to frontend demo data.
+ * @param type Fixed example type
+ * @param version Original-file version, so a cached result for an old image is not used
+ * @param signal Abort signal used when switching example, account, or project
+ * @returns Server recognition results for every page of this example
  */
 export async function getImageParseExample(
   type: ImageParseExampleType,

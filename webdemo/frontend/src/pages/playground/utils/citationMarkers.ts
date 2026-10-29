@@ -1,57 +1,57 @@
 /**
- * 引用角标 → Markdown 链接的预处理。
+ * Preprocess citation markers into Markdown links.
  *
- * 用途：模型被提示"在论断后紧跟 `[ref_N]` 角标"，实际输出里还会混进裸 `[N]`（中文模型的
- * 普遍先验）。在 Markdown 解析前把两种角标都改写成指向对应来源的链接，正文渲染侧就只需
- * 处理 `a` 一种情况，无需在 p/li/td 的 children 里遍历文本节点。
+ * Purpose: the model is prompted to follow a claim with a `[ref_N]` marker, but real output also mixes in bare `[N]` (a common prior of Chinese models).
+ * Rewrite both kinds of marker into links to the matching source before Markdown parsing, so body rendering only has to
+ * handle an `a`, with no walk of text nodes inside p/li/td children.
  *
- * 编号一律按后端下发的 ref 查，而不是按 citations 数组下标：数组是跨轮累积并去重的，
- * 后端每轮又会按相关性重排结果，两者只在单轮搜索时碰巧对齐。
+ * Numbers are always looked up by the ref issued by the backend, not by the citations array index: the array accumulates and dedupes across turns,
+ * and each turn the backend reorders results by relevance. The two line up only by chance on a single-turn search.
  */
 
 import type { Citation } from '../types';
 import { safeCitationHref } from './citations';
 
 /**
- * 代码区段：围栏代码块与行内代码。
+ * Code spans: fenced code blocks and inline code.
  *
- * 围栏用 ```` ```…``` ```` / `~~~…~~~`，收尾允许命中字符串结尾——流式期间围栏尚未闭合时，
- * 应当把剩余全文都视为代码，避免代码里的 `[1]` 被改写成链接。
+ * Fences use ```` ```…``` ```` / `~~~…~~~`, and the close may hit the end of the string — while streaming, before the fence closes,
+ * the rest of the text must be treated as code so a `[1]` inside code is not rewritten into a link.
  */
 const CODE_SEGMENT = /(```[\s\S]*?(?:```|$)|~~~[\s\S]*?(?:~~~|$)|`[^`\n]*`)/g;
 
 /**
- * 引用角标：`[ref_N]`（提示词要求的形态）或裸 `[N]`（模型不听话时的兜底）。
+ * Citation markers: `[ref_N]` (the form the prompt requires) or a bare `[N]` (the fallback when the model does not follow instructions).
  *
- * 一个方括号里允许多个编号（`[ref_3, ref_5]`）：提示词只要求「论断后紧跟角标」，从没规定
- * 一处只能引一个来源，模型把多来源合写进一个方括号是常态。不认这种形态的代价不只是少个
- * 链接——残留的裸角标会掉进裸数学识别，`ref_3, ref_5` 正好满足下标特征，方括号被当成公式
- * 定界符吃掉，正文里只剩一串斜体（数学侧的兜底见 math-katex 的 isCitationMarker）。
+ * One pair of brackets may hold several numbers (`[ref_3, ref_5]`): the prompt only requires "a marker right after the claim" and never says
+ * a claim may cite only one source, so the model often writes several sources into one pair of brackets. Missing this form costs more than a
+ * link — a leftover bare marker falls into bare-math recognition, `ref_3, ref_5` exactly matches the subscript pattern, the brackets are eaten as formula
+ * delimiters, and the body is left with a run of italics (the math-side fallback is isCitationMarker in math-katex).
  *
- * 位数放到 3 与后端 hostedRefMarkerRe 对齐；放宽不会增加误伤，因为编号必须能在
- * ref 表里查到才改写（见 resolveCitation），查不到的一律原样留着。
- * 半截的 `[1` 天然不匹配，流式下无需额外防御。
+ * The width of 3 digits matches the backend hostedRefMarkerRe; widening it does not add false hits, because a number is rewritten only when it can be
+ * found in the ref table (see resolveCitation), and anything not found is left as-is.
+ * A half-written `[1` naturally does not match, so streaming needs no extra defense.
  */
 const CITATION_MARKER = /\[(?:ref_)?\d{1,3}(?:\s*[,，、;；]\s*(?:ref_)?\d{1,3})*\]/g;
 
-/** 从角标内部逐个取编号，顺序与模型书写顺序一致。 */
+/** Take numbers one by one from inside a marker, in the order the model wrote them. */
 const MARKER_NUMBER = /(?:ref_)?(\d{1,3})/g;
 
-/** 紧挨角标左侧时说明这是下标取值（如 `arr[1]`）而非引用，不应改写。 */
+/** A character immediately left of the marker means this is an index lookup (such as `arr[1]`), not a citation, and must not be rewritten. */
 const IDENTIFIER_CHAR = /[A-Za-z0-9_$\]]/;
 
-/** 左侧紧邻的同形角标，用于把 `[1][2]` 这类连续角标当成一串整体判定归属。 */
+/** A same-shaped marker immediately to the left, used to treat a run such as `[1][2]` as one sequence when deciding what it belongs to. */
 const TRAILING_MARKER = /\[(?:ref_)?\d{1,3}(?:\s*[,，、;；]\s*(?:ref_)?\d{1,3})*\]$/;
 
 /**
- * 把正文中的引用角标改写为指向来源的 Markdown 链接。
+ * Rewrite citation markers in the body into Markdown links that point at sources.
  *
- * 仅在编号能查到来源时改写，因此流式期间来源尚未到达的角标会保持原样，
- * 等来源送达后的下一次渲染再变成链接。
+ * Rewrite only when the number can be resolved to a source, so during streaming a marker whose source has not arrived yet stays as-is,
+ * and becomes a link on the next render after the source arrives.
  *
- * @param markdown 模型输出的 Markdown 原文
- * @param citations 本轮回答已收到的来源
- * @returns 角标已替换为 Markdown 链接的文本；无来源时原样返回
+ * @param markdown original Markdown from the model
+ * @param citations sources already received for this answer
+ * @returns text with markers replaced by Markdown links; returned as-is when there are no sources
  */
 export function linkifyCitationMarkers(markdown: string, citations: Citation[]): string {
   if (!markdown || citations.length === 0) return markdown;
@@ -62,7 +62,7 @@ export function linkifyCitationMarkers(markdown: string, citations: Citation[]):
     if (citation.ref && !byRef.has(citation.ref)) byRef.set(citation.ref, citation);
   }
 
-  // 按代码区段切分：split 带捕获组时，奇数下标即分隔符本身（代码），保持原样不动。
+  // Split on code segments: when split keeps the capture group, odd indexes are the separator itself (code) and stay untouched.
   return markdown
     .split(CODE_SEGMENT)
     .map((segment, index) =>
@@ -72,11 +72,11 @@ export function linkifyCitationMarkers(markdown: string, citations: Citation[]):
 }
 
 /**
- * 按角标编号找对应来源。
+ * Find the source for a marker number.
  *
- * 后端一旦下发过 ref，编号就只认 ref 表：查不到说明模型编了个不存在的号，
- * 此时宁可留着裸文本，也不能退回数组下标——那恰好会把无效角标指向一条无关来源。
- * 整批都没有 ref 才说明对接的是老后端，此时数组下标是唯一可用的口径。
+ * Once the backend has issued a ref, numbers are resolved only against the ref table: a miss means the model invented a number that does not exist,
+ * and it is better to leave the bare text than to fall back to the array index — that would point the invalid marker at an unrelated source.
+ * Only when the whole batch has no ref are we talking to an old backend, and then the array index is the only usable measure.
  */
 function resolveCitation(
   citations: Citation[],
@@ -87,7 +87,7 @@ function resolveCitation(
   return citations[index - 1];
 }
 
-/** 改写单个非代码区段中的角标。 */
+/** Rewrite markers in a single non-code segment. */
 function linkifySegment(
   segment: string,
   citations: Citation[],
@@ -95,16 +95,16 @@ function linkifySegment(
 ): string {
   return segment.replace(CITATION_MARKER, (match: string, offset: number) => {
     const before = chainLeadingChar(segment, offset);
-    // `![1]` 是图片语法
+    // `![1]` is image syntax
     if (before === '!') return match;
-    // `arr[1]` 是下标取值。这道判据只对裸角标生效：`ref_` 前缀本身已经消歧，而英文正文里
-    // 「论断紧跟角标」必然写成 blue[ref_1] 这种形状，按标识符一刀切会把英文回答的角标整批吞掉。
+    // `arr[1]` is an index lookup. This check applies only to bare markers: the `ref_` prefix already disambiguates, and in English body text
+    // "the marker follows the claim" is necessarily written as blue[ref_1]. Cutting on an identifier would swallow every marker in an English answer.
     if (!match.startsWith('[ref_') && before !== undefined && IDENTIFIER_CHAR.test(before)) {
       return match;
     }
 
     const after = segment.slice(offset + match.length);
-    // `[1](…)` 已是链接，`[1]: …` 是链接引用定义，都不能再包一层
+    // `[1](…)` is already a link, and `[1]: …` is a link reference definition; neither can be wrapped again
     if (after.startsWith('(') || after.startsWith(':')) return match;
 
     return linkifyMarker(match, citations, byRef);
@@ -112,15 +112,15 @@ function linkifySegment(
 }
 
 /**
- * 把一个角标改写成相邻的 Markdown 链接，`[ref_3, ref_5]` 这类合写会展开成多个。
+ * Rewrite one marker into adjacent Markdown links. A grouped form such as `[ref_3, ref_5]` expands into several.
  *
- * 任一编号查不到来源、或地址不可安全嵌入就整体放弃：半改写会把 `[ref_3, ref_5]` 变成
- * 「一个链接 + 一截裸文本」，读者无从判断后半截是没搜到还是渲染坏了，不如整条留作原文。
+ * If any number cannot be resolved to a source, or the address cannot be embedded safely, give up the whole marker: a partial rewrite would turn `[ref_3, ref_5]` into
+ * "one link + a trailing bare text fragment", and the reader could not tell whether the trailing part was not found or failed to render. Leaving the whole thing as the original is better.
  *
- * @param match 匹配到的完整角标文本
- * @param citations 本轮回答已收到的来源
- * @param byRef 按后端下发 ref 建立的来源索引
- * @returns 改写后的链接串；任一编号不可解析时原样返回
+ * @param match the full marker text that matched
+ * @param citations sources already received for this answer
+ * @param byRef source index built from refs issued by the backend
+ * @returns the rewritten link string; the original when any number cannot be resolved
  */
 function linkifyMarker(match: string, citations: Citation[], byRef: Map<number, Citation>): string {
   const links: string[] = [];
@@ -136,15 +136,15 @@ function linkifyMarker(match: string, citations: Citation[], byRef: Map<number, 
 }
 
 /**
- * 取角标所在「连续角标串」左侧第一个字符。
+ * Take the first character to the left of the "contiguous marker run" that contains this marker.
  *
- * `]` 本身在 IDENTIFIER_CHAR 里（为挡住 `arr[1]`），若直接看前一个字符，`[1][2]` 的第二个角标
- * 会被误判成下标链。先把左侧连续的同形角标逐个剥掉，再用串首前的字符决定整串是引用还是下标：
- * `两处都提到[1][2]` 剥到「到」→ 是引用；`arr[1][2]` 剥到「r」→ 是下标。
+ * `]` itself is in IDENTIFIER_CHAR (to block `arr[1]`). Looking at the previous character directly would misread the second marker of `[1][2]`
+ * as an index chain. Peel off contiguous same-shaped markers on the left first, then use the character before the run to decide whether the whole run is a citation or an index:
+ * a run preceded by a non-identifier character peels back to that character → a citation; `arr[1][2]` peels back to "r" → an index.
  *
- * @param segment 当前非代码区段
- * @param offset 本次匹配在区段中的起始位置
- * @returns 串首左侧字符；角标位于区段开头时返回 undefined
+ * @param segment the current non-code segment
+ * @param offset start position of this match inside the segment
+ * @returns the character to the left of the run start; undefined when the marker is at the start of the segment
  */
 function chainLeadingChar(segment: string, offset: number): string | undefined {
   let start = offset;
@@ -157,8 +157,8 @@ function chainLeadingChar(segment: string, offset: number): string | undefined {
 }
 
 /**
- * 生成可安全嵌入 Markdown 链接的目标地址。
- * 含空白或括号的地址必须用尖括号包裹，否则 Markdown 解析会在第一个 `)` 处截断。
+ * Build a target address that can be embedded safely in a Markdown link.
+ * An address that contains whitespace or brackets must be wrapped in angle brackets, or Markdown parsing truncates at the first `)`.
  */
 function markdownDestination(url: string): string | undefined {
   if (!safeCitationHref(url)) return undefined;

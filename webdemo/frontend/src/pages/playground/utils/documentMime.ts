@@ -1,4 +1,4 @@
-/** 浏览器未标注 MIME 时按扩展名归一化；内容合法性仍由上传与后端校验。 */
+/** When the browser did not label a MIME type, normalize by extension; content validity is still checked by upload and the backend. */
 const EXTENSION_MIME: ReadonlyArray<readonly [RegExp, string]> = [
   [/\.pdf$/i, 'application/pdf'],
   [/\.webp$/i, 'image/webp'],
@@ -16,7 +16,7 @@ const EXTENSION_MIME: ReadonlyArray<readonly [RegExp, string]> = [
   [/\.tiff?$/i, 'image/tiff'],
 ];
 
-/** 已标注的类型保持不变；空类型和 octet-stream 按文件名补全。 */
+/** A labeled type stays as-is; an empty type and octet-stream are filled in from the file name. */
 export function resolveDocumentMime(file: File): string {
   if (file.type && file.type !== 'application/octet-stream') return file.type;
   return EXTENSION_MIME.find(([pattern]) => pattern.test(file.name))?.[1] ?? '';

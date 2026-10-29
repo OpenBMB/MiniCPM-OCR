@@ -21,18 +21,18 @@ interface ImageParsePreviewReviewProps {
   onCopyRegion?: (id: string) => void;
 }
 
-/** 操作条与选中块底边的间距，保持悬浮在块外。 */
+/** Gap between the action bar and the bottom edge of the selected block, so it floats outside the block. */
 const PREVIEW_ACTION_GAP = 6;
 
-/** 操作条按钮沿用工作台控件尺寸，桌面保持紧凑，粗指针设备保留点击热区。 */
+/** Action-bar buttons reuse the workspace control size: compact on desktop, and a click target kept on coarse-pointer devices. */
 const PREVIEW_ACTION_BUTTON_CLASS =
   'h-7 min-h-7 gap-1.5 rounded-full px-2.5 text-xs [@media(pointer:coarse)]:h-9 [@media(pointer:coarse)]:min-h-9';
 
-/** 选中块左上角的类型角标，跟随块边界定位。 */
+/** Type badge at the top left of the selected block, positioned along the block bounds. */
 const PREVIEW_ACTION_LABEL_CLASS =
   'pointer-events-none absolute z-20 -translate-y-full rounded-t-sm bg-ocr-link px-1.5 py-0 text-[10px] font-medium leading-4 text-primary-foreground';
 
-/** 选中块右下角展示操作条；悬停不展示，复核能力隐藏时仅保留区域复制。 */
+/** Show the action bar at the bottom right of the selected block; do not show it on hover. When review is hidden, keep only region copy. */
 export function ImageParsePreviewReview({
   root,
   selectedId,

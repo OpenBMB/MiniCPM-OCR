@@ -1,8 +1,7 @@
 /**
- * 解析进度面板。
+ * Parse progress panel.
  *
- * 用途：解析等待视图。共享案例使用前端固定演示进度；真实服务未提供进度时保持 indeterminate。
- * 服务端将来返回真实进度时，同一组件可直接展示确定性进度。
+ * Purpose: the waiting view while parsing. Shared examples use a fixed demo progress on the frontend; when the real service does not provide progress, stay indeterminate. When the server later returns real progress, the same component can show determinate progress directly.
  */
 
 import { useTranslation } from 'react-i18next';
@@ -15,8 +14,8 @@ interface ImageParseProgressPanelProps {
 }
 
 /**
- * 解析中的极简进度视图。
- * @param progress 当前进度快照
+ * Minimal progress view while parsing.
+ * @param progress Current progress snapshot
  */
 export function ImageParseProgressPanel({ progress }: ImageParseProgressPanelProps) {
   const { t } = useTranslation('playground');

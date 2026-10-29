@@ -29,9 +29,9 @@ interface PdfImageParseHistoryOptions {
 }
 
 /**
- * 管理 PDF 缓存恢复与启动意图；手动模式恢复历史时不自动续跑。
- * @param options 执行上下文、状态写入器和取消入口
- * @returns 历史恢复与显式执行入口
+ * Manage PDF cache restore and the start intent; in manual mode, restoring history does not continue the run automatically.
+ * @param options execution context, state writers, and the cancel entry
+ * @returns history restore and the explicit execution entry
  */
 export function usePdfImageParseHistory({
   scope,

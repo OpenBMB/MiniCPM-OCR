@@ -1,4 +1,4 @@
-/** 独立 OCR v3 识别生命周期测试。 */
+/** Standalone OCR v3 recognition lifecycle test. */
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Attachment } from '../../types';

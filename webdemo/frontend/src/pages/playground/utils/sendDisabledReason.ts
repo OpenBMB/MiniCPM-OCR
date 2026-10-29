@@ -1,11 +1,11 @@
 /**
- * Playground 发送按钮不可用时的可读原因。
+ * Readable reason when the Playground send button is unavailable.
  *
- * 用途：把「模型未就绪 / Key 加载 / 无 Key / 解密失败」收敛成一句提示，
- * 避免用户点击发送后看起来没有响应。
+ * Purpose: collapse "model not ready / key loading / no key / decrypt failed" into one notice,
+ * so a click on send does not look like nothing happened.
  */
 
-/** 判断发送禁用原因所需的最小会话状态 */
+/** Minimum session state needed to decide the send-disabled reason */
 export interface SendDisabledState {
   modelId: string;
   keysLoading: boolean;
@@ -14,15 +14,15 @@ export interface SendDisabledState {
   secretReady: boolean;
   secretLoading: boolean;
   secretError: boolean;
-  /** 是否还有任一类免费体验额度；优先使用隐藏体验 Key。 */
+  /** Whether any free-trial quota remains; the hidden trial key is preferred. */
   trialAvailable: boolean;
   webSearch: boolean;
 }
 
 /**
- * 发送不可用时给出明确原因；全部就绪则返回 undefined。
- * @param state 模型与密钥就绪态
- * @param t playground 文案函数
+ * Give a clear reason when send is unavailable; return undefined when everything is ready.
+ * @param state model and secret readiness
+ * @param t playground copy function
  */
 export function getSendDisabledReason(
   state: SendDisabledState,

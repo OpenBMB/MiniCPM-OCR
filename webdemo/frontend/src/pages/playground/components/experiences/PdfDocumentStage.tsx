@@ -23,7 +23,7 @@ interface PdfDocumentStageProps {
   parsing?: boolean;
   blocks?: readonly ImageParseLayoutBlock[];
   pageBlocks?: Readonly<Record<number, readonly ImageParseLayoutBlock[]>>;
-  /** 每一页自己的服务端摆正角度，键是页码。 */
+  /** This page's own server rotation-adaptation angle; the key is the page number. */
   pageServerAngles?: Readonly<Record<number, number>>;
   showBlocks?: boolean;
   onToggleBlocks?: () => void;
@@ -40,7 +40,7 @@ interface PdfDocumentStageProps {
 
 const NO_BLOCKS: readonly ImageParseLayoutBlock[] = [];
 
-/** PDF 原文阅读器：所有页面在同一视口连续滚动，页码只负责定位。 */
+/** PDF original reader: every page scrolls continuously in one viewport, and the page number is only for location. */
 export default function PdfDocumentStage({
   attachment,
   disabled,
@@ -112,7 +112,7 @@ export default function PdfDocumentStage({
     { label: 'imageParseZoomIn', icon: ZoomIn, action: pdf.zoomIn, disabled: pdf.scale >= 3 },
     { label: 'imageParseRotateRight', icon: RotateCw, action: pdf.rotate },
   ];
-  // 首帧提交前使用固定视口占位，不随页面尺寸或连续文档的滚动位置重新居中。
+  // Before the first frame is committed, use a fixed viewport placeholder, and do not re-center with page size or the scroll position of a continuous document.
   const initialLoading = pdf.rendering && !pdf.readyPageNumbers.length && !pdf.error;
   const focusPreviewBlock = useCallback(
     (id: string) => {
@@ -125,7 +125,7 @@ export default function PdfDocumentStage({
       if (!viewport || !block) return false;
       const bounds = viewport.getBoundingClientRect();
       const target = block.getBoundingClientRect();
-      // 不用 scrollIntoView，避免滚动链同时移动工作台外层页面。
+      // Do not use scrollIntoView, so the scroll chain does not also move the page outside the workspace.
       viewport.scrollTop = Math.max(
         0,
         Math.min(
@@ -199,7 +199,7 @@ export default function PdfDocumentStage({
       if (expected !== undefined && Math.abs(expected - viewport.scrollTop) < 1)
         onScrollProgress?.(progress, true);
       else {
-        // 联动和块定位只调整当前页视口，不能再次用视口中心反向改写所选页。
+        // Linkage and block location only adjust the current page's viewport, and must not write the selected page back again from the viewport center.
         updateCurrentPage();
         onScrollProgress?.(progress);
       }

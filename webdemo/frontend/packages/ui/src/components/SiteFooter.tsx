@@ -1,28 +1,28 @@
 import { requestCookieSettings } from './CookieConsent';
 
 /**
- * 站点页脚：展示版权与按环境控制的合规信息。
+ * Site footer: copyright and compliance details controlled by environment.
  *
- * 用途：满足中国大陆网站合规要求，在登录页与主界面底部显著位置展示备案号，
- * 并提供工信部与公安备案查询链接。备案号文本为主体备案信息，作为唯一可信来源集中维护于此，
- * 由 portal 与 admin 共用，请勿在各 app 内重复硬编码。
+ * Purpose: meet mainland China website compliance rules by showing the ICP filing number prominently at the bottom of the login page and the main UI,
+ * with links to look it up at MIIT and in the public-security filing. The filing-number text is the entity filing record, maintained here as the only source of truth,
+ * shared by portal and admin. Do not hard-code it again inside each app.
  *
- * @param className 额外的容器类名，便于在不同布局中微调间距/背景。
- * @param variant   排版变体：`stacked` 多行居中（登录页），`inline` 水平单行（主界面页脚）。
+ * @param className Extra container classes, for tweaking spacing or background in different layouts.
+ * @param variant   Layout variant: `stacked` is centered on several lines (login page), `inline` is one horizontal line (main UI footer).
  */
 interface SiteFooterProps {
   className?: string;
   variant?: 'stacked' | 'inline';
-  /** 默认跟随构建 profile；legacy 显示，gcp 隐藏。 */
+  /** Follows the build profile by default; shown for legacy, hidden for gcp. */
   showFiling?: boolean;
-  /** 默认仅在启用 GCP Cookie Consent 时显示。 */
+  /** Shown by default only when GCP Cookie Consent is enabled. */
   showCookieSettings?: boolean;
 }
 
-// 公安备案标准图标（公安部下发）。各 app 将其放在自身 public 根，用 BASE_URL 自适应
-// 子路径前缀（portal /console/、admin /admin-console/），与 logo 的引用方式一致。
-// 注：本共享包内缺少 vite/client 全局类型（vite 仅为根构建依赖，pnpm 隔离下无法解析），
-// 故以 unknown 中转安全读取 BASE_URL；运行时由各 app 的 vite 注入为编译期常量。
+// Standard public-security filing icon (issued by the Ministry of Public Security). Each app puts it at its own public root and uses BASE_URL to adapt
+// to the subpath prefix (portal /console/, admin /admin-console/), the same way the logo is referenced.
+// Note: this shared package has no vite/client global types (vite is only a root build dependency and cannot be resolved under pnpm isolation),
+// so BASE_URL is read safely through unknown; at runtime each app’s vite injects it as a compile-time constant.
 const baseUrl = (import.meta as unknown as { env: { BASE_URL: string } }).env.BASE_URL;
 const gonganIcon = `${baseUrl}gongan-beian.png`;
 
@@ -88,7 +88,7 @@ export function SiteFooter({
     </>
   ) : null;
 
-  // 主界面：所有合规信息水平排成一行，小屏才换行
+  // Main UI: all compliance details sit on one horizontal line, and wrap only on a small screen.
   if (variant === 'inline') {
     return (
       <footer
@@ -103,7 +103,7 @@ export function SiteFooter({
     );
   }
 
-  // 登录页：版权与合规信息分两行居中
+  // Login page: copyright and compliance details are centered on two lines.
   return (
     <footer
       className={`flex flex-col items-center gap-1.5 px-4 py-5 text-center text-xs leading-relaxed text-muted-foreground ${className}`}

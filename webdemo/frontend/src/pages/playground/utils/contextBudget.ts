@@ -1,8 +1,8 @@
 /**
- * 体验中心上下文预算。
+ * Experience-center context budget.
  *
- * 用途：依据模型目录声明的上下文窗口，为输出和安全余量预留空间；前端仅做保守估算与
- * 历史裁剪，不参与用量计算或计费。真实 token 用量仍以 LIS 返回的 usage 为准。
+ * Purpose: from the context window declared in the model catalog, reserve room for output and a safety margin; the frontend only makes a conservative estimate and
+ * trims history. It does not take part in usage calculation or billing. Real token usage still comes from the usage returned by LIS.
  */
 
 import type { ChatRequestMessage } from '@/api/map/chat';
@@ -20,40 +20,40 @@ const ATTACHMENT_TOKEN_ESTIMATES: Record<AttachmentKind, number> = {
 };
 
 /**
- * 上下文窗口管理能力已实现，当前按产品策略暂不对用户启用。
- * 启用后会展示占用提示，并在发送前按完整问答轮次裁剪历史。
+ * Context-window management is implemented, and is currently left off for users by product policy.
+ * Once enabled it shows an occupancy hint and trims history by complete question-answer turns before send.
  */
 export const CONTEXT_WINDOW_MANAGEMENT_ENABLED = false;
 
 export interface ContextWindowOptions {
-  /** 模型目录中的 context_window，0 表示未声明限制。 */
+  /** context_window from the model catalog; 0 means no declared limit. */
   contextWindow: number;
-  /** 模型目录中的 max_output_tokens。 */
+  /** max_output_tokens from the model catalog. */
   modelMaxOutputTokens: number;
-  /** 用户在参数面板设置的 max_tokens；大于 0 时优先使用。 */
+  /** max_tokens set in the parameter panel; used first when greater than 0. */
   requestedMaxOutputTokens?: number;
-  /** 可选系统提示，始终保留在请求开头。 */
+  /** Optional system prompt, always kept at the start of the request. */
   systemPrompt?: string;
 }
 
 export interface ContextWindowPlan {
   requestMessages: ChatRequestMessage[];
-  /** 文本与附件的保守估算值，不是模型 tokenizer 的真值。 */
+  /** Conservative estimate for text and attachments, not the model's real tokenizer count. */
   estimatedInputTokens: number;
-  /** 未声明窗口时为 null，代表不做前端裁剪。 */
+  /** null when no window is declared, meaning the frontend does not trim. */
   inputBudgetTokens: number | null;
   reservedOutputTokens: number;
   safetyMarginTokens: number;
   trimmedMessageCount: number;
-  /** 系统提示和最近一轮本身已超过输入预算，不能安全发送。 */
+  /** The system prompt and the latest turn alone already exceed the input budget, so the request cannot be sent safely. */
   isOverBudget: boolean;
 }
 
 /**
- * 将消息构造成满足上下文窗口的请求计划。
+ * Build a request plan that fits the context window.
  *
- * 裁剪只发生在最后一条手动清除上下文的分隔线之后；优先保留系统提示、当前提问和
- * 最近完整问答轮次。若当前提问本身超出预算，返回 isOverBudget 供调用方阻止请求。
+ * Trimming happens only after the last manual clear-context divider; the system prompt, the current question, and
+ * the most recent complete question-answer turns are kept first. If the current question itself exceeds the budget, return isOverBudget so the caller can block the request.
  */
 export function buildContextWindowPlan(
   list: ChatMessage[],
@@ -134,7 +134,7 @@ export function buildContextWindowPlan(
   };
 }
 
-/** 估算文本 token；中文及其他非 ASCII 字符按更保守的单字一 token 估算。 */
+/** Estimate text tokens; Chinese and other non-ASCII characters use a more conservative one-token-per-character estimate. */
 export function estimateTextTokens(text: string): number {
   if (!text) return 0;
   let asciiCharacters = 0;

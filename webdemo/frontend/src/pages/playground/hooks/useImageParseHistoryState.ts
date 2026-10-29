@@ -56,9 +56,9 @@ interface ImageParseHistoryStateOptions {
 }
 
 /**
- * 连接识别状态与历史恢复：范围/档位变化时失效旧快照，并派生页眉页脚过滤后的可见结果。
- * @param options 当前识别状态、历史恢复上下文与全部状态写入器
- * @returns 可保存快照、恢复入口、PDF 错误与当前可见结果
+ * Connect recognition state and history restore: invalidate the old snapshot when the scope or tier changes, and derive the visible result after header and footer filtering.
+ * @param options current recognition state, history-restore context, and every state writer
+ * @returns the snapshot that can be saved, the restore entry, the PDF error, and the currently visible result
  */
 export function useImageParseHistoryState(options: ImageParseHistoryStateOptions) {
   const {
@@ -148,7 +148,7 @@ export function useImageParseHistoryState(options: ImageParseHistoryStateOptions
     currentSource = pdfActive ? pdf.current?.result?.source : source;
     currentRotation = pdfActive ? pdf.current?.result?.rotation : rotation;
   }
-  // 单图结果的页眉页脚过滤；PDF 在 usePdfImageParse 里过滤。历史快照仍存原始结果。
+  // Header and footer filtering for a single-image result; a PDF is filtered in usePdfImageParse. The history snapshot still stores the raw result.
   const visible = useMemo(() => {
     const stable = stabilizeImageParseResult({ markdown, blocks: layout });
     return hideHeaderFooter ? hideImageParseHeaderFooter(stable) : stable;

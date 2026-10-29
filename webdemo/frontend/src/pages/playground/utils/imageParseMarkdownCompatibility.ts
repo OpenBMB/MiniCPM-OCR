@@ -39,12 +39,12 @@ interface Insertion {
 
 const IMAGE_KINDS = new Set(['image', 'chart', 'seal']);
 
-/** 版面把图标和文字收成页脚图时，服务端正文里没有对应片段。补一张图，框才能跳过去。 */
+/** When layout gathers an icon and text into a footer image, the server body has no matching fragment. Add one image so the box can jump there. */
 function isOmittedFooterImage(block: ImageParseLayoutBlock): boolean {
   return (block.label ?? '').toLowerCase() === 'footer_image' && IMAGE_KINDS.has(block.kind);
 }
 
-/** 空印章没有可写回正文的文字，用原图占位符保留它在阅读顺序中的位置。 */
+/** An empty seal has no text to write back into the body; an original-image placeholder keeps its place in reading order. */
 function isOmittedSealImage(block: ImageParseLayoutBlock): boolean {
   return block.kind === 'seal' && !block.text.trim();
 }
@@ -53,7 +53,7 @@ function omittedImageMarkdown(block: ImageParseLayoutBlock): string {
   return isOmittedFooterImage(block) || isOmittedSealImage(block) ? '![image]()' : block.text;
 }
 
-/** 只忽略排版空白；文字与标点仍必须一致，不对识别结果做模糊纠错。 */
+/** Ignore only layout whitespace; text and punctuation must still match. Do not fuzzy-correct recognition results. */
 function comparableText(source: string): string {
   return imageParseSourceBlocks(source)
     .map((node) => imageParseNodeText(node))
@@ -62,13 +62,13 @@ function comparableText(source: string): string {
 }
 
 /**
- * 只对纯数字或纯拉丁单词检查词边界。中文正文没有空格，按字符拼在一起的
- * 相邻列表项不能被当作一个单词；`01A` 这类编号也要允许在拼接文本中命中。
+ * Check word boundaries only for pure numbers or pure Latin words. Chinese body text has no spaces, so adjacent list items
+ * concatenated character by character must not be treated as one word; an id such as `01A` must also be allowed to hit inside concatenated text.
  */
 const WORD_CHAR = /[\p{Script=Latin}\p{N}]/u;
 const BOUNDED_NEEDLE = /^(?:\p{N}+|\p{Script=Latin}+)$/u;
 
-/** 数字和单词只在完整边界上命中，避免页码 20 落进年份 2018。 */
+/** Numbers and words hit only on a complete boundary, so page number 20 does not fall inside the year 2018. */
 function findBounded(text: string, needle: string, from: number): number {
   if (!BOUNDED_NEEDLE.test(needle)) return text.indexOf(needle, from);
   let index = text.indexOf(needle, from);
@@ -88,8 +88,8 @@ function findBounded(text: string, needle: string, from: number): number {
 }
 
 /**
- * 图片只认正文里的 `![image]()`。
- * 占位符的说明文字是 image，不能拿它去对普通段落里的同一个词。
+ * Images are recognized only as `![image]()` in the body.
+ * The placeholder's alt text is image, and must not be matched against the same word in an ordinary paragraph.
  */
 function findImagePlaceholder(source: string, nodes: SourceBlock[]): Match | undefined {
   const placeholder = '![image]()';
@@ -111,7 +111,7 @@ function findImagePlaceholder(source: string, nodes: SourceBlock[]): Match | und
   return undefined;
 }
 
-/** 消耗每次匹配的位置，使不同识别块中的重复文字不会共用同一次出现。 */
+/** Consume each match position, so repeated text in different recognition blocks does not share one occurrence. */
 function findMatch(source: string, text: string, nodes: SourceBlock[]): Match | undefined {
   const comparable = comparableText(text);
   if (!comparable) return undefined;
@@ -120,7 +120,7 @@ function findMatch(source: string, text: string, nodes: SourceBlock[]): Match | 
     if (exact >= node.start && exact < node.end && exact + text.length > node.end) {
       const last = nodes.find((item) => item.end >= exact + text.length);
       if (!last) continue;
-      // 一个服务块可能覆盖多个段落，直接保留完整原文范围而不是重复拼接。
+      // One service block may cover several paragraphs; keep the full original range instead of concatenating it again.
       for (const covered of nodes) {
         if (covered.start > last.start) break;
         covered.rawCursor = Math.min(covered.end, exact + text.length);
@@ -129,12 +129,12 @@ function findMatch(source: string, text: string, nodes: SourceBlock[]): Match | 
       return { start: exact, end: exact + text.length, nodeStart: node.start, nodeEnd: last.end };
     }
     const index = findBounded(node.text, comparable, node.textCursor);
-    // 跳过节点中间的短数字会把页码 20 认成参考文献里的卷期，并让前面的段落被再插入一次。
+    // Skipping a short number in the middle of a node would take page number 20 for a volume/issue in the references, and insert the earlier paragraph a second time.
     if (index < 0 || (index !== node.textCursor && node.text !== comparable)) continue;
     node.textCursor = index + comparable.length;
     const rawMatch = exact >= node.start && exact + text.length <= node.end;
     node.rawCursor = rawMatch ? exact + text.length : node.end;
-    // 已越过的语义块不再参与匹配，保证与服务阅读顺序一致。
+    // A semantic block already passed is no longer matched, so the order stays consistent with the service reading order.
     for (const earlier of nodes) {
       if (earlier.start >= node.start) break;
       earlier.textCursor = earlier.text.length;
@@ -151,7 +151,7 @@ function findMatch(source: string, text: string, nodes: SourceBlock[]): Match | 
   return undefined;
 }
 
-/** 将结构化公式块绑定到正文中的完整 display-math 节点，避免按普通段落补写裸 LaTeX。 */
+/** Bind a structured formula block to a complete display-math node in the body, so bare LaTeX is not written in as an ordinary paragraph. */
 function findFormulaMatch(text: string, nodes: SourceBlock[]): Match | undefined {
   const comparable = comparableImageParseFormula(text);
   if (!comparable) return undefined;
@@ -176,13 +176,13 @@ function findFormulaMatch(text: string, nodes: SourceBlock[]): Match | undefined
 }
 
 /**
- * 保留服务 Markdown，将成功识别但聚合正文遗漏的块补入完整语义块之间。
- * 匹配忽略 Markdown 排版与空白差异；图片占位符、失败块和原有表格保持原样。
- * @param source 服务聚合正文
- * @param blocks 已按服务阅读顺序排列、完成校验的识别块
- * @returns 兼容后的正文及精确定位范围，供预览、编辑、复制和下载共用
+ * Keep the service Markdown, and insert blocks that were recognized successfully but omitted from the aggregated body between complete semantic blocks.
+ * Matching ignores Markdown layout and whitespace differences; image placeholders, failed blocks, and existing tables stay as-is.
+ * @param source aggregated service body
+ * @param blocks recognition blocks already in service reading order and validated
+ * @returns the compatible body and exact positioning ranges, shared by preview, edit, copy, and download
  */
-/** 浏览器打不开的相对插图路径改回空占位符，预览再按原图裁出来。 */
+/** A relative illustration path the browser cannot open is turned back into an empty placeholder, and the preview crops it from the original image. */
 function browserImagePlaceholders(source: string): string {
   return source.replace(
     /!\[image\]\((?:<([^>\r\n]+)>|([^)\s]+))\)/g,
@@ -217,10 +217,10 @@ export function reconcileImageParseMarkdown(
   });
   const placeholderCount = [...source.matchAll(/!\[image\]\(\)/g)].length;
   const cropBlocks = imageParseMarkdownCropBlocks(blocks, placeholderCount);
-  // 图片与正文可能采用不同的阅读顺序，分别消耗匹配游标，避免相互跳过已有内容。
+  // Images and body text may use different reading orders; consume their match cursors separately so they do not skip existing content past each other.
   const imageNodes = nodes.map((node) => ({ ...node }));
-  // 服务明确标为标题的编号属于正文，不能被 Markdown 当作有序列表标记剥掉。
-  // 仅为匹配补充标题语义，不改写服务原文或最终 Markdown。
+  // A number the service explicitly marked as a heading belongs to the body and must not be stripped by Markdown as an ordered-list marker.
+  // Heading semantics are added only for matching, and do not rewrite the service original or the final Markdown.
   const texts = blocks.map((block) =>
     block.kind === 'heading' && /^\s*\d+[.)]\s/.test(block.text)
       ? `# ${block.text.trimStart()}`
@@ -229,10 +229,10 @@ export function reconcileImageParseMarkdown(
   const matches = blocks.map((block, index) => {
     if (block.kind === 'formula')
       return findFormulaMatch(block.text, nodes) ?? findMatch(source, block.text, nodes);
-    // 有文字的印章和图表绑定正文，不占用图片占位符或其它插图的映射位置。
+    // Seals and charts that have text bind to the body, and do not take an image-placeholder or other illustration mapping slot.
     if (!IMAGE_KINDS.has(block.kind) || isImageParseDisplayTextBlock(block))
       return findMatch(source, texts[index], nodes);
-    // 数量一致时才将图片占位符作为锚点，与裁图规则一样避免猜测图片对应关系。
+    // Use image placeholders as anchors only when the counts match, the same way crop rules avoid guessing which image is which.
     return cropBlocks.includes(block) ? findImagePlaceholder(source, imageNodes) : undefined;
   });
   const replacements = imageParseMarkdownReplacementRanges(source, texts, matches);
@@ -254,7 +254,7 @@ export function reconcileImageParseMarkdown(
       .reverse()
       .find((match) => match !== undefined);
     const next = matches.slice(index + 1).find((match) => match !== undefined);
-    // 同一段落/列表内无法安全插入时，放在完整块之后，避免破坏表格或标题语法。
+    // When it cannot be inserted safely inside the same paragraph or list, place it after the complete block, so table or heading syntax is not broken.
     const offset = next ? Math.max(next.nodeStart, previous?.nodeEnd ?? 0) : source.length;
     const group = insertions.find((insertion) => insertion.offset === offset);
     if (group) group.blocks.push(index);

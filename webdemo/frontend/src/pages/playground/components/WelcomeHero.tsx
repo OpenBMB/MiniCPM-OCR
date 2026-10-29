@@ -1,14 +1,14 @@
 /**
- * 体验中心欢迎语。
+ * Experience-center welcome line.
  *
- * 用途：对话开始前展示在输入框上方的居中欢迎标题，呼应火山方舟的欢迎区。
+ * Purpose: a centered welcome title shown above the input before a conversation starts, echoing Volcano Ark's welcome area.
  */
 
 import { ModelbestMark } from '@/components/ModelbestMark';
 import { APP_NAME } from '@/config/brand';
 import { useTranslation } from 'react-i18next';
 
-/** 居中欢迎标题 */
+/** Centered welcome title */
 export function WelcomeHero() {
   const { t } = useTranslation('playground');
   return (

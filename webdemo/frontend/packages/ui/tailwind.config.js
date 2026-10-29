@@ -47,7 +47,7 @@ export default {
           DEFAULT: 'hsl(var(--destructive) / <alpha-value>)',
           foreground: 'hsl(var(--destructive-foreground) / <alpha-value>)',
         },
-        // ---- 状态色：引用 theme.css 的 HSL token,亮/暗自动切换 ----
+        // ---- Status colors: HSL tokens from theme.css; light and dark switch automatically ----
         success: {
           DEFAULT: 'hsl(var(--success) / <alpha-value>)',
           foreground: 'hsl(var(--success-foreground) / <alpha-value>)',
@@ -60,7 +60,7 @@ export default {
           DEFAULT: 'hsl(var(--info) / <alpha-value>)',
           foreground: 'hsl(var(--info-foreground) / <alpha-value>)',
         },
-        // ---- 图表色板：图表统一用 chart-1..6,禁止写死 hex ----
+        // ---- Chart palette: charts use chart-1..6 only; do not hard-code hex ----
         chart: {
           1: 'hsl(var(--chart-1) / <alpha-value>)',
           2: 'hsl(var(--chart-2) / <alpha-value>)',
@@ -81,7 +81,7 @@ export default {
         'ocr-link': 'hsl(var(--ocr-link) / <alpha-value>)',
       },
       fontFamily: {
-        // Inter 负责英文/数字，Noto Sans SC + 系统中文字体保证中文在各平台一致、不生硬
+        // Inter handles English and digits; Noto Sans SC plus system Chinese fonts keep Chinese consistent and natural on every platform.
         sans: [
           'Inter',
           'Noto Sans SC',
@@ -91,26 +91,26 @@ export default {
           'Microsoft YaHei',
           'sans-serif',
         ],
-        // 数字/分数/延迟/JSON/代码用等宽,配 tabular-nums 对齐
+        // Numbers, scores, latency, JSON, and code use monospace, with tabular-nums for alignment.
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
       },
-      // ---- 圆角：基于 --radius 单一基准，sm/md/lg 自动派生（shadcn 标准） ----
+      // ---- Radius: one --radius base; sm/md/lg are derived (shadcn standard) ----
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
-      // ---- 间距：补齐 Tailwind 缺失的数值 + 布局语义尺寸 ----
+      // ---- Spacing: fill in Tailwind’s missing numeric steps plus layout semantic sizes ----
       spacing: {
         4.5: '1.125rem', // 18px
         13: '3.25rem', // 52px
         15: '3.75rem', // 60px
         18: '4.5rem', // 72px
-        header: '3.5rem', // 顶栏高度 (h-header)
-        sidebar: '15rem', // 侧边栏展开宽度 (w-sidebar)
-        'sidebar-collapsed': '4rem', // 侧边栏收起宽度 (w-sidebar-collapsed)
+        header: '3.5rem', // Top bar height (h-header)
+        sidebar: '15rem', // Expanded sidebar width (w-sidebar)
+        'sidebar-collapsed': '4rem', // Collapsed sidebar width (w-sidebar-collapsed)
       },
-      // ---- 阴影：卡片用阴影代替 border 营造层级，hover 加深 ----
+      // ---- Shadow: cards use shadow instead of a border for depth, and hover deepens it ----
       boxShadow: {
         card: '0 2px 8px 0 rgb(0 0 0 / 0.04)',
         'card-hover': '0 8px 24px -4px rgb(0 0 0 / 0.12), 0 2px 6px -2px rgb(0 0 0 / 0.06)',

@@ -1,20 +1,20 @@
-/** 图像解析演示的本地文件读取规则与类型归一化。 */
+/** Local file-read rules and type normalization for the image-parsing demo. */
 import type { ImageParseMode } from '@/api/map/imageParseSdk';
 
 import type { Attachment } from '../types';
 import { resolveDocumentMime, withResolvedDocumentMime } from './documentMime';
 
-/** OCR 原件上传上限；PDF 使用 Blob URL 本地预览，不转为 base64。 */
+/** OCR original upload limit; PDFs use a Blob URL for local preview and are not converted to base64. */
 export const DOCUMENT_MAX_BYTES = 64 * 1024 * 1024;
-/** PDF 逐页识别的最大页数；本地预览、云端历史与服务端校验共用。 */
+/** Maximum pages for per-page PDF recognition; shared by local preview, cloud history, and server checks. */
 export const MAX_PDF_PAGES = 500;
-/** OCR 工作台接受浏览器可解码的图片类型；SVG 不作为位图输入。 */
+/** The OCR workspace accepts image types the browser can decode; SVG is not a bitmap input. */
 export const DOCUMENT_IMAGE_TYPES: readonly string[] = [
   'image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/bmp', 'image/webp',
 ];
-/** 文件选择器与拖放共用的格式边界。 */
+/** Format bounds shared by the file picker and drag-and-drop. */
 export const DOCUMENT_ACCEPT = `application/pdf,.pdf,${DOCUMENT_IMAGE_TYPES.join(',')}`;
-/** 算法流水线可解码的单图格式；TIFF 在上游固定返回 400。 */
+/** Single-image formats the algorithm pipeline can decode; TIFF always returns 400 upstream. */
 export const PIPELINE_IMAGE_TYPES: readonly string[] = [
   'image/png',
   'image/jpeg',
@@ -24,17 +24,17 @@ export const PIPELINE_IMAGE_TYPES: readonly string[] = [
   'image/webp',
 ];
 
-/** 上传入口共用的文件边界；算法流水线与历史兼容档位分别传入。 */
+/** File bounds shared by upload entries; the algorithm pipeline and the historical compatibility tier pass their own. */
 export interface DocumentFileRules {
   maxBytes?: number;
   accept?: readonly string[];
-  /** 只接收图片；独立印章使用。 */
+  /** Accept images only; used by standalone seal. */
   imagesOnly?: boolean;
-  /** 一次只能选择一个文件；整图任务使用。 */
+  /** Only one file may be selected at a time; used by whole-image tasks. */
   singleImage?: boolean;
 }
 
-/** 工作台上传面的展示与校验规则；历史兼容档位不额外限制。 */
+/** Display and validation rules for the workspace upload surface; the historical compatibility tier adds no extra limit. */
 export interface ImageParseUploadRules extends DocumentFileRules {
   accept: readonly string[];
   imagesOnly: boolean;
@@ -51,7 +51,7 @@ function mimeAllowed(mime: string, allowed: readonly string[]): boolean {
   });
 }
 
-/** 判断 MIME 是否可作为 OCR 位图输入。 */
+/** Whether a MIME type can be an OCR bitmap input. */
 export function isDocumentImageMime(mime: string): boolean {
   const normalized = mime.trim().toLowerCase();
   return (
@@ -61,13 +61,13 @@ export function isDocumentImageMime(mime: string): boolean {
   );
 }
 
-/** 校验 OCR 可直接提交的图片 data URI 前缀；内容合法性由服务端校验。 */
+/** Check the data-URI prefix of an image OCR can submit directly; content validity is checked by the server. */
 export function isDocumentImageDataURL(value: string): boolean {
   const match = /^data:(image\/[^;,]+);base64,/i.exec(value);
   return Boolean(match && isDocumentImageMime(match[1]));
 }
 
-/** 算法流水线支持的单图 data URI；TIFF 等格式在上游会被拒绝。 */
+/** Single-image data URI the algorithm pipeline supports; formats such as TIFF are rejected upstream. */
 export function isPipelineImageDataURL(value: string): boolean {
   const match = /^data:(image\/[^;,]+);base64,/i.exec(value);
   return Boolean(
@@ -75,23 +75,23 @@ export function isPipelineImageDataURL(value: string): boolean {
   );
 }
 
-/** 算法流水线可接受的图片 MIME；OBS 文件引用不依赖本地 data URI。 */
+/** Image MIME types the algorithm pipeline accepts; an OBS file reference does not depend on a local data URI. */
 export function isPipelineImageMime(mime: string): boolean {
   const normalized = mime.trim().toLowerCase();
   return PIPELINE_IMAGE_TYPES.includes(normalized);
 }
 
-/** 判断文档是否为 PDF，不把其它 file 类型当作可预览的文档。 */
+/** Whether the document is a PDF, and do not treat other file types as a previewable document. */
 export function isPdfAttachment(attachment: Attachment): boolean {
   return attachment.kind === 'file' && attachment.mime === 'application/pdf';
 }
 
-/** OCR 接受图片及 PDF；预览能力与模型输入能力分别处理。 */
+/** OCR accepts images and PDFs; preview capability and model input capability are handled separately. */
 export function isParseDocument(attachment?: Attachment): attachment is Attachment {
   return Boolean(attachment && (attachment.kind === 'image' || isPdfAttachment(attachment)));
 }
 
-/** 返回翻译键，所有上传入口按当前任务规则执行同一校验。 */
+/** Return a translation key; every upload entry runs the same check against the current task rules. */
 export function documentFileError(
   file: File,
   rules: DocumentFileRules = {},
@@ -105,7 +105,7 @@ export function documentFileError(
   return undefined;
 }
 
-/** 文件选择器 accept 属性；PDF 同时带上扩展名，兼容未标 MIME 的浏览器。 */
+/** File-picker accept attribute; PDFs also include the extension, for browsers that did not label a MIME type. */
 export function documentAccept(rules?: DocumentFileRules): string {
   if (!rules?.accept) return DOCUMENT_ACCEPT;
   return rules.accept
@@ -114,7 +114,7 @@ export function documentAccept(rules?: DocumentFileRules): string {
 }
 
 /**
- * 按识别档位生成上传规则。标准和 KIE 接受图片及原始 PDF，独立印章仅接受图片。
+ * Build upload rules from the recognition tier. Standard and KIE accept images and the original PDF; standalone seal accepts images only.
  */
 export function imageParseUploadRules(mode: ImageParseMode): ImageParseUploadRules | undefined {
   const imagesOnly = mode === 'seal';
@@ -128,7 +128,7 @@ export function imageParseUploadRules(mode: ImageParseMode): ImageParseUploadRul
   };
 }
 
-/** 浏览器未标注 MIME 时按扩展名归一化；内容有效性仍由上传与后端校验。 */
+/** When the browser did not label a MIME type, normalize by extension; content validity is still checked by upload and the backend. */
 export function normalizeDocumentFile(file: File): File {
   return withResolvedDocumentMime(file);
 }

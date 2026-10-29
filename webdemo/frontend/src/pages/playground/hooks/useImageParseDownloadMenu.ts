@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * 跟踪下载菜单展开状态，使悬停提示在菜单打开时关闭，避免抢占 Escape。
- * @returns 菜单受控状态与展开回调
+ * Track whether the download menu is open, so the hover tooltip closes while the menu is open and does not take over Escape.
+ * @returns controlled menu state and the open callback
  */
 export function useImageParseDownloadMenu(downloading: boolean) {
   const [open, setOpen] = useState(false);
@@ -21,7 +21,7 @@ export function useImageParseDownloadMenu(downloading: boolean) {
   }
 
   function onCloseAutoFocus(event: Event) {
-    // Radix 关闭焦点事件可能延迟触发，读取按钮实时状态避免快速下载完成后误阻止原生回焦。
+    // A Radix close-focus event may fire late; read the button's live state so a fast download finishing does not wrongly block native focus return.
     if (!triggerRef.current?.disabled) return;
     event.preventDefault();
     restoreFocus.current = true;

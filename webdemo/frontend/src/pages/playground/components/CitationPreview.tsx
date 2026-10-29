@@ -1,8 +1,7 @@
 /**
- * 引用来源的悬浮预览卡片。
+ * Hover preview card for a citation source.
  *
- * 用途：正文角标（CitationBadge）与其他来源入口 hover 时的统一预览，
- * 用户无需离开回答即可判断来源；卡片自身也可点击，在新窗口打开原文。
+ * Purpose: the shared preview when hovering a body badge (CitationBadge) or another source entry, so the user can judge the source without leaving the answer. The card itself is also clickable and opens the original in a new window.
  */
 
 import { ExternalLink } from 'lucide-react';
@@ -18,14 +17,14 @@ import {
 import { CitationFavicon } from './CitationFavicon';
 
 interface CitationPreviewCardProps {
-  /** 要预览的来源。 */
+  /** Source to preview. */
   citation: Citation;
 }
 
 /**
- * 渲染单条来源的标题、域名和摘要。
- * @param citation 来源数据
- * @returns 来源预览内容
+ * Renders the title, domain, and summary of one source.
+ * @param citation Source data
+ * @returns Source preview content
  */
 export function CitationPreviewCard({ citation }: CitationPreviewCardProps) {
   const { t } = useTranslation('playground');
@@ -43,9 +42,7 @@ export function CitationPreviewCard({ citation }: CitationPreviewCardProps) {
         <ExternalLink className="size-3.5 shrink-0 text-muted-foreground/70" aria-hidden="true" />
       </div>
       {/*
-        标题与摘要都不能再加 block/flex 等 display 工具类：Tailwind 3.4 把 display 排在
-        line-clamp 之后，display:block 会覆盖 line-clamp 依赖的 display:-webkit-box，
-        -webkit-line-clamp 随即失效，整段网页正文铺开会把预览卡撑出视口。
+        Neither the title nor the summary may add display utilities such as block/flex: Tailwind 3.4 places display after line-clamp, and display:block overrides the display:-webkit-box that line-clamp depends on. -webkit-line-clamp then fails, and the full page body spreads out and pushes the preview card out of the viewport.
       */}
       <p className="mt-3 line-clamp-2 text-sm font-semibold leading-5 text-foreground">{title}</p>
       {citation.snippet ? (
@@ -57,7 +54,7 @@ export function CitationPreviewCard({ citation }: CitationPreviewCardProps) {
     </>
   );
 
-  // 预览卡片本身也可点击打开原文：避免 Tooltip 内部的非交互卡片让用户感到"点不动"。
+  // The preview card itself can be clicked to open the original: avoid a non-interactive card inside the Tooltip that feels like it "cannot be clicked."
   if (!href) {
     return <div className="w-[min(22rem,calc(100vw-2rem))] p-3.5 text-left">{inner}</div>;
   }
@@ -70,7 +67,7 @@ export function CitationPreviewCard({ citation }: CitationPreviewCardProps) {
       data-citation-url={href}
       aria-label={`${title}，${t('openSource')}`}
       onClick={(event) => {
-        // 修饰键 + 中键 → 让原生"在新标签页打开"行为继续生效
+        // Modifier key + middle click → let the native "open in a new tab" behavior keep working
         if (isNativeOpenIntent(event)) return;
         event.preventDefault();
         event.stopPropagation();

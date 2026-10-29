@@ -22,19 +22,19 @@ import {
 import { cn } from '../../utils';
 
 export interface DatePickerProps {
-  /** 受控值，格式 YYYY-MM-DD；空字符串表示未选择 */
+  /** Controlled value, format YYYY-MM-DD; an empty string means nothing is selected. */
   value?: string;
-  /** 选择变更回调，回传 YYYY-MM-DD（清除时回传空字符串） */
+  /** Selection change callback; returns YYYY-MM-DD (an empty string when cleared). */
   onChange?: (value: string) => void;
-  /** 可选最小日期（含），YYYY-MM-DD */
+  /** Earliest selectable date (inclusive), YYYY-MM-DD. */
   min?: string;
-  /** 可选最大日期（含），YYYY-MM-DD */
+  /** Latest selectable date (inclusive), YYYY-MM-DD. */
   max?: string;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
   id?: string;
-  /** 触发器无障碍名称 */
+  /** Accessible name for the trigger. */
   ariaLabel?: string;
 }
 
@@ -50,7 +50,7 @@ function pad(n: number): string {
   return n < 10 ? `0${n}` : String(n);
 }
 
-/** 解析 YYYY-MM-DD，避免 new Date(string) 的 UTC 时区偏移 */
+/** Parse YYYY-MM-DD, avoiding the UTC offset of new Date(string). */
 function parse(value?: string): YMD | null {
   if (!value) return null;
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
@@ -70,12 +70,12 @@ function display({ y, m, d }: YMD): string {
   return `${y}/${pad(m + 1)}/${pad(d)}`;
 }
 
-/** 仅按年月日比较，忽略时分秒 */
+/** Compare year, month, and day only, ignoring the time of day. */
 function sameDay(a: YMD, b: YMD): boolean {
   return a.y === b.y && a.m === b.m && a.d === b.d;
 }
 
-/** 返回 < 0 表示 a 早于 b */
+/** Returns < 0 when a is earlier than b. */
 function compare(a: YMD, b: YMD): number {
   if (a.y !== b.y) return a.y - b.y;
   if (a.m !== b.m) return a.m - b.m;
@@ -88,14 +88,14 @@ function todayYMD(): YMD {
 }
 
 /**
- * 日期选择器（@map/ui）。
+ * Date picker (@map/ui).
  *
- * 用途：替代浏览器原生 <input type="date">，提供与设计系统一致的触发器与日历浮层。
- * 受控组件：值由调用方持有，内部只负责解析、渲染日历与回传 YYYY-MM-DD。
+ * Purpose: replace the browser’s native <input type="date"> with a trigger and calendar popover that match the design system.
+ * Controlled: the caller owns the value. Internally it only parses, renders the calendar, and returns YYYY-MM-DD.
  *
- * @param value 当前值 YYYY-MM-DD
- * @param onChange 选择/清除回调
- * @param min/max 可选的可选范围边界（含）
+ * @param value Current value, YYYY-MM-DD.
+ * @param onChange Select or clear callback.
+ * @param min/max Optional range bounds (inclusive).
  */
 function DatePicker({
   value,
@@ -113,13 +113,13 @@ function DatePicker({
   const minYMD = React.useMemo(() => parse(min), [min]);
   const maxYMD = React.useMemo(() => parse(max), [max]);
 
-  // 当前显示的年月：优先选中值，否则今天
+  // Year and month currently shown: the selected value if any, otherwise today.
   const [view, setView] = React.useState<{ y: number; m: number }>(() => {
     const base = selected ?? todayYMD();
     return { y: base.y, m: base.m };
   });
 
-  // 打开时把视图对齐到选中值（或今天）
+  // On open, align the view to the selected value (or today).
   React.useEffect(() => {
     if (open) {
       const base = selected ?? todayYMD();
@@ -143,7 +143,7 @@ function DatePicker({
 
   const today = todayYMD();
 
-  // 生成 6 行 × 7 列日历网格（含上/下月补位）
+  // Build a 6×7 calendar grid (including leading and trailing days from the adjacent months).
   const cells = React.useMemo(() => {
     const firstWeekday = new Date(view.y, view.m, 1).getDay();
     const start = new Date(view.y, view.m, 1 - firstWeekday);
@@ -214,7 +214,7 @@ function DatePicker({
               )}
               {...getFloatingProps()}
             >
-              {/* 头部：年/月导航 */}
+              {/* Header: year and month navigation */}
               <div className="mb-2 flex items-center justify-between">
                 <div className="flex items-center gap-0.5">
                   <NavButton ariaLabel="上一年" onClick={() => shiftYear(-1)}>
@@ -237,7 +237,7 @@ function DatePicker({
                 </div>
               </div>
 
-              {/* 星期表头 */}
+              {/* Weekday header */}
               <div className="grid grid-cols-7 gap-0.5">
                 {WEEKDAYS.map((w) => (
                   <div
@@ -249,7 +249,7 @@ function DatePicker({
                 ))}
               </div>
 
-              {/* 日期网格 */}
+              {/* Date grid */}
               <div className="grid grid-cols-7 gap-0.5">
                 {cells.map((cell) => {
                   const inMonth = cell.m === view.m;
@@ -278,7 +278,7 @@ function DatePicker({
                 })}
               </div>
 
-              {/* 底部操作 */}
+              {/* Footer actions */}
               <div className="mt-2 flex items-center justify-between border-t border-border/60 pt-2">
                 <button
                   type="button"

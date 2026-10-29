@@ -1,7 +1,7 @@
 import { imageParseNodeText, imageParseSourceBlocks } from './imageParseEditorSource';
 import type { ImageParseLayoutBlock } from './imageParseSample';
 
-/** 比较公式时只忽略数学定界符、排版空白与 Markdown 转义。 */
+/** When comparing formulas, ignore only math delimiters, layout whitespace, and Markdown escaping. */
 export function comparableImageParseFormula(value: string): string {
   return value
     .replace(/^\s*\$\$([\s\S]*?)\$\$\s*$/, '$1')
@@ -11,11 +11,11 @@ export function comparableImageParseFormula(value: string): string {
 }
 
 /**
- * 合并紧邻显示公式的同内容裸 LaTeX，保留规范的数学块与其它正文。
- * 多个原图公式块需要各自表示时不合并；重建映射必须使用返回的完整正文。
- * @param source 服务正文或旧缓存正文
- * @param blocks 原图识别块，用于区分重复表示与真正不同的原图区域
- * @returns 去除重复表示后的 Markdown
+ * Merge bare LaTeX of the same content that sits next to a display formula, keeping well-formed math blocks and the other body text.
+ * Do not merge when several original-image formula blocks each need their own representation; rebuilding the map must use the full body that is returned.
+ * @param source service body or old cached body
+ * @param blocks original-image recognition blocks, used to tell a repeated representation from a genuinely different original-image region
+ * @returns Markdown with the duplicate representation removed
  */
 export function deduplicateImageParseFormulaMarkdown(
   source: string,

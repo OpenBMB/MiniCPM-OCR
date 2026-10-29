@@ -10,7 +10,7 @@ const badgeVariants = cva(
         default: 'border-transparent bg-primary text-primary-foreground',
         secondary: 'border-transparent bg-secondary text-secondary-foreground',
         outline: 'text-foreground',
-        // 状态类语义色统一为「15% 透明底 + 实色文字」；default 保留实心供强调标签
+        // Status semantic colors use a 15% transparent background plus solid text; default stays solid for emphasis tags.
         info: 'border-transparent bg-info/15 text-info',
         destructive: 'border-transparent bg-destructive/15 text-destructive',
         success: 'border-transparent bg-success/15 text-success',

@@ -1,8 +1,7 @@
 /**
- * 对话输入框（含底部工具行 + 发送/停止按钮）。
+ * Chat input (bottom tool row + send/stop button).
  *
- * 用途：火山方舟风格的大圆角输入框。Enter 发送、Shift+Enter 换行；流式生成时发送键变停止键。
- * 文本域随内容自适应高度（上限受控）。
+ * Purpose: a large rounded input in the Volcano Ark style. Enter sends, Shift+Enter inserts a newline; while streaming, the send key becomes a stop key. The textarea grows with content (capped).
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -23,26 +22,26 @@ import {
 interface ChatComposerProps {
   thinkingDepth: ThinkingDepth;
   onThinkingDepthChange: (depth: ThinkingDepth) => void;
-  /** 当前模型是否允许展示思考（false 时隐藏思考开关） */
+  /** Whether the current model may show reasoning (when false, hide the reasoning switch) */
   showReasoning: boolean;
-  /** 当前模型是否允许展示联网搜索入口 */
+  /** Whether the current model may show the web-search entry */
   webSearchAvailable: boolean;
-  /** 当前模型允许的输入模态，来自模型 capabilities.input_* */
+  /** Input modalities the current model allows, from model capabilities.input_* */
   attachmentCapabilities?: Record<string, boolean>;
-  /** 联网搜索开关 */
+  /** Web-search switch */
   webSearch: boolean;
   onWebSearchChange: (webSearch: boolean) => void;
-  /** 是否正在流式生成 */
+  /** Whether generation is currently streaming */
   loading: boolean;
-  /** 是否禁用发送（如无模型/无密钥） */
+  /** Whether sending is disabled (for example, no model or no secret) */
   disabled?: boolean;
-  /** 禁用发送时的用户可读原因 */
+  /** User-readable reason when sending is disabled */
   disabledReason?: string;
-  /** 发送（带可选多模态附件） */
+  /** Send (with optional multimodal attachments) */
   onSend: (text: string, attachments?: Attachment[]) => void;
-  /** 停止生成 */
+  /** Stop generation */
   onStop: () => void;
-  /** 受控输入值（供任务卡片填充） */
+  /** Controlled input value (filled by task cards) */
   value: string;
   onValueChange: (v: string) => void;
 }
@@ -50,7 +49,7 @@ interface ChatComposerProps {
 const MAX_TEXTAREA_HEIGHT = 200;
 
 /**
- * 输入框组件。
+ * Input component.
  */
 export function ChatComposer({
   thinkingDepth,
@@ -72,23 +71,23 @@ export function ChatComposer({
   const taRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  // 待发送附件（base64 data URL），仅会话内存，发送后清空
+  // Pending attachments (base64 data URL), held only in session memory and cleared after send
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const submittingRef = useRef(false);
   const [submitting, setSubmitting] = useState(false);
   const [uploadingCount, setUploadingCount] = useState(0);
   const reservedRef = useRef(0);
-  // 拖拽悬停高亮
+  // Drag-hover highlight
   const [dragging, setDragging] = useState(false);
-  // 点击放大预览的图片
+  // Image opened in the enlarge preview
   const [preview, setPreview] = useState<string | null>(null);
   const attachmentAccept = attachmentAcceptForCapabilities(attachmentCapabilities);
   const attachmentKinds = supportedAttachmentKinds(attachmentCapabilities);
   const canAttach = attachmentKinds.length > 0;
 
   useEffect(() => {
-    // 模型能力切换需要同步清理已选附件，避免把不支持的输入带进下一次请求。
-    // 这里是受控的状态归一化，不是异步数据获取。
+    // Switching model capabilities must also clear selected attachments, so an unsupported input is not carried into the next request.
+    // This is controlled state normalization, not an async data fetch.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setAttachments((current) => {
       const compatible = current.filter(
@@ -101,7 +100,7 @@ export function ChatComposer({
     });
   }, [attachmentCapabilities, t, toast]);
 
-  // 自适应高度：内容变化时按 scrollHeight 调整（上限封顶后转内部滚动）
+  // Auto height: on content change, adjust by scrollHeight (once capped, switch to internal scrolling)
   useEffect(() => {
     const el = taRef.current;
     if (!el) return;
@@ -109,9 +108,9 @@ export function ChatComposer({
     el.style.height = `${Math.min(el.scrollHeight, MAX_TEXTAREA_HEIGHT)}px`;
   }, [value]);
 
-  // 外部把文案填入输入框（如点击「试试以下任务」卡片）后，焦点并不在输入框，导致回车发送失效。
-  // 若已有内容但焦点不在输入框，则自动聚焦并把光标移到末尾，保证「填入即可回车发送」。
-  // 正常打字时焦点已在输入框，activeElement 判断会跳过，不会重复抢焦。
+  // After outside copy is filled into the input (for example, clicking a "try these tasks" card), focus is not in the input, so Enter-to-send fails.
+  // If there is already content but focus is not in the input, focus it and move the caret to the end, so "fill in and press Enter to send" works.
+  // During normal typing focus is already in the input, so the activeElement check skips and does not steal focus again.
   useEffect(() => {
     const el = taRef.current;
     if (!el || !value || document.activeElement === el) return;
@@ -120,7 +119,7 @@ export function ChatComposer({
     el.setSelectionRange(end, end);
   }, [value]);
 
-  // 读取并追加附件：超出总数上限截断，逐个校验，失败项弹 toast
+  // Read and append attachments: truncate past the total cap, validate one by one, and toast the failures
   async function addFiles(files: File[]) {
     if (files.length === 0 || !canAttach) {
       if (files.length > 0) toast({ title: t('modelDoesNotSupportAttachments'), variant: 'error' });
@@ -161,10 +160,10 @@ export function ChatComposer({
 
   function handlePickFiles(files: FileList | null) {
     if (files) void addFiles(Array.from(files));
-    if (fileRef.current) fileRef.current.value = ''; // 允许重复选同一文件
+    if (fileRef.current) fileRef.current.value = ''; // Allow selecting the same file again
   }
 
-  // 粘贴含文件时（截图/复制文件）自动加入，并阻止把文件名当文本贴入
+  // When a paste contains files (screenshot / copied file), add them automatically and do not paste the file name as text
   function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
     const files = Array.from(e.clipboardData.files);
     if (files.length === 0) return;
@@ -176,14 +175,14 @@ export function ChatComposer({
     void addFiles(files);
   }
 
-  // 拖拽上传：仅在真正含文件时高亮/接收，避免拖拽文本触发
+  // Drag-and-drop upload: highlight and accept only when there are real files, so dragging text does not trigger it
   function handleDragOver(e: React.DragEvent) {
     if (!canAttach || !Array.from(e.dataTransfer.types).includes('Files')) return;
     e.preventDefault();
     setDragging(true);
   }
   function handleDragLeave(e: React.DragEvent) {
-    // 仅当离开整个容器（而非子元素间移动）时取消高亮
+    // Cancel the highlight only when leaving the whole container, not when moving between child elements
     if (e.currentTarget.contains(e.relatedTarget as Node)) return;
     setDragging(false);
   }
@@ -257,7 +256,7 @@ export function ChatComposer({
         dragging ? 'ring-2 ring-primary/60' : 'ring-border/60'
       }`}
     >
-      {/* 拖拽悬停提示 */}
+      {/* Drag-hover hint */}
       {dragging && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-primary/5 text-sm font-medium text-primary">
           {t('releaseToUpload')}
@@ -269,7 +268,7 @@ export function ChatComposer({
         </p>
       )}
 
-      {/* 待发送附件预览 */}
+      {/* Pending-attachment preview */}
       {attachments.length > 0 && (
         <div className="mb-1.5 px-1">
           <AttachmentPreview
@@ -325,7 +324,7 @@ export function ChatComposer({
   );
 }
 
-/** 发送/停止按钮：流式时显示停止方块，否则显示上箭头 */
+/** Send/stop button: a stop square while streaming, otherwise an up arrow */
 function SendButton({
   loading,
   disabled,

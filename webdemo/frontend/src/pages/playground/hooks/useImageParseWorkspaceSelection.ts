@@ -8,7 +8,7 @@ import {
 import type { useImageParse } from './useImageParse';
 import { useImageParseSelection } from './useImageParseSelection';
 
-/** 工作台区块选择：保留逐页框数据，跨页点击绑定目标结果身份而不是当前页同名块。 */
+/** Workspace block selection: keep per-page box data, and a cross-page click binds the target result identity rather than the same-named block on the current page. */
 export function useImageParseWorkspaceSelection(
   parse: ReturnType<typeof useImageParse>,
   enabled: boolean,

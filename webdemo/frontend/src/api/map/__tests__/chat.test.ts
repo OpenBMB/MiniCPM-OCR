@@ -10,11 +10,11 @@ import {
 } from '../chat';
 
 /**
- * streamPlaygroundWebSearch 的 SSE frame 分发测试：
- * 用 mock fetch 返回一段 SSE 字节流，验证 tool_status / citations / content / usage / [DONE] 与带内 error 帧的处理。
+ * SSE frame dispatch test for streamPlaygroundWebSearch:
+ * Use mock fetch to return an SSE byte stream, and verify handling of tool_status / citations / content / usage / [DONE] and in-band error frames.
  */
 
-/** 用给定文本片段构造一个 SSE 流式 Response（片段可跨 frame 边界，用于验证 buffer 拼接）。 */
+/** Build a streaming SSE Response from the given text chunks (chunks may cross frame boundaries, to verify buffer joining). */
 function sseResponse(chunks: string[], status = 200): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({
@@ -145,7 +145,7 @@ describe('streamPlaygroundWebSearch', () => {
 
     expect(capturedUrl).toBe('/api/playground/chat/completions');
     expect(capturedInit?.method).toBe('POST');
-    // 请求体只带 api_key_id，不含明文 secret，且 stream 强制为 true
+    // The request body carries only api_key_id, not the plaintext secret, and stream is forced to true
     const body = JSON.parse(capturedInit?.body as string);
     expect(body.api_key_id).toBe('key-1');
     expect(body.client_request_id).toBe('map_playground_0123456789abcdef0123456789abcdef');
@@ -160,7 +160,7 @@ describe('streamPlaygroundWebSearch', () => {
   });
 
   it('跨读取边界的 frame 能被正确拼接', async () => {
-    // 把一个 content frame 拆成两段字节，验证 buffer 拼接
+    // Split one content frame into two byte chunks to verify buffer joining
     const frames = ['data: {"choices":[{"delta":{"con', 'tent":"Hi"}}]}\n\n', 'data: [DONE]\n\n'];
     vi.stubGlobal('fetch', vi.fn(async () => sseResponse(frames)));
 
@@ -331,7 +331,7 @@ describe('streamChat', () => {
     await expect(streamChat({ model: 'm', messages: [] }, 'secret', callbacks)).rejects.toMatchObject(
       { code: 'content_policy_violation', message: '内容不合规，本次回答已撤回' },
     );
-    // 撤回后不得再触发正常收尾，否则上层会把被撤回的正文当作完成态落库。
+    // After revoke, normal completion must not fire, or the caller would persist the revoked body as a completed state.
     expect(cap.done).toBe(false);
   });
 

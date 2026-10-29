@@ -83,7 +83,7 @@ function ExpandButton({
   );
 }
 
-/** 渲染桌面端数据行和可选的展开内容。 */
+/** Render a desktop data row and optional expanded content. */
 export function DesktopRows<T extends object>({
   record,
   rowKey,
@@ -151,7 +151,7 @@ export function DesktopRows<T extends object>({
   );
 }
 
-/** 渲染移动端卡片和可选的展开内容。 */
+/** Render a mobile card and optional expanded content. */
 export function MobileCard<T extends object>({
   record,
   columns,
@@ -258,7 +258,7 @@ export function MobileCard<T extends object>({
   );
 }
 
-/** 渲染桌面端表格骨架屏。 */
+/** Render the desktop table skeleton. */
 export function TableSkeleton<T>({
   columns,
   rows,
@@ -294,7 +294,7 @@ export function TableSkeleton<T>({
   );
 }
 
-/** 渲染移动端卡片骨架屏。 */
+/** Render the mobile card skeleton. */
 export function MobileCardSkeleton({ rows }: { rows: number }) {
   return (
     <>
@@ -317,7 +317,7 @@ export function MobileCardSkeleton({ rows }: { rows: number }) {
   );
 }
 
-/** 渲染 ProTable 的默认空状态。 */
+/** Render ProTable’s default empty state. */
 export function EmptyState({ children }: { children?: ReactNode }) {
   if (children) return <>{children}</>;
   return (

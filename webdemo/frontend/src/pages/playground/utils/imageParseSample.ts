@@ -1,12 +1,12 @@
-/** 图像解析版面块类型与旧样例 ID；运行时识别结果只能来自服务端。 */
+/** Image-parsing layout block types and old sample IDs; runtime recognition results can come only from the server. */
 
 /**
- * 旧内置样例附件 ID。仅用于拒绝历史缓存把本地演示结果保存成个人记录，
- * 不再提供任何本地演示附件或识别结果。
+ * Attachment IDs of old built-in samples. Used only to refuse history cache that would save a local demo result as a personal record,
+ * and no longer provides any local demo attachment or recognition result.
  */
 export const IMAGE_PARSE_SAMPLE_ATTACHMENT_ID = 'image-parse-sample';
 
-/** 版面块语义类型，决定框线颜色与类型角标。 */
+/** Semantic type of a layout block; it decides box color and the type badge. */
 export type ImageParseBlockKind =
   | 'header'
   | 'footer'
@@ -20,13 +20,13 @@ export type ImageParseBlockKind =
   | 'chart'
   | 'seal';
 
-/** 服务端旋转摆正信息；坐标始终基于摆正后的图片。 */
+/** Server rotation-adaptation info; coordinates are always based on the image after rotation adaptation. */
 export interface ImageParseRotationInfo {
   enabled: boolean;
   applied: boolean;
-  /** 服务端实际逆时针旋转角度；浏览器显示使用反向角度。 */
+  /** Actual counterclockwise rotation angle from the server; the browser displays the opposite angle. */
   totalAngle: number;
-  /** 摆正没跑出预测（未启用 / gated）时为 null。 */
+  /** null when rotation adaptation produced no prediction (disabled / gated). */
   predictedAngle: number | null;
   predictedScore: number | null;
   confirmed: boolean | null;
@@ -35,7 +35,7 @@ export interface ImageParseRotationInfo {
   skippedReason: string | null;
 }
 
-/** 版面块内的一个归一化区域；合并块会包含多个区域。 */
+/** One normalized region inside a layout block; a merged block can contain several regions. */
 export interface ImageParseLayoutRegion {
   x: number;
   y: number;
@@ -43,39 +43,39 @@ export interface ImageParseLayoutRegion {
   h: number;
 }
 
-/** 一个版面块：归一化坐标（0–1）+ 语义类型 + 识别内容。 */
+/** One layout block: normalized coordinates (0–1) + semantic type + recognition content. */
 export interface ImageParseLayoutBlock {
-  /** 服务返回的稳定标识，可选；没有标识时以坐标和阅读顺序组合标识。 */
+  /** Stable id returned by the service, optional; when there is no id, combine coordinates and reading order. */
   id?: string;
-  /** 服务阅读序号从 0 开始；旧结果缺省时取数组位置。 */
+  /** The service reading index starts at 0; an old result with none uses the array position. */
   order?: number;
   label?: string;
   status?: string;
-  /** 在整篇 Markdown 中的 UTF-16 起止偏移，用于消除重复文字的歧义。 */
+  /** UTF-16 start and end offsets in the whole Markdown, used to remove ambiguity from repeated text. */
   markdownStart?: number;
   markdownEnd?: number;
   kind: ImageParseBlockKind;
-  /** 左上角 x，占图宽比例 */
+  /** Top-left x, as a fraction of image width */
   x: number;
-  /** 左上角 y，占图高比例 */
+  /** Top-left y, as a fraction of image height */
   y: number;
-  /** 宽度占比 */
+  /** Width fraction */
   w: number;
-  /** 高度占比 */
+  /** Height fraction */
   h: number;
-  /** 服务端返回的全部区域；缺省时使用主 bbox 渲染。 */
+  /** Every region returned by the server; when absent, render the primary bbox. */
   regions?: readonly ImageParseLayoutRegion[];
   /**
-   * 该块在图上识别到的原始文字：保留图上的换行，表格按行分行、按列用制表符分隔。
-   * 与 markdown 的区别是这里没有结构——标题不带 `#`，列表不带 `-`，复选框是字符本身。
+   * Original text recognized on the image for this block: keep the line breaks on the image; a table breaks rows into lines and separates columns with tabs.
+   * The difference from markdown is that there is no structure here — headings have no `#`, lists have no `-`, and a checkbox is the character itself.
    */
   text: string;
-  /** 该块结构化后的 Markdown 片段，按阅读顺序拼起来即「原文」页内容。 */
+  /** Structured Markdown fragment for this block; joined in reading order it is the content of the "original text" page. */
   markdown: string;
-  /** 服务返回的 0–1 置信度，缺失时为 null；前端不估算。 */
+  /** 0–1 confidence returned by the service, or null when missing; the frontend does not estimate. */
   confidence: number | null;
-  /** 跨页表格合并标记；true 时 score 只代表合并前半表。 */
+  /** Cross-page table-merge flag; when true, score represents only the first half of the table before the merge. */
   ttsInvalid?: boolean;
-  /** 跨页表格合并：本块是上一页表格的续表，内容已并入上一页，本页清空。 */
+  /** Cross-page table merge: this block continues the previous page's table, its content was merged into the previous page, and this page is cleared. */
   mergedIntoPreviousPage?: boolean;
 }

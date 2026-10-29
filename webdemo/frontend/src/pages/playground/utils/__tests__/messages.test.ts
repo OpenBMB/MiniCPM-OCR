@@ -1,5 +1,5 @@
 /**
- * toRequestMessages 单测：多模态附件消息构造 + 占位过滤。
+ * Unit tests for toRequestMessages: multimodal attachment message construction + placeholder filtering.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -12,7 +12,7 @@ import {
   findQAPair,
 } from '../messages';
 
-/** 构造测试用附件 */
+/** Build a test attachment */
 function att(kind: Attachment['kind'], overrides: Partial<Attachment> = {}): Attachment {
   return {
     id: `a-${kind}`,
@@ -191,7 +191,7 @@ describe('mergeCitations', () => {
   });
 
   it('有后端编号时以编号为身份，并按编号升序排列', () => {
-    // 第二轮搜索先回了编号更大的那条：数组顺序若照到达顺序排，来源面板会读成 2、1。
+    // The second search returned the item with the larger number first: if array order followed arrival order, the source panel would read as 2, then 1.
     const merged = mergeCitations(
       [{ ref: 1, url: 'https://a.com', title: 'A' }],
       [

@@ -14,29 +14,29 @@ import {
 
 import { imageParseTextLineBreaks } from './imageParseLineBreaks';
 
-/** HTML 与 GFM 表格共用的 Word 单元格信息。 */
+/** Word cell info shared by HTML and GFM tables. */
 export interface ImageParseWordCell {
   children: Array<Paragraph | Table>;
   columnSpan?: number;
   rowSpan?: number;
 }
 
-/** HTML 列表与 Markdown 列表共用的编号定义。 */
+/** Numbering definition shared by HTML lists and Markdown lists. */
 export type ImageParseWordNumbering = Array<{ reference: string; levels: ILevelsOptions[] }>;
 
-/** A4 页面扣除两侧各 1 英寸留白后的正文宽度，单位为 twip。 */
+/** Body width of an A4 page after 1 inch of margin on each side, in twips. */
 export const IMAGE_PARSE_WORD_WIDTH = 9026;
 
-/** 保留安全链接为 Word 超链接，危险协议只保留可见文字。 */
+/** Keep a safe link as a Word hyperlink; a dangerous scheme keeps only the visible text. */
 export function imageParseWordLink(url: string, children: TextRun[]) {
   if (!/^(https?:\/\/|mailto:)/i.test(url)) return children;
   return [new ExternalHyperlink({ link: url, children })];
 }
 
 /**
- * 创建有明确列宽的可编辑表格；合并行列交由 docx 生成合法 OOXML。
- * @param rows 按阅读顺序排列的单元格
- * @returns 自适应正文宽度的 Word 表格
+ * Create an editable table with explicit column widths; merged rows and columns are left to docx to emit legal OOXML.
+ * @param rows cells in reading order
+ * @returns a Word table that fits the body width
  */
 export function imageParseWordTable(rows: ImageParseWordCell[][]): Table {
   const columns = Math.max(
@@ -196,9 +196,9 @@ function htmlBlocks(
 }
 
 /**
- * 解析 OCR 的 HTML 片段；DOM 仅在脱离页面的文档中读取，不执行脚本或加载远程媒体。
- * @param html 原始 HTML 块
- * @returns 可编辑表格与正文段落
+ * Parse an OCR HTML fragment; the DOM is read only in a document detached from the page, and does not run scripts or load remote media.
+ * @param html original HTML block
+ * @returns editable tables and body paragraphs
  */
 export function imageParseHtmlToWord(
   html: string,
@@ -208,7 +208,7 @@ export function imageParseHtmlToWord(
   return htmlFlow([...document.body.childNodes], numbering, 0);
 }
 
-/** 转换 Markdown 内嵌 HTML，保留显式换行且不执行脚本。 */
+/** Convert HTML embedded in Markdown, keeping explicit line breaks and not running scripts. */
 export function imageParseHtmlWordRuns(html: string, style: IRunOptions) {
   const document = new DOMParser().parseFromString(html, 'text/html');
   return [...document.body.childNodes].flatMap((node) => htmlRuns(node, style));

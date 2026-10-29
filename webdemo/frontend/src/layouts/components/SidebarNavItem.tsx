@@ -13,12 +13,12 @@ interface SidebarNavItemProps {
 }
 
 /**
- * 侧栏叶子导航项（无子菜单）。
+ * Sidebar leaf nav item (no children).
  *
- * @param route 路由数据（取 meta.title / meta.icon 渲染）
- * @param isActive 是否当前激活
- * @param collapsed 侧栏是否收起（收起时隐藏文字）
- * @param onNavigate 点击后的回调（移动端用于关闭抽屉）
+ * @param route Route data (rendered from meta.title and meta.icon).
+ * @param isActive Whether it is currently active.
+ * @param collapsed Whether the sidebar is collapsed (hides the label when collapsed).
+ * @param onNavigate Callback after click (used on mobile to close the drawer).
  */
 export function SidebarNavItem({ route, isActive, collapsed, onNavigate }: SidebarNavItemProps) {
   const locale = useAppStore((state) => state.locale);

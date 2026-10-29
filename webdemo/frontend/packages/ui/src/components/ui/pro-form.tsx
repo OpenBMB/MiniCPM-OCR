@@ -27,7 +27,7 @@ function ProForm({ columns = 1, className, children, ...props }: ProFormProps) {
 
 export interface ProFormFieldProps {
   label: string;
-  /** 在标签旁展示的可选操作，保持在 label 元素之外。 */
+  /** Optional action shown beside the label, kept outside the label element. */
   labelAction?: ReactNode;
   name?: string;
   required?: boolean;

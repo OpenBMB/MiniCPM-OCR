@@ -6,11 +6,11 @@ import { formatBytes } from '../../utils/attachments';
 
 interface DocumentUploadStatusProps {
   upload: ReturnType<typeof useDocumentUpload>;
-  /** 已有文档时保留预览，只把输入校验错误放在内容上方。 */
+  /** When a document already exists, keep the preview and place input-validation errors above the content. */
   inline?: boolean;
 }
 
-/** 在上传区域展示文件与真实等待状态，失败可原文件重试；不伪造进度。 */
+/** In the upload area, show the file and the real waiting state. On failure the original file can be retried; do not fake progress. */
 export function DocumentUploadStatus({ upload, inline }: DocumentUploadStatusProps) {
   const { t } = useTranslation('playground');
   if (!upload.pending && !upload.error) return null;

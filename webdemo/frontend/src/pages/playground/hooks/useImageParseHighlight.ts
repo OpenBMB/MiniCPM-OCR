@@ -3,8 +3,8 @@ import type { ImageParseLinkedRange } from '../utils/imageParseHighlight';
 import type { ImageParseTextRange } from '../utils/imageParseBlocks';
 
 /**
- * 更新映射节点的选中标记与滚动位置，不触发 Markdown、公式和代码重新解析。
- * 隐藏预览时只更新标记，切回预览后再定位，避免滚动到不可见节点。
+ * Update the selected marker and scroll position of mapped nodes, without re-parsing Markdown, formulas, and code.
+ * While the preview is hidden, update only the marker, and position again after switching back to the preview, so it does not scroll to an invisible node.
  */
 export function useImageParseHighlight(
   ref: RefObject<HTMLElement | null>,
@@ -58,7 +58,7 @@ export function useImageParseHighlight(
     }
     const element = ref.current;
     if (!element) return;
-    // 无修改退出编辑也会重新挂载预览节点；仅监听结构变化，标记更新不触发监听循环。
+    // Leaving edit with no change also remounts preview nodes; observe only structural changes, so a marker update does not trigger an observation loop.
     const observer = new MutationObserver((records) => {
       if (
         records.some(
@@ -84,7 +84,7 @@ export function useImageParseHighlight(
   ]);
 }
 
-/** 计算结果块在当前滚动容器内居中的位置，避免滚动链影响工作台外层页面。 */
+/** Compute the position that centers a result block inside the current scroll container, so the scroll chain does not affect the page outside the workspace. */
 function centeredScrollTop(viewport: HTMLElement, target: HTMLElement): number {
   const bounds = viewport.getBoundingClientRect();
   const viewportHeight = viewport.clientHeight || bounds.height;

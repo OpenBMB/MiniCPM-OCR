@@ -13,7 +13,7 @@ import { ImageParseExampleGrid } from './ImageParseExampleGrid';
 import { ImageParseUploadSurface } from './ImageParseUploadSurface';
 import { ImageParseKieUpload } from './ImageParseKieUpload';
 
-/** 空态保留直接上传和顶栏新建两种入口。 */
+/** The empty state keeps both direct upload and the top-bar new entry. */
 export interface ImageParseWorkspaceProps {
   onNewDocument: () => void;
   onExample?: (type: ImageParseExampleType) => void;
@@ -25,9 +25,9 @@ export interface ImageParseWorkspaceProps {
 }
 
 /**
- * 单区上传空态及真实内置样例，不承担上传或解析状态。
- * @param props 样例、新建文档及文件选择回调
- * @returns 紧凑文档工作台
+ * Single-area upload empty state and real built-in samples. It does not own upload or parse state.
+ * @param props Samples, new-document, and file-selection callbacks
+ * @returns Compact document workspace
  */
 export function ImageParseWorkspace({
   onNewDocument,

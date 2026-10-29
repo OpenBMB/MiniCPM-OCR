@@ -1,14 +1,14 @@
 /**
- * 识别结果草稿态。
+ * Draft state of a recognition result.
  *
- * 用途：OCR 结果必然有错，光能看不能改就只是个演示。这里把结果变成可编辑草稿，
- * 复制与下载都取草稿而不是原始输出，用户改完就能直接带走。
+ * Purpose: an OCR result is bound to have errors, and if it can only be viewed and not edited it is only a demo. Here the result becomes an editable draft,
+ * and both copy and download take the draft rather than the raw output, so the user can take it away as soon as the edit is done.
  *
- * 跟随规则：新一轮解析（含流式推进）会覆盖草稿——那是新结果，不是用户的编辑；
- * 用户自己的改动用 dirty 标出来，并保留一键还原。
+ * Follow rule: a new parse (including streaming progress) overwrites the draft — that is a new result, not the user's edit;
+ * the user's own changes are marked dirty, and a one-click restore is kept.
  *
- * 实现上不用 useEffect 同步 state：把编辑连同「它基于哪一版结果」一起存下来，
- * 结果一变，基线不匹配，草稿自然失效并回落到新结果——少一次级联渲染。
+ * Implementation does not sync state with useEffect: the edit is stored together with "which version of the result it is based on".
+ * Once the result changes, the baseline no longer matches, the draft expires on its own, and it falls back to the new result — one less cascading render.
  */
 
 import { useCallback, useState } from 'react';
@@ -17,20 +17,20 @@ import { imageParseDraftRanges } from '../utils/imageParseDraftRanges';
 
 const EMPTY_RANGES: ReadonlyMap<string, ImageParseTextRange> = new Map();
 
-/** 草稿态。 */
+/** Draft state. */
 export interface ImageParseDraft {
-  /** 当前文本，复制/下载都用它 */
+  /** Current text; both copy and download use it */
   value: string;
-  /** 是否不同于基础识别，包含主动重生成，供还原操作使用。 */
+  /** Whether it differs from the base recognition, including an active regeneration, for the restore action. */
   dirty: boolean;
-  /** 是否存在人工修改；旧调用方未提供时按 dirty 兼容。 */
+  /** Whether there is a manual edit; when an old caller does not provide it, treat it as compatible with dirty. */
   manuallyEdited?: boolean;
   setValue: (next: string, editedRange?: ImageParseTextRange, source?: 'user' | 'model') => void;
-  /** 与当前草稿同步的原图定位范围。 */
+  /** Original-image positioning ranges kept in sync with the current draft. */
   ranges: ReadonlyMap<string, ImageParseTextRange>;
-  /** 丢弃编辑，回到模型原始输出 */
+  /** Discard the edit and return to the model's raw output */
   reset: () => void;
-  /** 连续文档预览读取同一草稿缓存，不另建逐页编辑状态。 */
+  /** A continuous document preview reads the same draft cache and does not build a separate per-page edit state. */
   forResult?: (
     markdown: string,
     resultKey: string,
@@ -38,7 +38,7 @@ export interface ImageParseDraft {
   ) => ImageParseDraft;
 }
 
-/** 一次编辑：value 是改后的文本，base 是它当时基于的模型输出。 */
+/** One edit: value is the text after the change, and base is the model output it was based on at the time. */
 interface DraftEdit {
   resultKey: string;
   base: string;
@@ -48,9 +48,9 @@ interface DraftEdit {
 }
 
 /**
- * 把解析结果包装成可编辑草稿。
- * @param markdown 模型原始输出（流式期间会持续变化）
- * @param resultKey 文档与解析轮次标识，防止相同输出恢复上一轮的编辑
+ * Wrap a parse result as an editable draft.
+ * @param markdown raw model output (it keeps changing while streaming)
+ * @param resultKey document and parse-round id, so the same output does not restore the previous round's edit
  */
 export function useImageParseDraft(
   markdown: string,

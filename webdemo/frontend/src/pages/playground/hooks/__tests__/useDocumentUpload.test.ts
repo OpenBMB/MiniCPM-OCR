@@ -1,4 +1,4 @@
-/** 远端上传校验、重试、取消和过期响应隔离，均不访问真实资产服务。 */
+/** Remote-upload validation, retry, cancellation, and stale-response isolation, none of which touch the real asset service. */
 import { act, renderHook } from '@testing-library/react';
 import { createElement, type PropsWithChildren } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

@@ -1,10 +1,9 @@
 /**
- * 原图上的识别过程覆盖层。
+ * Recognition-process overlay on the original image.
  *
- * 用途：解析中在原图上叠扫描带与版面检出框，让「正在识别」看得见落在哪一块上，
- * 而不是只在右栏转一个圈。覆盖层与结果栏共用 useImageParse 的同一份进度快照。
+ * Purpose: while parsing, stack a scan band and detected layout boxes on the original so "recognition in progress" is visible on a particular block, rather than only a spinner in the right column. The overlay and the result column share the same progress snapshot from useImageParse.
  *
- * 共享案例使用固定演示坐标；真实文档在服务端返回坐标前只显示扫描带。
+ * Shared examples use fixed demo coordinates; a real document shows only the scan band until the server returns coordinates.
  */
 
 import { useTranslation } from 'react-i18next';
@@ -16,13 +15,13 @@ import type { ImageParseProgressSnapshot } from '../../utils/imageParseSimulatio
 interface ImageParseScanOverlayProps {
   blocks: readonly ImageParseLayoutBlock[];
   progress: ImageParseProgressSnapshot | null;
-  /** 是否正在解析；结束后覆盖层整体淡出 */
+  /** Whether parsing is in progress; when it ends the overlay fades out as a whole */
   active: boolean;
-  /** 原图地址，用它的 alpha 通道给覆盖层做遮罩 */
+  /** Original-image address, used as a mask for the overlay through its alpha channel */
   maskSrc: string;
 }
 
-/** 版面块类型 → 框线配色，走图表色板拿到足够区分度又不脱离 token。 */
+/** Layout-block type → box-stroke color, taken from the chart palette so they are distinct enough without leaving the tokens. */
 const KIND_STYLE: Record<ImageParseBlockKind, { idle: string; done: string }> = {
   header: { idle: 'border-chart-1/50', done: 'border-chart-1 bg-chart-1/10' },
   footer: { idle: 'border-chart-6/50', done: 'border-chart-6 bg-chart-6/10' },
@@ -37,15 +36,15 @@ const KIND_STYLE: Record<ImageParseBlockKind, { idle: string; done: string }> = 
   seal: { idle: 'border-destructive/50', done: 'border-destructive bg-destructive/10' },
 };
 
-/** 只给这几类块挂类型角标——16 个框全带文字会糊成一片。 */
+/** Hang a type badge only on these block kinds — text on all 16 boxes would blur into a mass. */
 const LABELLED_KINDS: readonly ImageParseBlockKind[] = ['header', 'footer', 'table', 'formula'];
 
 /**
- * 识别过程覆盖层。
- * @param blocks 归一化版面坐标，空数组表示这张图不画框
- * @param progress 当前进度快照
- * @param active 是否正在解析
- * @param maskSrc 原图地址，覆盖层只在图的不透明像素上显示
+ * Recognition-process overlay.
+ * @param blocks Normalized layout coordinates; an empty array means this image draws no boxes
+ * @param progress Current progress snapshot
+ * @param active Whether parsing is in progress
+ * @param maskSrc Original-image address; the overlay shows only on the image's opaque pixels
  */
 export function ImageParseScanOverlay({
   blocks,
@@ -62,9 +61,9 @@ export function ImageParseScanOverlay({
   const mask = `url(${JSON.stringify(maskSrc)})`;
 
   return (
-    // 覆盖层用原图自己的 alpha 做遮罩，而不是写死圆角或直角：
-    // 图自带圆角、透明抠图时，按矩形外框扫会让扫描线伸进透明区、凸出在图外；
-    // 按像素遮罩后，图是什么形状扫描就是什么形状。
+    // The overlay masks with the original image's own alpha, rather than hard-coding rounded or square corners:
+    // When the image has its own rounded corners or a transparent cutout, scanning the rectangular outer frame lets the scan line run into the transparent area and stick out past the image;
+    // After a per-pixel mask, the scan has whatever shape the image has.
     <div
       className="pointer-events-none absolute inset-0 overflow-hidden"
       style={{
@@ -77,7 +76,7 @@ export function ImageParseScanOverlay({
       }}
       aria-hidden="true"
     >
-      {/* 扫描带：无限来回的大面积动效，prefers-reduced-motion 下整块不渲染 */}
+      {/* Scan band: a large motion that travels back and forth forever. Under prefers-reduced-motion the whole block is not rendered */}
       <div className="absolute inset-0 motion-reduce:hidden">
         <div className="absolute inset-x-0 h-[14%] animate-[map-image-scan_1.9s_ease-in-out_infinite] bg-gradient-to-b from-transparent via-primary/15 to-transparent">
           <div className="absolute inset-x-0 bottom-0 h-px bg-primary/70 shadow-[0_0_8px_hsl(var(--primary)/0.6)]" />

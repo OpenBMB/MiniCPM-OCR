@@ -15,9 +15,9 @@ interface ImageParseBlocksOverlayProps {
 }
 
 /**
- * 统一样式的识别框，保留区域定位、阅读顺序与键盘交互，不展示置信度。
- * @param props 原始区域、联动状态与选择回调
- * @returns 与原图共用坐标系的识别框覆盖层
+ * Recognition boxes in one style. Keep region location, reading order, and keyboard interaction, and do not show confidence.
+ * @param props Original regions, linkage state, and selection callback
+ * @returns A recognition-box overlay that shares a coordinate system with the original image
  */
 export function ImageParseBlocksOverlay({
   blocks,
@@ -33,7 +33,7 @@ export function ImageParseBlocksOverlay({
     <div className="pointer-events-none absolute inset-0">
       {blocks.flatMap((block, order) => {
         const id = imageParseBlockId(block, order);
-        // 后端 order 从 0 开始；界面从 1 开始，避免用户把第一个块当成错误。
+        // Backend order starts at 0; the UI starts at 1, so users do not treat the first block as an error.
         const readingOrder = (block.order ?? order) + 1;
         return imageParseBlockRegions(block).map((region, regionIndex) => {
           const selected = id === selectedBlockId;
@@ -69,7 +69,7 @@ export function ImageParseBlocksOverlay({
                   onSelect(id);
                 }}
                 className={cn(
-                  // 边框独立于尺寸，避免极薄文本框被按钮边框最小高度撑大。
+                  // The border is independent of size, so a very thin text box is not stretched by the button border's minimum height.
                   'pointer-events-auto absolute inset-0 h-full w-full min-h-0 cursor-pointer overflow-visible rounded-sm border-0 bg-transparent p-0 hover:border-primary hover:bg-primary/10 hover:text-primary focus-visible:border-primary focus-visible:bg-primary/10 focus-visible:text-primary focus-visible:ring-2 focus-visible:ring-ring',
                   'border-border/60 text-muted-foreground after:pointer-events-none after:absolute after:-inset-px after:rounded-[inherit] after:border after:border-[color:inherit]',
                   (selected || highlighted) &&

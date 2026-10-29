@@ -1,5 +1,5 @@
 /**
- * metrics 派生纯函数单测：速率扣除首 token 延迟、指标项按数据存在与否纳入。
+ * Unit tests for metrics derived pure functions: rate excludes time-to-first-token, and metric items are included only when data exists.
  */
 
 import { describe, it, expect } from 'vitest';

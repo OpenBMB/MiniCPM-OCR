@@ -3,12 +3,12 @@ import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 
 import { cn } from '../../utils';
 
-/** 可通过鼠标、触屏与键盘操作的命令菜单根节点。 */
+/** Command menu root that can be used with mouse, touch, and keyboard. */
 export const DropdownMenu = DropdownMenuPrimitive.Root;
-/** 菜单触发器；asChild 复用现有按钮并保留其焦点与事件。 */
+/** Menu trigger; asChild reuses an existing button and keeps its focus and events. */
 export const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 
-/** 可选菜单项；受控状态和键盘交互由 Radix 统一处理。 */
+/** Selectable menu item; controlled state and keyboard interaction are handled by Radix. */
 export function DropdownMenuCheckboxItem({
   className,
   ...props
@@ -25,9 +25,9 @@ export function DropdownMenuCheckboxItem({
 }
 
 /**
- * 菜单浮层：通过 Portal 避免工作台裁剪，并在视口边缘自动调整位置。
- * @param props Radix 菜单内容属性
- * @returns 使用设计 token 的命令菜单
+ * Menu popover: a Portal keeps the workbench from clipping it, and it repositions at the viewport edge.
+ * @param props Radix menu content props.
+ * @returns A command menu that uses design tokens.
  */
 export function DropdownMenuContent({
   className,
@@ -49,9 +49,9 @@ export function DropdownMenuContent({
 }
 
 /**
- * 菜单命令项：统一触控尺寸、键盘高亮和禁用状态。
- * @param props 菜单项与选择回调
- * @returns 支持键盘导航的命令项
+ * Menu command item: shared touch size, keyboard highlight, and disabled state.
+ * @param props Menu item and selection callback.
+ * @returns A command item that supports keyboard navigation.
  */
 export function DropdownMenuItem({
   className,

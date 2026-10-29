@@ -35,7 +35,7 @@ function confirm(options: ConfirmOptions): Promise<boolean> {
  * Renders inside the existing React tree — no createRoot needed.
  */
 function ConfirmRenderer() {
-  // 懒初始化:挂载前若已有排队的 confirm(跨 MFE 场景),直接取最后一个,避免在 effect 里 setState
+  // Lazy init: if a confirm is already queued before mount (cross-MFE), take the last one, so setState is not called inside the effect.
   const [current, setCurrent] = useState<ConfirmPayload | null>(() =>
     pendingQueue.length > 0 ? pendingQueue[pendingQueue.length - 1]! : null,
   );
@@ -93,7 +93,7 @@ function ConfirmDialog({
 }: ConfirmDialogProps) {
   const [closing, setClosing] = useState(false);
 
-  // 关闭前先播放退出动画(180ms)再回调;用 useCallback 保证 effect 依赖稳定
+  // Play the exit animation (180ms) before closing, then call back; useCallback keeps the effect dependencies stable.
   const handleCancel = useCallback(() => {
     setClosing(true);
     setTimeout(onCancel, 180);
@@ -163,8 +163,8 @@ function ConfirmDialog({
       {/* Overlay */}
       <div
         className={cn(
-          // Radix modal Dialog 打开时会给 body 置 pointer-events:none；confirm 渲染在普通
-          // React 树里会继承该值导致整层不可点，必须显式恢复 pointer-events。
+          // An open Radix modal Dialog sets pointer-events:none on body; confirm renders in the normal
+          // React tree and would inherit that, making the whole layer unclickable, so pointer-events must be restored explicitly.
           'pointer-events-auto fixed inset-0 z-[80] bg-black/40 backdrop-blur-[2px]',
           closing
             ? '[animation:map-confirm-overlay-out_180ms_ease-in_forwards]'

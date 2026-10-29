@@ -1,16 +1,14 @@
 /**
- * 助手消息操作栏（复制 / 重新生成 / 点赞 / 点踩）。
+ * Assistant message action bar (copy / regenerate / thumbs-up / thumbs-down).
  *
- * 用途：挂在每条已完成的 assistant 消息下方。复制正文到剪贴板；重新生成截断重发；
- * 点赞/点踩切换本地高亮并触发 /feedback 上报（二者互斥、可再次点击取消）。
- * 联网来源不在这里：由回答正文下方的来源胶囊 SourcesChip 通往来源抽屉。
+ * Purpose: hangs under every completed assistant message. Copy the body to the clipboard; regenerate truncates and resends; thumbs-up/thumbs-down toggle the local highlight and report to /feedback (the two are mutually exclusive, and clicking again cancels). Web sources are not here: the SourcesChip under the answer body is the path to the source drawer.
  *
- * @param content     待复制的助手正文
- * @param feedback    当前反馈态（'up' | 'down' | undefined）
- * @param showRegenerate 是否展示「重新生成」（仅最后一条 assistant 为真，避免中间轮次重发误删后续对话）
- * @param onRegenerate 重新生成回调
- * @param onFeedback  切换反馈态回调（传入点击的类型，由上层做互斥/取消）
- * @param disableRegenerate 生成中禁用重新生成
+ * @param content     Assistant body to copy
+ * @param feedback    Current feedback state ('up' | 'down' | undefined)
+ * @param showRegenerate Whether to show "regenerate" (true only for the last assistant message, so resending a middle turn does not delete the conversation after it)
+ * @param onRegenerate Regenerate callback
+ * @param onFeedback  Toggle-feedback callback (the clicked type is passed in; the parent does mutual exclusion / cancel)
+ * @param disableRegenerate Disable regenerate while generating
  */
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -36,11 +34,11 @@ interface MessageActionsProps {
   onRegenerate: () => void;
   onFeedback: (kind: MessageFeedback) => void;
   disableRegenerate?: boolean;
-  /** 版本总数（>1 时显示 ‹n/N› 翻页器） */
+  /** Version count (show the ‹n/N› pager when >1) */
   versionCount?: number;
-  /** 当前版本索引（0 起） */
+  /** Current version index (starting at 0) */
   activeVersion?: number;
-  /** 切换到指定版本 */
+  /** Switch to the given version */
   onSwitchVersion?: (index: number) => void;
 }
 
@@ -57,9 +55,9 @@ export function MessageActions({
 }: MessageActionsProps) {
   const { toast } = useToast();
   const { t } = useTranslation('playground');
-  // 复制成功后短暂把图标切成对勾，给出即时反馈
+  // After a successful copy, briefly switch the icon to a check for immediate feedback
   const [copied, setCopied] = useState(false);
-  // 定时器 ref：组件卸载（切换会话等）时清理，避免卸载后 setState
+  // Timer ref: clear it when the component unmounts (switching sessions and the like) so setState does not run after unmount
   const copiedTimerRef = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(copiedTimerRef.current), []);
 
@@ -78,13 +76,13 @@ export function MessageActions({
     versionCount && versionCount > 1 && onSwitchVersion && activeVersion !== undefined,
   );
 
-  // 无「重新生成」、无正文、无多版本则整栏不渲染
+  // Render nothing for the whole bar when there is no "regenerate," no body, and no multiple versions
   if (!showRegenerate && !content && !showVersions) return null;
 
   return (
     <div className="mt-2">
       <div className="flex flex-wrap items-center gap-0.5">
-        {/* 版本翻页器：仅多版本回答显示 ‹ n/N › */}
+        {/* Version pager: show ‹ n/N › only for multi-version answers */}
         {showVersions && (
           <VersionSwitcher
             count={versionCount!}
@@ -103,7 +101,7 @@ export function MessageActions({
           </ActionButton>
         )}
 
-        {/* 复制/点赞/点踩仅在有正文时有意义；失败消息(无正文)只保留「重新生成」。 */}
+        {/* Copy / thumbs-up / thumbs-down are meaningful only when there is a body; a failed message (no body) keeps only "regenerate." */}
         {content && (
           <>
             <ActionButton label={copied ? t('copied') : t('copy')} onClick={handleCopy}>
@@ -144,7 +142,7 @@ export function MessageActions({
   );
 }
 
-/** 版本翻页器：‹ 2/3 ›，左右箭头切换回答版本；到头/到尾时对应箭头禁用 */
+/** Version pager: ‹ 2/3 ›. Left and right arrows switch the answer version; the matching arrow is disabled at the start or the end */
 function VersionSwitcher({
   count,
   active,
@@ -182,7 +180,7 @@ function VersionSwitcher({
   );
 }
 
-/** 单个图标按钮：带 Tooltip、hover 高亮、激活态（点赞/点踩选中）配色 */
+/** A single icon button: Tooltip, hover highlight, and active-state color (thumbs-up / thumbs-down selected) */
 function ActionButton({
   label,
   onClick,

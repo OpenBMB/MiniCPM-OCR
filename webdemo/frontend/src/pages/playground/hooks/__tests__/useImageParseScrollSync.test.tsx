@@ -105,7 +105,7 @@ describe('useImageParseScrollSync', () => {
     node.scrollTop = 200;
     act(() => result.current.onResultScroll(scrollEvent(node)));
     expect(result.current.originProps.scrollProgress).toBe(0.25);
-    // 高度变化后的确认不能反向覆盖结果栏的位置。
+    // Confirmation after a height change must not overwrite the result column's position in the other direction.
     Object.defineProperty(node, 'scrollHeight', { value: 2000 });
     act(() => result.current.originProps.onScrollProgress(0.25));
     expect(node.scrollTop).toBe(200);

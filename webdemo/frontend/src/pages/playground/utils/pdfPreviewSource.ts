@@ -1,6 +1,6 @@
-/** 修复已知的空增量更新交叉引用尾部；正常 PDF 保留原始字节。 */
+/** Repair a known empty incremental-update cross-reference trailer; a normal PDF keeps its original bytes. */
 export function trimEmptyPdfRevision(data: Uint8Array): Uint8Array {
-  // 只检查文件末尾：扫描正文可能误认图像流中的 xref/%%EOF 为结构标记。
+  // Check only the end of the file: scanning the body could mistake xref/%%EOF inside an image stream for a structure marker.
   const tailStart = Math.max(0, data.length - 2048);
   const tail = new TextDecoder('latin1').decode(data.subarray(tailStart));
   const lastPointer = /startxref\s+(\d+)\s+%%EOF\s*$/.exec(tail);

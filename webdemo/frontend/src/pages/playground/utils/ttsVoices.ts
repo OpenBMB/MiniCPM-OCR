@@ -1,58 +1,58 @@
 /**
- * 体验中心「语音合成」音色目录、参考音频加载与合成参数常量。
+ * Voice catalog, reference-audio loading, and synthesis-parameter constants for experience-center "speech synthesis".
  *
- * 用途：VoxCPM 是零样本克隆模型，无命名音色库——音色只能来自参考音频（ref_audio），且上游对未知
- * voice 直接 4xx，故请求恒发 voice=default。「预置示范音色」与「上传复刻」底层同为一条 ref_audio
- * 路，仅音频来源不同：默认音色（不带 ref_audio）/ 预置音色（内置 wav → data URI）/ 上传复刻
- * （用户上传 → data URI）。本模块提供音色目录、「预置 wav → data URI」的加载与合成参数常量。纯前端。
+ * Purpose: VoxCPM is a zero-shot clone model and has no named voice library — a voice can come only from reference audio (ref_audio), and the upstream
+ * returns 4xx directly for an unknown voice, so the request always sends voice=default. "Preset demo voices" and "upload a clone" are the same ref_audio
+ * path underneath, and differ only in where the audio comes from: the default voice (no ref_audio) / a preset voice (built-in wav → data URI) / an uploaded clone
+ * (user upload → data URI). This module provides the voice catalog, loading of "preset wav → data URI", and synthesis-parameter constants. Frontend only.
  */
 
 import type { MapVoiceResource } from '@/api/map';
 import { arrayBufferToBase64, blobToPcm16kBase64 } from './audioEncode';
 
-/** 上传复刻哨兵值：选中后展示上传控件，ref_audio 来自用户上传 */
+/** Sentinel for an uploaded clone: once selected, show the upload control, and ref_audio comes from the user upload */
 export const VOICE_UPLOAD = '__upload__';
 
-/** 默认音色值：不带 ref_audio，走上游默认发音 */
+/** Default voice value: no ref_audio, and the upstream default pronunciation is used */
 export const VOICE_DEFAULT = 'default';
 
-/** 参考音频解码后大小上限（5 MiB，对齐 LIS 契约 §4.5，超限上游返回 413） */
+/** Size cap for decoded reference audio (5 MiB, aligned with LIS contract §4.5; over the limit the upstream returns 413) */
 export const REF_AUDIO_MAX_BYTES = 5 * 1024 * 1024;
 
-/** 示例文案 */
+/** Example copy */
 export const TTS_SAMPLES = [
   '欢迎来到面壁智能 API 平台，这里可以体验语音合成的自然表现力。',
   '今天天气晴朗，微风拂面，正适合出门散步、感受大自然的美好。',
   '尊敬的用户您好，您的订单已发货，预计三天内送达，请注意查收。',
 ];
 
-/** 合成文本上限 */
+/** Synthesis text cap */
 export const TTS_MAX_LEN = 2000;
 
-/** 引导强度（cfg_value）范围：越高越贴合提示/参考音色，越低越自由（对齐官方 1.0–3.0） */
+/** Guidance strength (cfg_value) range: higher sticks closer to the prompt and reference voice, lower is freer (aligned with the official 1.0–3.0) */
 export const TTS_CFG_MIN = 1;
 export const TTS_CFG_MAX = 3;
 export const TTS_CFG_STEP = 0.1;
 export const TTS_CFG_DEFAULT = 2;
 
-/** 参考音频时长上限（秒），对齐官方 VoxCPM2 demo 的 50s */
+/** Reference-audio duration cap (seconds), aligned with the official VoxCPM2 demo's 50s */
 export const TTS_REF_MAX_SECONDS = 50;
 
-/** 一个可选音色 */
+/** One selectable voice */
 export interface TtsVoice {
   value: string;
   label: string;
-  /** 预置音色的参考音频地址（相对 public，经 BASE_URL 前缀）；默认/上传项为空 */
+  /** Reference-audio URL of a preset voice (relative to public, prefixed by BASE_URL); empty for the default and upload items */
   refPath?: string;
 }
 
 /**
- * 判断私有音色是否已完成归属校验。
+ * Whether a private voice has finished its ownership check.
  *
- * @param voice 当前选择值
- * @param savedVoices 当前登录用户可见的音色
- * @param listLoaded 音色列表是否已成功加载
- * @returns 预置音色始终可用；私有音色只有在列表成功加载且命中时才可提交
+ * @param voice current selection
+ * @param savedVoices voices visible to the currently logged-in user
+ * @param listLoaded whether the voice list loaded successfully
+ * @returns a preset voice is always usable; a private voice can be submitted only when the list loaded successfully and it is in the list
  */
 export function isSavedVoiceReady(
   voice: string,
@@ -63,7 +63,7 @@ export function isSavedVoiceReady(
   return listLoaded && savedVoices.some((savedVoice) => savedVoice.id === voice);
 }
 
-/** 权限收回或私有音色失效时，将当前选择收敛到可安全提交的音色。 */
+/** When permission is revoked or a private voice is no longer valid, collapse the current selection to a voice that can be submitted safely. */
 export function resolveTtsVoice(
   voice: string,
   canUseCustomVoice: boolean,
@@ -84,9 +84,9 @@ export function resolveTtsVoice(
 }
 
 /**
- * 音色目录：默认音色 + 预置示范音色 + 上传复刻。
- * value 仅作前端选择器标识，**不进请求体**（请求恒发 voice=default）；音色差异全靠 refPath 指向的参考音频。
- * 预置素材放在 portal `public/voices/`，运营补充素材时在此追加即可。
+ * Voice catalog: default voice + preset demo voices + uploaded clone.
+ * value is only a frontend picker id and **does not enter the request body** (the request always sends voice=default); voice differences come entirely from the reference audio refPath points at.
+ * Preset assets live in portal `public/voices/`; when operations adds an asset, append it here.
  */
 export const TTS_VOICES: TtsVoice[] = [
   { value: VOICE_DEFAULT, label: 'voiceDefault' },
@@ -96,11 +96,11 @@ export const TTS_VOICES: TtsVoice[] = [
 ];
 
 /**
- * 返回当前模式可展示的预置音色。
+ * Return the preset voices the current mode can show.
  *
- * @param mode 普通生成或上传复刻模式
- * @param canUseCustomVoice 当前用户是否可使用自定义音色入口
- * @returns 普通生成始终包含默认和预置音色；上传复刻仅对获授权用户展示
+ * @param mode ordinary generation, or upload-a-clone mode
+ * @param canUseCustomVoice whether the current user may use the custom-voice entry
+ * @returns ordinary generation always includes the default and preset voices; upload-a-clone is shown only to an authorized user
  */
 export function ttsVoicesForMode(
   mode: 'generate' | 'clone',
@@ -110,7 +110,7 @@ export function ttsVoicesForMode(
   return canUseCustomVoice ? TTS_VOICES.filter((voice) => voice.value === VOICE_UPLOAD) : [];
 }
 
-/** 权限在页面停留期间被收回时立即回退普通生成，避免继续显示自定义音色控件。 */
+/** When permission is revoked while the page stays open, fall back to ordinary generation immediately, so the custom-voice control is not kept on screen. */
 export function resolveTtsMode(
   mode: 'generate' | 'clone',
   canUseCustomVoice: boolean,
@@ -118,18 +118,18 @@ export function resolveTtsMode(
   return mode === 'clone' && !canUseCustomVoice ? 'generate' : mode;
 }
 
-/** 预置音色参考音频的 data URI 缓存（避免重复合成时反复 fetch 同一素材） */
+/** data-URI cache of preset-voice reference audio (so repeated synthesis does not fetch the same asset again) */
 const refCache = new Map<string, string>();
 const realtimeRefCache = new Map<string, string>();
 
 /**
- * 加载预置音色的参考音频并转为 `data:audio/wav;base64,...`。
+ * Load a preset voice's reference audio and convert it to `data:audio/wav;base64,...`.
  *
- * 选 data URI 而非直传 URL：契约只接受内联 Base64 WAV，不接受任何 URL（上游不会去拉取外部地址）。
- * 素材超过 5 MiB 会被上游 413 拒绝，故此处先行拦截给出可读文案。
- * @param refPath public 相对路径（如 `voices/demo-a.wav`）
- * @returns 可作 ref_audio 传入的 data URI
- * @throws Error 素材加载失败或超过大小上限（含可读文案）
+ * A data URI is chosen over passing a URL through: the contract accepts only an inline Base64 WAV, and no URL (the upstream will not fetch an external address).
+ * An asset over 5 MiB is rejected by the upstream with 413, so it is blocked here first with readable copy.
+ * @param refPath path relative to public (such as `voices/demo-a.wav`)
+ * @returns a data URI that can be passed as ref_audio
+ * @throws Error when the asset fails to load or exceeds the size cap (with readable copy)
  */
 export async function fetchRefAudioDataUri(refPath: string): Promise<string> {
   const cached = refCache.get(refPath);
@@ -147,10 +147,10 @@ export async function fetchRefAudioDataUri(refPath: string): Promise<string> {
 }
 
 /**
- * 加载并转换实时双工参考音频为 16kHz mono 裸 float32 PCM base64。
+ * Load and convert realtime duplex reference audio to 16kHz mono raw float32 PCM base64.
  *
- * @param refPath public 相对路径
- * @returns 符合 Realtime voice 协议的参考音频 base64
+ * @param refPath path relative to public
+ * @returns reference-audio base64 that matches the Realtime voice protocol
  */
 export async function fetchRealtimeRefAudioBase64(refPath: string): Promise<string> {
   const cached = realtimeRefCache.get(refPath);
@@ -163,28 +163,28 @@ export async function fetchRealtimeRefAudioBase64(refPath: string): Promise<stri
   return base64;
 }
 
-// ---------- 声音描述（Control Instruction） ----------
+// ---------- Voice description (Control Instruction) ----------
 
-/** 声音描述哨兵值：不使用（自然发音，不注入 control 前缀）。
- *  注意用非空串——Radix Select 的 SelectItem value 不允许空字符串（空串专用于清空选择显示占位）。 */
+/** Voice-description sentinel: none (natural pronunciation, no control prefix injected).
+ *  Must be a non-empty string — Radix Select's SelectItem value does not allow an empty string (the empty string is reserved for clearing the selection and showing the placeholder). */
 export const CONTROL_NONE = 'none';
 
-/** 声音描述哨兵值：自定义（展开输入框，用户自由填写） */
+/** Voice-description sentinel: custom (expand the input, and the user types freely) */
 export const CONTROL_CUSTOM = '__custom__';
 
-/** 一个声音描述预设 */
+/** One voice-description preset */
 export interface ControlPreset {
   value: string;
   label: string;
-  /** 声音描述文本（以 `(control)` 前缀注入 input）；哨兵项为空串 */
+  /** Voice-description text (injected into input with a `(control)` prefix); empty for sentinel items */
   control: string;
-  /** 配套示例目标文案（选中预设时一并填入合成文本，便于快速试听） */
+  /** Matching example target copy (filled into the synthesis text when a preset is selected, so it can be previewed quickly) */
   sampleText?: string;
 }
 
 /**
- * 声音描述预设目录：不使用 / 若干风格预设 / 自定义。
- * 预设文本对齐官方 VoxCPM2 demo 的声音描述示例（含方言）；运营可在此追加。
+ * Voice-description preset catalog: none / several style presets / custom.
+ * Preset text is aligned with the official VoxCPM2 demo's voice-description examples (including dialects); operations can append more here.
  */
 export const TTS_CONTROL_PRESETS: ControlPreset[] = [
   { value: CONTROL_NONE, label: 'voiceControlNone', control: '' },
@@ -221,16 +221,16 @@ export const TTS_CONTROL_PRESETS: ControlPreset[] = [
   { value: CONTROL_CUSTOM, label: 'voiceControlCustom', control: '' },
 ];
 
-/** 一条声音描述用法示例（用于「查看示例」弹窗，对齐官方示例与方言指南） */
+/** One voice-description usage example (for the "view examples" dialog, aligned with the official examples and dialect guide) */
 export interface ControlExample {
   title: string;
   control: string;
   targetText: string;
-  /** 方言项：错误示范（普通话原文），与 targetText 对比说明「方言要写方言词句」 */
+  /** Dialect item: a wrong example (Mandarin original), contrasted with targetText to show "a dialect must be written in dialect wording" */
   wrongText?: string;
 }
 
-/** 声音描述示例（对齐官方 demo：角色扮演 + 方言生成指南） */
+/** Voice-description examples (aligned with the official demo: role-play + dialect generation guide) */
 export const TTS_CONTROL_EXAMPLES: ControlExample[] = [
   {
     title: 'voiceExampleEmpress',

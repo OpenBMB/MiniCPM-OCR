@@ -2,21 +2,21 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { UseQueryOptions } from '@tanstack/react-query';
 
 /**
- * 服务端状态查询范式（团队复制模板）。
+ * Server-state query pattern (team copy template).
  *
- * 用途：演示「服务端可缓存数据」的标准写法——用 TanStack Query，而非 useState+useEffect
- * 手撸（硬规则 #4）。新功能域照此文件复制：定义 queryKey 工厂 + useXxxQuery/useXxxMutation。
+ * Purpose: show the standard way to write server-cacheable data — TanStack Query, rather than useState+useEffect
+ * hand-written (hard rule #4). Copy this file for a new feature area: define a queryKey factory plus useXxxQuery/useXxxMutation.
  *
- * 与 ahooks useApi 的分工（重要，避免两套方案混用）：
- * - TanStack Query（本文件）：服务端「可缓存状态」——列表、详情、Leaderboard 等读多写少、
- *   需要缓存 / 自动失效 / 跨组件共享的数据。
- * - ahooks useApi（hooks/useApi.ts）：命令式「一次性动作」——登录、提交表单、上传等
- *   不进缓存、手动触发的副作用。
+ * Division of work with ahooks useApi (important, so the two approaches are not mixed):
+ * - TanStack Query (this file): server cacheable state — lists, details, leaderboards, and other read-heavy data
+ *   that needs caching, automatic invalidation, or sharing across components.
+ * - ahooks useApi (hooks/useApi.ts): imperative one-shot actions — login, form submit, upload, and similar
+ *   side effects that are not cached and are triggered manually.
  *
- * queryKey 约定：用工厂函数集中管理，避免散落的字符串数组拼写漂移，便于精确失效缓存。
+ * queryKey convention: manage keys in factory functions so scattered string arrays do not drift, and so caches can be invalidated precisely.
  */
 
-/** queryKey 工厂：集中管理某功能域的所有缓存键 */
+/** queryKey factory: centralize every cache key for a feature area */
 export const exampleKeys = {
   all: ['example'] as const,
   lists: () => [...exampleKeys.all, 'list'] as const,
@@ -37,13 +37,13 @@ export interface ExampleItem {
 }
 
 /**
- * 查询列表（演示）。
+ * Query a list (demo).
  *
- * 真实接入时把 queryFn 换成 `() => request.get<PageResult<ExampleItem>>('/xxx', { params })`，
- * 请求层已做解包，直接返回数据。此处用 mock Promise 占位，保证无后端也能跑通范式。
+ * When wiring a real API, replace queryFn with `() => request.get<PageResult<ExampleItem>>('/xxx', { params })`.
+ * The request layer already unwraps the payload and returns data directly. A mock Promise stands in here so the pattern runs without a backend.
  *
- * @param params 分页与筛选参数
- * @param options 透传给 useQuery 的额外配置（如 enabled 控制依赖查询）
+ * @param params Pagination and filter parameters
+ * @param options Extra config passed through to useQuery (for example enabled, to control dependent queries)
  */
 export function useExampleListQuery(
   params: ExampleListParams,
@@ -52,7 +52,7 @@ export function useExampleListQuery(
   return useQuery({
     queryKey: exampleKeys.list(params),
     queryFn: async (): Promise<ExampleItem[]> => {
-      // TODO(接真实接口): return request.get<ExampleItem[]>('/example/list', { params });
+      // TODO(wire the real API): return request.get<ExampleItem[]>('/example/list', { params });
       return [{ id: '1', name: '示例条目' }];
     },
     ...options,
@@ -60,21 +60,21 @@ export function useExampleListQuery(
 }
 
 /**
- * 提交并使列表缓存失效（演示 mutation + 缓存失效）。
+ * Submit and invalidate the list cache (demo mutation plus cache invalidation).
  *
- * 成功后用 invalidateQueries 让相关列表自动重拉，保证「写后读一致」，
- * 这是相对手撸方案最大的收益点：无需手动同步本地状态。
+ * On success, invalidateQueries refetches the related lists so reads after writes stay consistent.
+ * This is the main gain over a hand-written approach: local state does not have to be synced by hand.
  */
 export function useCreateExampleMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (input: { name: string }): Promise<ExampleItem> => {
-      // TODO(接真实接口): return request.post<ExampleItem>('/example', input);
+      // TODO(wire the real API): return request.post<ExampleItem>('/example', input);
       return { id: '2', name: input.name };
     },
     onSuccess: () => {
-      // 让该功能域所有列表查询失效 → 自动重新获取
+      // Invalidate every list query in this feature area so they refetch automatically
       queryClient.invalidateQueries({ queryKey: exampleKeys.lists() });
     },
   });

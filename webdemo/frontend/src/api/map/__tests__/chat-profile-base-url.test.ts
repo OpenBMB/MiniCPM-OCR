@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 /**
- * 验证不同部署 profile 下 Playground 直连 L2 的 API 域名。
- * GCP 构建曾遗漏 VITE_CHAT_BASE_URL，导致空值回落到华为云 .cn 域名。
+ * Verify the Playground direct-to-L2 API hostname under different deploy profiles.
+ * A GCP build once omitted VITE_CHAT_BASE_URL, so an empty value fell back to the Huawei Cloud .cn hostname.
  */
 describe('Playground API 域名 profile 回退', () => {
   afterEach(() => {
@@ -44,7 +44,7 @@ describe('Playground API 域名 profile 回退', () => {
   });
 });
 
-/** 构造一个立即结束的 SSE 响应。 */
+/** Build an SSE response that ends immediately. */
 function sseResponse(chunks: string[]): Response {
   const encoder = new TextEncoder();
   const stream = new ReadableStream<Uint8Array>({

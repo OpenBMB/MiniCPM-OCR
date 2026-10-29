@@ -1,8 +1,7 @@
 /**
- * 输入框底部工具行。
+ * Tool row at the bottom of the input.
  *
- * 用途：呈现输入框底部的工具按钮组。附件上传（图像/视频/音频/文件）、联网搜索与思考深度均为真功能，
- * 点击切换开/关（联网 → L3 Playground BFF，思考 → reasoning_effort/enable_thinking）。
+ * Purpose: present the tool button group under the input. Attachment upload (image/video/audio/file), web search, and reasoning depth are all real features. Click toggles them on/off (web search → L3 Playground BFF, reasoning → reasoning_effort/enable_thinking).
  */
 
 import { useTranslation } from 'react-i18next';
@@ -15,30 +14,30 @@ import type { AttachmentKind, ThinkingDepth } from '../types';
 interface ComposerToolbarProps {
   thinkingDepth: ThinkingDepth;
   onThinkingDepthChange: (depth: ThinkingDepth) => void;
-  /** 当前模型是否允许展示思考（false 时隐藏思考开关） */
+  /** Whether the current model may show reasoning (when false, hide the reasoning switch) */
   showReasoning: boolean;
-  /** 当前模型是否允许展示联网搜索入口 */
+  /** Whether the current model may show the web-search entry */
   webSearchAvailable: boolean;
-  /** 联网搜索开关 */
+  /** Web-search switch */
   webSearch: boolean;
   onWebSearchChange: (webSearch: boolean) => void;
-  /** 点击附件按钮（上传图像/视频/音频/文件） */
+  /** Click the attachment button (upload image/video/audio/file) */
   onAttach: () => void;
-  /** 当前模型是否支持至少一种附件模态 */
+  /** Whether the current model supports at least one attachment modality */
   canAttach: boolean;
-  /** 当前模型允许上传的附件模态 */
+  /** Attachment modalities the current model allows uploading */
   attachmentKinds: AttachmentKind[];
 }
 
 /**
- * 工具行。
- * @param thinkingDepth 当前思考深度（off/on）
- * @param onThinkingDepthChange 思考深度变更回调
- * @param showReasoning 当前模型是否允许展示思考（false 时不渲染思考按钮）
- * @param webSearchAvailable 当前模型是否允许展示联网搜索入口
- * @param webSearch 是否开启联网搜索
- * @param onWebSearchChange 联网开关变更回调
- * @param onAttach 附件上传触发
+ * Tool row.
+ * @param thinkingDepth Current reasoning depth (off/on)
+ * @param onThinkingDepthChange Reasoning-depth change callback
+ * @param showReasoning Whether the current model may show reasoning (when false, do not render the reasoning button)
+ * @param webSearchAvailable Whether the current model may show the web-search entry
+ * @param webSearch Whether web search is on
+ * @param onWebSearchChange Web-search switch change callback
+ * @param onAttach Attachment-upload trigger
  */
 export function ComposerToolbar({
   thinkingDepth,
@@ -57,7 +56,7 @@ export function ComposerToolbar({
   const enabled = thinkingDepth !== 'off';
   return (
     <div className="flex items-center gap-1.5">
-      {/* 附件 +：上传图像/视频/音频/文件 */}
+      {/* Attachment +: upload image/video/audio/file */}
       {canAttach && (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -92,7 +91,7 @@ export function ComposerToolbar({
         </Tooltip>
       )}
 
-      {/* 联网搜索：入口与后端部署开关保持一致。 */}
+      {/* Web search: the entry stays consistent with the backend deployment switch. */}
       {webSearchAvailable ? (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -124,7 +123,7 @@ export function ComposerToolbar({
         </Tooltip>
       ) : null}
 
-      {/* 思考深度：仅支持深度思考的模型展示，默认关闭仍可手动开启。 */}
+      {/* Reasoning depth: shown only for models that support deep reasoning; off by default and can still be turned on manually. */}
       {showReasoning && (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -161,12 +160,10 @@ export function ComposerToolbar({
 }
 
 /**
- * 工具行开关按钮的样式。
+ * Styles for a tool-row toggle button.
  *
- * 联网搜索与思考深度共用同一套视觉：两者都是「给本次回答附加一种能力」的同级开关，
- * 早先联网用实底、思考用弱底，并排时视觉权重打架。统一取思考深度的弱底方案
- * （实底在输入框里只留给发送按钮）。抽成一处也避免两个开关日后再次漂移。
- * @param active 开关是否处于开启态
+ * Web search and reasoning depth share one visual treatment: both are peer switches that "add a capability to this answer." Earlier, web search used a solid fill and reasoning a weak fill, and side by side their visual weights fought. Use the reasoning-depth weak fill for both (a solid fill inside the input is reserved for the send button). Pulling it into one place also keeps the two switches from drifting apart later.
+ * @param active Whether the switch is on
  */
 function toolbarToggleClassName(active: boolean): string {
   return cn(

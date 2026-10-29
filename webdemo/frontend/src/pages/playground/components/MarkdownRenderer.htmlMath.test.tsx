@@ -77,7 +77,7 @@ describe('OCR HTML 表格内公式', () => {
         content={`<table><tr>${formulas.map((formula) => `<td>${formula}</td>`).join('')}</tr></table>`}
       />,
     );
-    // tag 仅适用于 displayMode；行内模式仍保留源码和安全回退。
+    // tag applies only in displayMode; inline mode still keeps the source and the safe fallback.
     const expectedErrors = latex.includes('\\tag') ? 2 : 0;
     expect(container.querySelectorAll('.katex')).toHaveLength(4 - expectedErrors);
     expect(container.querySelectorAll('.katex-error')).toHaveLength(expectedErrors);

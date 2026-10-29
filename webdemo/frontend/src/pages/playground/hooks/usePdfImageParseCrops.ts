@@ -4,7 +4,7 @@ import { rebuildPdfPageCrops } from '../utils/pdfImageParseCrops';
 import { unservedImagePlaceholderOffsets } from '../utils/imageParseCrops';
 import type { PdfPageResult } from '../utils/pdfImageParse';
 
-/** 历史 PDF 只重建可见页的缺失裁图，换页或替换文档即取消旧渲染。 */
+/** A history PDF rebuilds only missing crops of the visible page, and changing the page or replacing the document cancels the old render. */
 export function usePdfImageParseCrops(
   source: string,
   page: number,
@@ -20,7 +20,7 @@ export function usePdfImageParseCrops(
         if (!active.signal.aborted) onReady(page, result, crops);
       })
       .catch(() => {
-        // 无法裁切时保留已保存的正文；不重新识别或覆盖页结果。
+        // When it cannot be cropped, keep the saved body; do not run recognition again or overwrite the page result.
       });
     return () => active.abort();
   }, [source, page, current, onReady]);

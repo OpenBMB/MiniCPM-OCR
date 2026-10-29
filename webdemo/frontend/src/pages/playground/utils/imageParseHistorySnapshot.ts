@@ -102,12 +102,12 @@ function result(
       )
     ) {
       const reconciled = reconcileImageParseMarkdown(deduplicated, safe);
-      // 恢复旧映射只接受正文不变的结果，不向已编辑的缓存补写识别原文。
+      // Restoring an old mapping accepts only a result whose body is unchanged, and does not write recognition source text back into an already edited cache.
       if (reconciled.markdown === deduplicated) {
         parsed = validateImageParseSdkResult(reconciled, { allowEmptyMarkdown });
       }
     }
-    // OCR 范围签名允许随历史缓存；只保留白名单字段，不按本地时间丢弃过期原件。
+    // An OCR range signature may travel with the history cache; keep only allowlisted fields, and do not drop an expired original by local time.
     const safeSource = sanitizeImageParseSource(source);
     const safeRotation = sanitizeImageParseRotation(rotation);
     return {
@@ -134,7 +134,7 @@ function pdfSnapshot(value: unknown): PdfImageParseSnapshot | null {
     !record(value.results)
   )
     return null;
-  // 刚上传、页数还未知时先记下原件，打开后再继续解析。
+  // Just after upload, while the page count is still unknown, record the original first and continue parsing after it is opened.
   if (value.pages === 0) return { page: 1, pages: 0, results: {} };
   const results: Record<number, PdfPageResult> = {};
   for (const [index, page] of Object.entries(value.results)) {
@@ -165,10 +165,10 @@ function pdfSnapshot(value: unknown): PdfImageParseSnapshot | null {
 }
 
 /**
- * 校验快照并按字段白名单重建；远程原件仅允许恢复阶段的 fileId 签链及固定共享 PDF。
- * @param value hook 快照、IndexedDB 或云端接口读出的不可信数据
- * @param options local 保留原件 dataUrl；cloud 优先只保存稳定 fileId
- * @returns 可保存快照，损坏/示例数据返回 null
+ * Validate the snapshot and rebuild it from a field allowlist; a remote original may only be a fileId signed URL from the restore phase, or the fixed shared PDF.
+ * @param value untrusted data read from a hook snapshot, IndexedDB, or the cloud API
+ * @param options local keeps the original dataUrl; cloud prefers to save only the stable fileId
+ * @returns a snapshot that can be saved; null for corrupt or example data
  */
 export function sanitizeImageParseSnapshot(
   value: unknown,
@@ -225,8 +225,8 @@ export function sanitizeImageParseSnapshot(
     };
   }
   const parsed = result(value.markdown, value.layout, value.source, value.rotation, mode === 'seal');
-  // 图片刚上传、识别还没结束时只保留原件，打开后继续识别。
-  // 共享案例只在预览场景允许空结果；预览其他图片时不得把空正文当成识别结果。
+  // Just after an image is uploaded, before recognition has finished, keep only the original and continue recognition after it is opened.
+  // A shared example may have an empty result only in the preview scene; when previewing another image, an empty body must not be treated as a recognition result.
   if (
     !parsed &&
     options.allowSharedImagePreview !== true &&

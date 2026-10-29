@@ -1,23 +1,23 @@
 import type { ImageParseLayoutBlock } from './imageParseSample';
 import { imageParseBlockId, imageParseConfidence } from './imageParseBlocks';
 
-/** 界面分流阈值，仅用于提示复核，不代表校准后的正确概率。 */
+/** UI split threshold, used only to suggest review, and not a calibrated probability of correctness. */
 export const IMAGE_PARSE_REVIEW_THRESHOLD = 0.8;
 
 /**
- * 原文档框色分级阈值（第一期临时标准，由平台统一配置，暂不开放用户调整）：
- * 低于 99% 使用淡灰色框，99% 及以上使用深绿色并加粗框线。
+ * Color tiers for boxes on the original document (a temporary first-phase standard, configured by the platform, not yet open for users to adjust):
+ * below 99% uses a light gray box; 99% and above uses dark green and a thicker stroke.
  */
 export const IMAGE_PARSE_CONFIDENCE_ERROR_MAX = 0.2;
 export const IMAGE_PARSE_CONFIDENCE_HIGH_MIN = 0.99;
 
-/** 置信度色块分级；缺失或非法分数为中性色，不参与红黄绿判断。 */
+/** Confidence color tiers; a missing or illegal score is a neutral color and does not take part in the red/yellow/green decision. */
 export type ImageParseConfidenceLevel = 'error' | 'low' | 'high' | 'neutral';
 
 /**
- * 按平台统一阈值给有效分数分级。
- * @param confidence 服务返回的 0–1 分数，或 null/非法值
- * @returns 色块分级：低于 20% 为 error、20%–99% 为 low、99% 及以上为 high，其余为 neutral；界面将非 high 统一渲染为淡灰色
+ * Tier a valid score by the platform's unified threshold.
+ * @param confidence 0–1 score returned by the service, or null/an illegal value
+ * @returns color tier: below 20% is error, 20%–99% is low, 99% and above is high, otherwise neutral; the UI renders anything that is not high as light gray
  */
 export function imageParseConfidenceLevel(confidence: number | null): ImageParseConfidenceLevel {
   if (confidence === null || !Number.isFinite(confidence) || confidence < 0 || confidence > 1)
@@ -27,18 +27,18 @@ export function imageParseConfidenceLevel(confidence: number | null): ImageParse
   return 'high';
 }
 
-/** 原图框线与分数列共用状态分级，失败优先标红，跳过保持中性。 */
+/** Original-image box strokes and the score column share status tiers; failure is marked red first, and skip stays neutral. */
 export function imageParseBlockConfidenceLevel(
   block: ImageParseLayoutBlock,
 ): ImageParseConfidenceLevel {
-  // 跨页表格合并后的 score 来自合并前半表，不能当作当前完整表格质量。
+  // After a cross-page table merge, score comes from the first half of the table before the merge and cannot be treated as the quality of the current full table.
   if (block.ttsInvalid) return 'neutral';
   if (block.status === 'skipped_no_vlm') return 'neutral';
   if (block.status && block.status !== 'ok') return 'error';
   return imageParseConfidenceLevel(block.confidence);
 }
 
-/** 跳过、失败、纯图与无分数的块没有可重算的文字；旧演示允许省略状态。 */
+/** Skipped, failed, image-only, and unscored blocks have no text that can be recomputed; the old demo may omit status. */
 export function imageParseBlockCanRegenerate(block: ImageParseLayoutBlock): boolean {
   return (
     !block.ttsInvalid &&
@@ -49,7 +49,7 @@ export function imageParseBlockCanRegenerate(block: ImageParseLayoutBlock): bool
   );
 }
 
-/** 保留阅读顺序的有分数区块。 */
+/** Scored blocks kept in reading order. */
 export interface ImageParseQualityItem {
   id: string;
   order: number;
@@ -58,7 +58,7 @@ export interface ImageParseQualityItem {
   suggested: boolean;
 }
 
-/** 汇总服务实际提供的有效分数；缺失与非法值不补造，0 仍是有效分数。 */
+/** Summarize valid scores the service actually provided; missing and illegal values are not invented, and 0 is still a valid score. */
 export function imageParseQuality(blocks: readonly ImageParseLayoutBlock[]) {
   const scored: ImageParseQualityItem[] = [];
   blocks.forEach((block, order) => {
@@ -85,11 +85,11 @@ export function imageParseQuality(blocks: readonly ImageParseLayoutBlock[]) {
 }
 
 /**
- * 给复核列表生成可读摘要。服务可能把 HTML 片段放在 text 或 markdown 中，
- * 列表只展示文本内容，避免把表格标签直接暴露给用户。
+ * Build a readable summary for the review list. The service may put an HTML fragment in text or markdown,
+ * and the list shows only text content, so table tags are not exposed to the user directly.
  *
- * 图片节点（如 `![image]()`）没有可读文本、也没有有效地址，属于无意义内容，直接丢弃；
- * 链接只保留文字，避免把 URL 当正文。清洗后为空时返回空串，由调用方决定不渲染。
+ * An image node (such as `![image]()`) has no readable text and no valid URL, so it is meaningless content and is dropped;
+ * a link keeps only its text, so a URL is not treated as body text. When cleaning leaves it empty, return an empty string and let the caller decide not to render.
  */
 export function qualityExcerpt(block: ImageParseQualityItem['block']): string {
   const source = block.text || block.markdown;

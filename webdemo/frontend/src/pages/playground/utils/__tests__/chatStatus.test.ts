@@ -1,12 +1,12 @@
 /**
- * chatStatus 纯函数单测。
+ * Unit tests for chatStatus pure functions.
  */
 
 import { describe, it, expect } from 'vitest';
 import { toolStatusStep, toolStatusText } from '../chatStatus';
 import type { Translate } from '../../types';
 
-/** 测试用翻译桩：回显 key 与插值，断言走的是 i18n 而非硬编码中文。 */
+/** Test translation stub: echo the key and interpolations, asserting the path is i18n rather than hardcoded Chinese. */
 const t: Translate = (key, options) =>
   options?.count === undefined ? key : `${key}:${String(options.count)}`;
 
@@ -42,9 +42,9 @@ describe('toolStatusText', () => {
       'found',
     );
     expect(toolStatusStep({ tool: 'web_extractor', status: 'running' })).toBe('reading');
-    // 搜索失败：整个过程条标红
+    // Search failed: the whole process bar turns red
     expect(toolStatusStep({ tool: 'web_search', status: 'failed' })).toBe('failed');
-    // 读网页失败：只让读取步骤标红，不让"搜索"被误判为失败
+    // Page read failed: only the read step turns red, so "search" is not misjudged as failed
     expect(toolStatusStep({ tool: 'web_extractor', status: 'failed' })).toBe('browse_failed');
     expect(toolStatusStep({ tool: 'web_search', status: 'failed', urls: ['https://x'] })).toBe(
       'browse_failed',

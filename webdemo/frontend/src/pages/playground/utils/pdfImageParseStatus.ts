@@ -1,6 +1,6 @@
 import type { PdfPageResult } from './pdfImageParse';
 
-/** 将 PDF.js 与 OCR 调用异常映射为稳定的界面文案键。 */
+/** Map PDF.js and OCR call failures to a stable UI copy key. */
 export function pdfParseErrorKey(failure: unknown): string {
   if (!(failure instanceof Error)) return 'imageParseRequestFailed';
   if (failure.name === 'PasswordException') return 'documentPdfPassword';
@@ -11,13 +11,13 @@ export function pdfParseErrorKey(failure: unknown): string {
   return 'imageParseRequestFailed';
 }
 
-/** 统计已有结果或错误页，等待占位不参与完成度。 */
+/** Count pages that already have a result or an error; a waiting placeholder does not count toward completion. */
 export function countCompletedPdfPages(results: Readonly<Record<number, PdfPageResult>>) {
   return Object.values(results).filter((page) => Boolean(page.result) || Boolean(page.error))
     .length;
 }
 
-/** 恢复时仅跳过已有成功结果的页；失败页仍可重新展示。 */
+/** On restore, skip only pages that already have a successful result; failed pages can still be shown again. */
 export function completedPdfPageIndexes(
   results: Readonly<Record<number, PdfPageResult>>,
 ): Set<number> {

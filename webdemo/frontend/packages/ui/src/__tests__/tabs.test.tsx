@@ -22,7 +22,7 @@ describe('Tabs', () => {
     const indicator = document.querySelector('[data-map-tabs-indicator]');
     expect(document.querySelectorAll('[data-map-tabs-indicator]')).toHaveLength(1);
     expect(indicator).toHaveAttribute('aria-hidden', 'true');
-    // 首帧先就位再开过渡，所以过渡类要等下一帧
+    // The first frame settles in place before the transition starts, so the transition class waits until the next frame.
     await waitFor(() => {
       expect(indicator?.className).toContain('transition-[transform,width,height]');
     });

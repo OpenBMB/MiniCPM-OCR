@@ -21,8 +21,8 @@ interface ImageParseExampleDefinition {
 }
 
 /**
- * 当前案例只用于展示用户提供的原件，正文和版面结果暂不预识别。
- * 保留固定类型标识，后续补充预采集结果时无需改动工作台入口。
+ * The current example is only for showing the original the user provided; body text and layout results are not pre-recognized for now.
+ * Keep the fixed type id, so filling in precollected results later does not require changing the workspace entry.
  */
 const definitions: readonly ImageParseExampleDefinition[] = [
   {
@@ -142,7 +142,7 @@ export type ImageParseExampleType =
   | 'financial-table'
   | 'newspaper'
   | 'leave-calendar'
-  // 历史测试与旧链接仍可识别为共享案例，但不再展示为入口。
+  // Historical tests and old links can still be recognized as shared examples, but are no longer shown as an entry.
   | 'property'
   | 'geometry'
   | 'linear-algebra'
@@ -164,7 +164,7 @@ const retiredSharedExampleIds = new Set([
   'example:industry-report',
 ]);
 
-/** 原件走静态资源；正文、坐标与摆正信息暂不读取。 */
+/** The original comes from a static asset; body text, coordinates, and rotation-adaptation info are not read for now. */
 export const IMAGE_PARSE_SHARED_EXAMPLES = definitions.map((example) => ({
   ...example,
   captureVersion: 'preview-20261027',
@@ -173,13 +173,13 @@ export const IMAGE_PARSE_SHARED_EXAMPLES = definitions.map((example) => ({
   thumbnail: asset(example.thumbnailName) || asset(example.assetName),
 }));
 
-/** 首屏展示全部新案例；图片和 PDF 共用同一网格。 */
+/** The first screen shows every new example; images and PDFs share the same grid. */
 export const IMAGE_PARSE_WORKSPACE_EXAMPLES = IMAGE_PARSE_SHARED_EXAMPLES;
 
 /**
- * 判断地址是否为版本固定的共享 PDF 原件。
- * @param source PDF 预览地址
- * @returns 是否可复用共享原件与页面帧
+ * Whether an address is a version-pinned shared PDF original.
+ * @param source PDF preview URL
+ * @returns whether the shared original and page frames can be reused
  */
 export function isImageParseSharedPdfUrl(source: string): boolean {
   return IMAGE_PARSE_SHARED_EXAMPLES.some(
@@ -187,7 +187,7 @@ export function isImageParseSharedPdfUrl(source: string): boolean {
   );
 }
 
-/** 按固定案例 ID 判断共享原件，避免案例被保存为个人云端历史。 */
+/** Decide a shared original by the fixed example ID, so an example is not saved as personal cloud history. */
 export function isImageParseSharedExample(id: string): boolean {
   return (
     retiredSharedExampleIds.has(id) ||
@@ -196,9 +196,9 @@ export function isImageParseSharedExample(id: string): boolean {
 }
 
 /**
- * 按内置案例文件名兼容未保存来源的旧记录。
- * @param name 保存的原始文件名
- * @returns 是否归入案例分组
+ * Compatibility for old records that did not save a source, by the built-in example file name.
+ * @param name saved original file name
+ * @returns whether it belongs in the example group
  */
 export function isImageParseExampleFilename(name: string): boolean {
   return IMAGE_PARSE_SHARED_EXAMPLES.some((example) => example.filename === name);

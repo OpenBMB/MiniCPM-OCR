@@ -1,14 +1,14 @@
 /**
- * 联网引用来源的 URL 处理与跳转工具。
+ * URL handling and navigation helpers for web-search citation sources.
  *
- * 用途：域名/favicon 展示回退、跳转地址白名单校验、模型链接与来源数据的匹配键，
- * 以及来源链接统一的新窗口打开行为，供过程区、行内角标与来源列表复用。
+ * Purpose: domain and favicon display fallback, allowlist checks on navigation URLs, match keys between model links and source data,
+ * and the shared new-window behavior for source links, reused by the process area, inline markers, and the source list.
  */
 
 /**
- * 从 URL 取域名作为无标题引用的回退展示。
- * @param url 来源地址
- * @returns 去除 www 前缀的域名；无效地址回退原串
+ * Take the domain from a URL as the fallback label for a citation with no title.
+ * @param url source URL
+ * @returns domain without a www prefix; invalid URLs fall back to the original string
  */
 export function citationDomain(url: string): string {
   try {
@@ -19,9 +19,9 @@ export function citationDomain(url: string): string {
 }
 
 /**
- * 构造来源站点自己的 favicon 地址，避免引入第三方图标代理。
- * @param url 来源地址
- * @returns favicon 地址；无效地址返回 undefined
+ * Build the source site's own favicon URL, avoiding a third-party icon proxy.
+ * @param url source URL
+ * @returns favicon URL; undefined for an invalid URL
  */
 export function citationFavicon(url: string): string | undefined {
   try {
@@ -32,9 +32,9 @@ export function citationFavicon(url: string): string | undefined {
 }
 
 /**
- * 校验来源跳转地址，仅允许 HTTP(S)。
- * @param url 来源地址
- * @returns 可安全打开的地址；非法协议返回 undefined
+ * Check a source navigation URL, allowing only HTTP(S).
+ * @param url source URL
+ * @returns an address that can be opened safely; undefined for an illegal scheme
  */
 export function safeCitationHref(url: string): string | undefined {
   try {
@@ -46,9 +46,9 @@ export function safeCitationHref(url: string): string | undefined {
 }
 
 /**
- * 生成用于匹配模型 Markdown 链接与来源数据的稳定键。
- * @param url 来源地址
- * @returns 忽略 hash、末尾斜杠和查询参数顺序差异的 URL 键
+ * Build a stable key for matching a model Markdown link to source data.
+ * @param url source URL
+ * @returns a URL key that ignores the hash, a trailing slash, and query-parameter order
  */
 export function citationURLKey(url: string): string {
   try {
@@ -63,29 +63,29 @@ export function citationURLKey(url: string): string {
 }
 
 /**
- * 取一条来源对外展示的角标编号。
+ * Take the citation-marker number a source shows externally.
  *
- * 正文角标、来源面板序号、独占一行的来源行三处此前各自用数组下标 +1 算编号，
- * 而数组是跨轮累积并按 URL 去重的，与后端每轮重排后的注入顺序并不对应——
- * 多轮搜索时三处算出的数字会一起指错。改为统一消费后端下发的 ref，
- * 编号只剩一个来源（后端 hostedSourceRegistry）。
+ * Body markers, source-panel numbers, and a source line on its own used to each compute the number as array index + 1,
+ * but the array accumulates across turns and is deduped by URL, and does not match the injection order after the backend reorders each turn —
+ * on a multi-turn search the three places would all point at the wrong number. They now all consume the ref issued by the backend,
+ * so the number has only one source (the backend hostedSourceRegistry).
  *
- * @param citation 来源
- * @param fallbackIndex 数组下标（0 起），仅在后端未下发 ref 时用于回退
- * @returns 展示用编号（1 起）
+ * @param citation source
+ * @param fallbackIndex array index (0-based), used only when the backend did not issue a ref
+ * @returns the display number (1-based)
  */
 export function citationDisplayIndex(citation: { ref?: number }, fallbackIndex: number): number {
   return citation.ref && citation.ref > 0 ? citation.ref : fallbackIndex + 1;
 }
 
 /**
- * 判断点击是否应交回浏览器原生处理。
+ * Whether the click should be handed back to the browser's native handling.
  *
- * 修饰键、鼠标中键以及已被上层拦截的事件都保留原生语义（"在新标签页打开"等），
- * 否则编程式 window.open 会把这些操作统一降级为普通跳转。
+ * Modifier keys, the middle mouse button, and events already intercepted by an upper layer keep their native meaning (such as "open in a new tab"),
+ * or a programmatic window.open would downgrade those actions to an ordinary navigation.
  *
- * @param event 鼠标点击事件（只取判定所需的最小字段）
- * @returns true 表示不应接管本次点击
+ * @param event mouse click event (only the minimum fields needed for the decision)
+ * @returns true when this click should not be taken over
  */
 export function isNativeOpenIntent(event: {
   metaKey: boolean;
@@ -100,18 +100,18 @@ export function isNativeOpenIntent(event: {
 }
 
 /**
- * 编程式新窗口打开来源。
+ * Open a source in a new window programmatically.
  *
- * 兜底处理：
- * - 部分浏览器对隐式 target=_blank 的拦截；
- * - 在被 Tooltip 等中间件包裹时，preventDefault 后用同步 window.open 让点击总有可见反馈。
+ * Fallbacks:
+ * - some browsers block an implicit target=_blank;
+ * - when wrapped by middleware such as a Tooltip, a synchronous window.open after preventDefault makes sure the click always has visible feedback.
  *
- * @param href 来源地址
+ * @param href source URL
  */
 export function openCitationWindow(href: string): void {
   const popup = window.open('about:blank', '_blank', 'noopener,noreferrer');
   if (!popup) {
-    // 浏览器拦截了弹窗 → 退化为同窗口跳转，至少保证用户能到达目标页
+    // The browser blocked the popup → fall back to same-window navigation, so the user can at least reach the target page
     window.location.assign(href);
     return;
   }

@@ -2,11 +2,11 @@ import type { AppRoute } from '@map/types';
 
 export interface BreadcrumbItem {
   title: string;
-  /** 用于链接；最后一项也可点击跳转当前完整路径 */
+  /** Used for the link; the last item can also be clicked to jump to the current full path. */
   path: string;
 }
 
-/** 在父路由的 children 中匹配当前 pathname（精确优先，其次最长前缀） */
+/** Match the current pathname among a parent route’s children (exact match first, then the longest prefix). */
 function findMatchingChild(parent: AppRoute, pathname: string): AppRoute | undefined {
   const children = parent.children;
   if (!children?.length) {
@@ -32,7 +32,7 @@ function findMatchingChild(parent: AppRoute, pathname: string): AppRoute | undef
 }
 
 /**
- * 根据 pathname 与静态路由树生成面包屑（含侧边栏 children 子路由标题）。
+ * Build breadcrumbs from the pathname and the static route tree (including child-route titles in the sidebar).
  */
 export function getBreadcrumbItems(pathname: string, routes: AppRoute[]): BreadcrumbItem[] {
   const items: BreadcrumbItem[] = [{ title: '首页', path: '/' }];

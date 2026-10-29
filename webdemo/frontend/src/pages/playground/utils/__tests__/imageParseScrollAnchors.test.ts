@@ -125,7 +125,7 @@ describe('imageParseScrollAnchors', () => {
       const mapped = imageParseMappedProgress(anchors, progress, 'result');
       expect(imageParseMappedProgress(anchors, mapped, 'origin')).toBeCloseTo(progress);
     }
-    // 离屏 canvas 卸载或标准模式没有版面块时，仍以当前页骨架限定范围。
+    // When an offscreen canvas unmounts, or standard mode has no layout blocks, the current page skeleton still bounds the range.
     canvas.remove();
     const unrendered = imageParseScrollAnchors(origin, result, [], 0);
     expect(imageParseMappedProgress(unrendered, 0, 'result')).toBeCloseTo(start);

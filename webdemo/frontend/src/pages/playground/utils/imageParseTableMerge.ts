@@ -8,7 +8,7 @@ import {
   type ImageParseTextRange,
 } from './imageParseBlocks';
 
-/** 只忽略页面装饰块；页脚之后的表格仍视为页末内容。 */
+/** Ignore only page-decoration blocks; a table after the footer is still treated as end-of-page content. */
 const PAGE_DECORATION_KINDS = new Set<ImageParseLayoutBlock['kind']>(['header', 'footer']);
 
 interface TableCandidate {
@@ -26,7 +26,7 @@ interface PageTable {
   last?: TableCandidate;
 }
 
-/** 单元格合并后表格的列数；rowspan 占位必须计入后续行的宽度。 */
+/** Column count of a table after cells are merged; a rowspan placeholder must count toward the width of later rows. */
 function tableWidth(table: HTMLTableElement): number {
   const occupied: boolean[][] = [];
   let width = 0;
@@ -78,7 +78,7 @@ function sameHeaderRow(left: HTMLTableRowElement, right: HTMLTableRowElement): b
   );
 }
 
-/** 表头可能占两行；只有 th 或跨行/跨列单元格才参与续页重复表头剔除。 */
+/** A header may take two rows; only th or cells that span rows or columns take part in dropping a repeated header on a continuation page. */
 function looksLikeHeaderRow(row: HTMLTableRowElement): boolean {
   return Array.from(row.cells).some(
     (cell) =>
@@ -142,9 +142,9 @@ function tableCandidate(
   return tableCandidateAt(result, blockIndex);
 }
 
-/** 页末表格接上下一页页首表格；需要列数一致并具备明确的跨页位置关系。 */
+/** An end-of-page table joins the table at the start of the next page; column counts must match and the cross-page position relationship must be clear. */
 function canMergeTable(previous: TableCandidate, next: TableCandidate): boolean {
-  // 续页可能只剩一行数据，不能要求下一页表格至少两行。
+  // A continuation page may have only one data row left, so the next page's table must not be required to have at least two rows.
   if (previous.width !== next.width || previous.table.rows.length < 2 || next.table.rows.length < 1)
     return false;
   const bottom = previous.block.y + previous.block.h;
@@ -152,13 +152,13 @@ function canMergeTable(previous: TableCandidate, next: TableCandidate): boolean 
   if (bottom < 0.62 || top > 0.38) return false;
   const repeatedHeader = repeatedHeaderRows(previous.table, next.table);
   if (repeatedHeader > 0) return repeatedHeader < next.table.rows.length;
-  // 下一页没有重复表头时，要求表格确实贴近页边界，且首行不是新的表头。
+  // When the next page has no repeated header, require the table to actually sit against the page edge, and the first row must not be a new header.
   if (bottom < 0.75 || top > 0.3) return false;
   const firstRow = next.table.rows[0]!;
   return !Array.from(firstRow.cells).some((cell) => cell.tagName.toLowerCase() === 'th');
 }
 
-/** 同一页内的续表必须垂直贴近且水平范围基本重合，避免拼接两张独立表。 */
+/** A continuation table on the same page must be vertically close and mostly overlap horizontally, so two independent tables are not joined. */
 function canMergeTableInPage(previous: TableCandidate, next: TableCandidate): boolean {
   if (previous.width !== next.width || !previous.table.rows.length || !next.table.rows.length)
     return false;
@@ -222,7 +222,7 @@ function replaceTable(
   };
 }
 
-/** 移除续表占位，并把后续块范围前移；不留下连续空行。 */
+/** Remove the continuation-table placeholder and shift later block ranges forward; do not leave consecutive blank lines. */
 function removeTable(result: ImageParseSdkResult, candidate: TableCandidate): ImageParseSdkResult {
   let start = candidate.range.start;
   let end = candidate.range.end;
@@ -254,7 +254,7 @@ function removeTable(result: ImageParseSdkResult, candidate: TableCandidate): Im
   return { ...result, markdown, blocks };
 }
 
-/** 合并后的单图表格要覆盖所有原始区域，保证原图框与正文定位仍可用。 */
+/** A merged single-image table must cover every original region, so original-image boxes and body positioning still work. */
 function expandTableBlock(
   result: ImageParseSdkResult,
   blockIndex: number,
@@ -275,7 +275,7 @@ function expandTableBlock(
   };
 }
 
-/** 单图续表直接从版面中移除，不保留空块占位。 */
+/** A single-image continuation table is removed from the layout directly, with no empty-block placeholder kept. */
 function removeTableBlock(
   result: ImageParseSdkResult,
   candidate: TableCandidate,
@@ -321,14 +321,14 @@ function imageTableChains(result: ImageParseSdkResult): TableCandidate[][] {
   return chains;
 }
 
-/** 判断单图是否存在可保守合并的相邻表格，用于决定工具栏入口是否渲染。 */
+/** Whether a single image has adjacent tables that can be merged conservatively, used to decide whether the toolbar entry renders. */
 export function hasMergableImageParseTables(result: ImageParseSdkResult): boolean {
   return imageTableChains(result).length > 0;
 }
 
 /**
- * 合并同一张图片内被识别拆开的相邻表格。只处理阅读顺序连续、垂直贴近、
- * 水平范围基本重合且列数一致的表格；中间有正文或疑似新表头时保持原样。
+ * Merge adjacent tables that recognition split apart inside the same image. Only tables that are consecutive in reading order, vertically close,
+ * mostly overlapping horizontally, and equal in column count are handled; when there is body text in between, or a suspected new header, leave them as-is.
  */
 export function mergeImageParseTablesInPage(
   result: ImageParseSdkResult,
@@ -357,10 +357,10 @@ export function mergeImageParseTablesInPage(
 }
 
 /**
- * 自动拼接 PDF 跨页表格。只处理「上一页最后一个内容块是表格、下一页第一个内容块也是表格」
- * 的保守场景；列结构不一致、存在页间正文或表格不在页边界时保持原样。
- * @param pages 按 PDF 页码（1 起始）排列的识别结果
- * @returns 发生变化页的 0 起始页码 → 新结果
+ * Automatically join cross-page PDF tables. Only the conservative case "the last content block of the previous page is a table, and the first content block of the next page is also a table"
+ * is handled; when the column structure differs, there is body text between pages, or the table is not on the page edge, leave them as-is.
+ * @param pages recognition results ordered by PDF page number (starting at 1)
+ * @returns 0-based page number of each changed page → new result
  */
 export function mergeImageParseTables(
   pages: readonly { page: number; result?: ImageParseSdkResult }[],

@@ -5,16 +5,16 @@ interface DocumentNode {
   children?: DocumentNode[];
 }
 
-/** OCR 文本中的显式 br 形态；双层转义在 Markdown 解码一次后仍会残留实体。 */
+/** Explicit br forms in OCR text; a double-escaped form still leaves an entity after one Markdown decode. */
 const TEXT_LINE_BREAK = /(?:<|&(?:lt|#60|#x3c);)br\s*\/?\s*(?:>|&(?:gt|#62|#x3e);)/gi;
 const TEXT_LINE_BREAK_ONCE = new RegExp(TEXT_LINE_BREAK.source, 'i');
 
-/** 将文字内容中的显式 br 转成目标字符；不修改其它转义 HTML。 */
+/** Turn an explicit br in text content into the target character; do not modify other escaped HTML. */
 export function imageParseTextLineBreaks(value: string, replacement: string) {
   return value.replace(TEXT_LINE_BREAK, replacement);
 }
 
-/** 将 DOM 正文中的显式 br 替换为换行元素，返回是否发生转换；代码保持原样。 */
+/** Replace an explicit br in DOM body text with a line-break element and return whether a conversion happened; code stays as-is. */
 export function replaceImageParseTextLineBreaks(root: ParentNode): boolean {
   const document = root.ownerDocument ?? (root as Document);
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
@@ -41,8 +41,8 @@ export function replaceImageParseTextLineBreaks(root: ParentNode): boolean {
 }
 
 /**
- * 将 OCR 预览中被转义的 br 文本恢复为换行节点，不改写源文档或解析其他 HTML。
- * @returns HTML 解析后的语法树转换器；代码块与行内代码保持原样
+ * Restore escaped br text in the OCR preview to line-break nodes, without rewriting the source document or parsing other HTML.
+ * @returns a syntax-tree transform after HTML parsing; code blocks and inline code stay as-is
  */
 export function imageParseLineBreaks() {
   return (tree: DocumentNode) => {

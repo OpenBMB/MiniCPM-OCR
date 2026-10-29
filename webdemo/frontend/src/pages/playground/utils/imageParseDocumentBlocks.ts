@@ -2,15 +2,15 @@ import type { ImageParseTextRange } from './imageParseBlocks';
 import { imageParseSourceBlocks, isImageParseSourceBlockEditable } from './imageParseEditorSource';
 import { normalizeMathDelimiters } from './math';
 
-/** 源文档块与规范化预览的对应关系；只允许明确匹配的块进入编辑。 */
+/** Correspondence between a source document block and the normalized preview; only a clearly matched block may be edited. */
 export interface ImageParseDocumentBlock extends ImageParseTextRange {
   normalized: ImageParseTextRange;
 }
 
 /**
- * 按 Markdown AST 的顶层语义块定位；不拆开表格、列表或引用，也不猜测有歧义的范围。
- * @param source 原草稿
- * @param normalized 预览使用的完整规范化文本
+ * Locate by top-level semantic blocks of the Markdown AST; do not split tables, lists, or quotes, and do not guess ambiguous ranges.
+ * @param source original draft
+ * @param normalized full normalized text used by the preview
  */
 export function imageParseDocumentBlocks(
   source: string,
@@ -44,7 +44,7 @@ interface PreviewNode {
   position?: { start: { offset?: number }; end: { offset?: number } };
 }
 
-/** 消毒后的预览节点添加可信块范围，整份文档仍共用一次 Markdown 渲染。 */
+/** Add trusted block ranges to sanitized preview nodes; the whole document still shares one Markdown render. */
 export function imageParseDocumentBlockMarkers(blocks: readonly ImageParseDocumentBlock[]) {
   return (tree: PreviewNode) => {
     const children: PreviewNode[] = [];
@@ -53,7 +53,7 @@ export function imageParseDocumentBlockMarkers(blocks: readonly ImageParseDocume
     for (const node of tree.children ?? []) {
       const start = node.position?.start.offset;
       const end = node.position?.end.offset;
-      // 二分定位，避免长文档的节点与块范围产生平方级遍历。
+      // Binary search, so nodes and block ranges in a long document do not walk in quadratic time.
       let low = 0;
       let high = blocks.length;
       while (low < high) {
@@ -95,7 +95,7 @@ export function imageParseDocumentBlockMarkers(blocks: readonly ImageParseDocume
   };
 }
 
-/** 编辑片段导入时携带整份文档的链接定义，导出仍只更新该片段。 */
+/** When an edit fragment is imported it carries the whole document's link definitions; export still updates only that fragment. */
 export function imageParseReferenceDefinitions(source: string): string {
   return imageParseSourceBlocks(source)
     .filter((node) => node.type === 'definition')

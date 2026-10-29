@@ -1,8 +1,8 @@
 /**
- * 历史对话存储形态 ↔ 前端 ChatMessage 的互转纯函数。
+ * Pure functions converting stored conversation history ↔ frontend ChatMessage.
  *
- * 用途：后端 MapStoredMessage（snake_case + 扁平 token 字段）与前端 ChatMessage
- * （含 streaming/usage 等 UI 态）之间映射。无副作用，便于单测。
+ * Purpose: map backend MapStoredMessage (snake_case + flat token fields) and frontend ChatMessage
+ * (UI state such as streaming/usage). No side effects, so it is easy to unit test.
  */
 
 import type { MapSaveConversationInput, MapStoredMessage, MapStoredVersion } from '@/api/map';
@@ -10,7 +10,7 @@ import type { AnswerVersion, ChatMessage } from '../types';
 import { CONTEXT_DIVIDER_MARKER, snapshotVersion } from './messages';
 import { normalizeAssistantReply } from './thinkSplit';
 
-/** 后端版本存储形态 → 前端 AnswerVersion */
+/** Backend stored version → frontend AnswerVersion */
 function storedToVersion(v: MapStoredVersion): AnswerVersion {
   const normalized = normalizeAssistantReply(v.content, v.reasoning);
   const out: AnswerVersion = { content: normalized.content };
@@ -21,7 +21,7 @@ function storedToVersion(v: MapStoredVersion): AnswerVersion {
   if (v.client_request_id) out.clientRequestId = v.client_request_id;
   if (v.api_key_id) out.apiKeyId = v.api_key_id;
   if (v.interrupted) out.interrupted = true;
-  // 联网过程字段：刷新后重绘折叠区使用，与 AnswerProcessTimeline 期望的输入对齐
+  // Web-search process fields: used to redraw the disclosure after refresh, aligned with the input AnswerProcessTimeline expects
   if (v.search_status !== undefined) out.searchStatus = v.search_status;
   if (v.search_step) out.searchStep = v.search_step as AnswerVersion['searchStep'];
   if (v.search_result_count !== undefined) out.searchResultCount = v.search_result_count;
@@ -46,7 +46,7 @@ function storedToVersion(v: MapStoredVersion): AnswerVersion {
   return out;
 }
 
-/** 前端 AnswerVersion → 后端版本存储形态 */
+/** Frontend AnswerVersion → backend stored version */
 function versionToStored(v: AnswerVersion): MapStoredVersion {
   const normalized = normalizeAssistantReply(v.content, v.reasoning);
   return {
@@ -55,7 +55,7 @@ function versionToStored(v: AnswerVersion): MapStoredVersion {
     ...(v.citations && v.citations.length ? { citations: v.citations } : {}),
     ...(v.feedback ? { feedback: v.feedback } : {}),
     ...(v.interrupted ? { interrupted: true } : {}),
-    // 联网过程字段透传，刷新后折叠区才能重绘工具步骤
+    // Pass web-search process fields through, so the disclosure can redraw tool steps after refresh
     ...(v.searchStatus !== undefined ? { search_status: v.searchStatus } : {}),
     ...(v.searchStep ? { search_step: v.searchStep } : {}),
     ...(v.searchResultCount !== undefined ? { search_result_count: v.searchResultCount } : {}),
@@ -83,9 +83,9 @@ function versionToStored(v: AnswerVersion): MapStoredVersion {
   };
 }
 
-/** 后端存储消息 → 前端 ChatMessage（回填后一律非流式态） */
+/** Backend stored message → frontend ChatMessage (always non-streaming after backfill) */
 export function storedToChatMessage(m: MapStoredMessage): ChatMessage {
-  // 上下文分隔线：以 system + 标记往返，加载时还原为 divider（content 清空，避免标记泄漏到 UI）
+  // Context divider: round-trips as system + a marker, and is restored as a divider on load (content cleared so the marker does not leak into the UI)
   if (m.role === 'system' && m.content === CONTEXT_DIVIDER_MARKER) {
     return { id: m.id, role: 'system', content: '', streaming: false, divider: true };
   }
@@ -108,7 +108,7 @@ export function storedToChatMessage(m: MapStoredMessage): ChatMessage {
       total_tokens: m.total_tokens,
     };
   }
-  // 回填前端计时指标（首 token 延迟 / 总耗时），使刷新后仍能展示完整指标行
+  // Backfill frontend timing metrics (time to first token / total elapsed) so the full metrics row still shows after refresh
   if (typeof m.first_token_ms === 'number' || typeof m.duration_ms === 'number') {
     msg.metrics = {
       ...(typeof m.first_token_ms === 'number' ? { firstTokenMs: m.first_token_ms } : {}),
@@ -116,7 +116,7 @@ export function storedToChatMessage(m: MapStoredMessage): ChatMessage {
     };
   }
   if (m.citations && m.citations.length) msg.citations = m.citations;
-  // 联网过程字段（单版本消息顶层），刷新后折叠区重绘需要
+  // Web-search process fields (top level of a single-version message), needed to redraw the disclosure after refresh
   if (m.search_status !== undefined) msg.searchStatus = m.search_status;
   if (m.search_step) msg.searchStep = m.search_step as ChatMessage['searchStep'];
   if (m.search_result_count !== undefined) msg.searchResultCount = m.search_result_count;
@@ -140,9 +140,9 @@ export function storedToChatMessage(m: MapStoredMessage): ChatMessage {
       ...(att.objectKey ? { objectKey: att.objectKey } : {}),
     }));
   }
-  // 回填反馈高亮（当前选中版本的点赞/点踩），使刷新后高亮保留
+  // Backfill feedback highlight (like/dislike on the selected version) so the highlight survives refresh
   if (m.feedback === 'up' || m.feedback === 'down') msg.feedback = m.feedback;
-  // 多版本回答：重建 versions + activeVersion（顶层字段已是选中版本的镜像，无需再覆盖）
+  // Multi-version answers: rebuild versions + activeVersion (top-level fields are already a mirror of the selected version and do not need another overwrite)
   if (m.alt_versions && m.alt_versions.length > 0) {
     msg.versions = m.alt_versions.map(storedToVersion);
     msg.activeVersion =
@@ -157,8 +157,8 @@ export function storedToChatMessage(m: MapStoredMessage): ChatMessage {
 }
 
 /**
- * 待保存请求体 → 前端消息列表。
- * 用于刷新时恢复 sessionStorage 中尚未完成服务端写入的同标签页草稿。
+ * Pending save request body → frontend message list.
+ * Used on refresh to restore a same-tab draft in sessionStorage that has not finished writing to the server.
  */
 export function savePayloadToChatMessages(payload: MapSaveConversationInput): ChatMessage[] {
   return payload.messages.map((message, index) =>
@@ -171,8 +171,8 @@ export function savePayloadToChatMessages(payload: MapSaveConversationInput): Ch
 }
 
 /**
- * 把 UI 消息收敛为自动保存快照。
- * 首次生成的空 assistant 占位不保存；重新生成时恢复当前历史版本，避免流式期间删除旧回答。
+ * Collapse UI messages into an autosave snapshot.
+ * An empty assistant placeholder from the first generation is not saved; during regenerate, restore the current history version so the old answer is not deleted while streaming.
  */
 export function messagesForAutosave(messages: ChatMessage[]): ChatMessage[] {
   return messages.flatMap((message) => {
@@ -192,8 +192,8 @@ export function messagesForAutosave(messages: ChatMessage[]): ChatMessage[] {
 }
 
 /**
- * 把 UI 消息收敛为刷新草稿。
- * 首次生成保留空占位或部分正文/思考并标记中断；重新生成保留旧版本及当前部分回答。
+ * Collapse UI messages into a refresh draft.
+ * The first generation keeps an empty placeholder or a partial body/reasoning and marks it interrupted; regenerate keeps the old version and the current partial answer.
  */
 export function messagesForDraft(messages: ChatMessage[]): ChatMessage[] {
   return messages.flatMap((message) => {
@@ -226,14 +226,14 @@ export function messagesForDraft(messages: ChatMessage[]): ChatMessage[] {
   });
 }
 
-/** 重新生成尚未返回有效增量时继续使用旧完成版本，不制造空的中断版本。 */
+/** Before regenerate has returned a useful increment, keep using the old completed version, and do not invent an empty interrupted version. */
 function hasStreamingDraftContent(message: ChatMessage): boolean {
   return Boolean(
     message.content || message.reasoning || message.citations?.length || message.toolEvents?.length,
   );
 }
 
-/** 将重新生成中的 assistant 临时恢复为当前历史版本，仅供自动保存计算快照。 */
+/** Temporarily restore an assistant that is being regenerated to the current history version, only so autosave can compute a snapshot. */
 function restoreVersionForAutosave(
   message: ChatMessage,
   version: AnswerVersion,
@@ -265,8 +265,8 @@ function restoreVersionForAutosave(
 }
 
 /**
- * 前端消息列表 → 保存请求体（剥离 streaming/error 等 UI 态，展开 usage）。
- * 保留有效消息及显式中断占位，跳过普通空占位与错误消息。
+ * Frontend message list → save request body (strip UI state such as streaming/error, and expand usage).
+ * Keep valid messages and explicit interrupted placeholders, and skip ordinary empty placeholders and error messages.
  */
 export function chatMessagesToSavePayload(
   messages: ChatMessage[],
@@ -276,7 +276,7 @@ export function chatMessagesToSavePayload(
   const out: MapSaveConversationInput['messages'] = [];
   for (const m of messages) {
     if (m.error) continue;
-    // 上下文分隔线：以 system + 标记持久化（content 可能已被清空，需特判保留）
+    // Context divider: persist as system + a marker (content may already have been cleared, so it has to be kept by a special case)
     if (m.divider) {
       out.push({ role: 'system', content: CONTEXT_DIVIDER_MARKER });
       continue;
@@ -313,7 +313,7 @@ export function chatMessagesToSavePayload(
         ? { reasoning: normalized?.reasoning ?? m.reasoning }
         : {}),
       ...(m.citations && m.citations.length ? { citations: m.citations } : {}),
-      // 联网过程字段（单版本消息顶层）：刷新后折叠区重绘需要
+      // Web-search process fields (top level of a single-version message): needed to redraw the disclosure after refresh
       ...(m.searchStatus !== undefined ? { search_status: m.searchStatus } : {}),
       ...(m.searchStep ? { search_step: m.searchStep } : {}),
       ...(m.searchResultCount !== undefined ? { search_result_count: m.searchResultCount } : {}),
@@ -329,7 +329,7 @@ export function chatMessagesToSavePayload(
             total_tokens: m.usage.total_tokens,
           }
         : {}),
-      // 持久化前端计时指标，避免刷新后计时项丢失（输出速率由二者派生，无需单独存）
+      // Persist frontend timing metrics, so timing items are not lost after refresh (output rate is derived from the two and does not need to be stored on its own)
       ...(m.metrics?.firstTokenMs !== undefined
         ? { first_token_ms: Math.round(m.metrics.firstTokenMs) }
         : {}),
@@ -340,14 +340,14 @@ export function chatMessagesToSavePayload(
       ...(m.clientRequestId ? { client_request_id: m.clientRequestId } : {}),
       ...(m.apiKeyId ? { api_key_id: m.apiKeyId } : {}),
       ...(m.contextExcluded ? { context_excluded: true } : {}),
-      // 中断回答借助现有 alt_versions JSONB 保存状态，避免新增数据库列。
+      // An interrupted answer saves its state through the existing alt_versions JSONB, so no new database column is added.
       ...(m.interrupted || (m.versions && m.versions.length > 1)
         ? {
             alt_versions: (m.versions ?? [snapshotVersion(m)]).map(versionToStored),
             active_version: m.activeVersion ?? (m.versions?.length ?? 1) - 1,
           }
         : {}),
-      // 反馈高亮：当前选中版本的点赞/点踩（单版本与多版本均存顶层，刷新后保留高亮）
+      // Feedback highlight: like/dislike on the currently selected version (stored at the top level for both single-version and multi-version, so the highlight survives refresh)
       ...(m.feedback ? { feedback: m.feedback } : {}),
     });
   }
@@ -355,8 +355,8 @@ export function chatMessagesToSavePayload(
 }
 
 /**
- * 计算消息列表签名，判断相较上次保存有无变化以避免重复写库：角色 + 正文/思考长度 + 版本数/选中索引
- * + 逐个工具事件的 eventId~status~来源数（同 eventId 原地转 success 时条数不变，但正是它带来 citationUrls）。
+ * Compute a message-list signature, to decide whether anything changed since the last save and avoid writing the database again: role + body/reasoning length + version count/selected index
+ * + each tool event's eventId~status~source count (an in-place change of the same eventId to success does not change the count, but that is exactly what brings citationUrls).
  */
 export function messagesSignature(messages: ChatMessage[]): string {
   return messages

@@ -12,7 +12,7 @@ export type ImageParseJobTask = 'standard' | 'seal' | 'kie';
 export type ImageParseJobStatus = 'Running' | 'Success' | 'Failed' | 'Cancelled';
 export type ImageParseJobPage = Parameters<typeof adaptImageParseV2>[0];
 
-/** MAP 持有的异步 OCR 任务；运行中的 pages 是已完成页面的前缀。 */
+/** Async OCR job owned by MAP; while running, pages is the prefix of pages already finished. */
 export interface ImageParseJob {
   id: string;
   status: ImageParseJobStatus;
@@ -23,7 +23,7 @@ export interface ImageParseJob {
   error?: string | { message?: string; code?: string };
 }
 
-/** 文件服务原件引用；pageIndex 只用于原 PDF 的单页重试。 */
+/** File-service reference to the original file; pageIndex is used only to retry one page of the original PDF. */
 export interface ImageParseJobInput {
   task: ImageParseJobTask;
   model: string;
@@ -171,9 +171,9 @@ async function observeJob(
 }
 
 /**
- * 创建 MAP OCR 任务并通过 TanStack Query 每秒观察进度，终态停止并清理查询。
- * @param input 原件 fileId、执行选项、QueryClient 与取消/进度回调
- * @returns 成功任务；失败使用稳定文案键，取消时 DELETE 已创建任务
+ * Create a MAP OCR job and watch progress once a second with TanStack Query; stop and clear the query at a terminal state.
+ * @param input Original-file fileId, execution options, QueryClient, and cancel/progress callbacks
+ * @returns The successful job; failure uses a stable copy key, and cancel DELETEs the job that was created
  */
 export async function runImageParseJob(input: ImageParseJobInput): Promise<ImageParseJob> {
   input.signal.throwIfAborted();
@@ -187,7 +187,7 @@ export async function runImageParseJob(input: ImageParseJobInput): Promise<Image
     input.signal.throwIfAborted();
   };
   try {
-    // 创建不能绑定页面的 abort：先拿到任务 ID，才能可靠取消创建期间产生的任务。
+    // Create must not bind the page abort: the job ID has to be obtained first so a job created during create can be cancelled reliably.
     const raw = await mapRequest<unknown>('/image-parse/jobs', {
       method: 'POST',
       body,
@@ -208,7 +208,7 @@ export async function runImageParseJob(input: ImageParseJobInput): Promise<Image
     return jobResult(job);
   } catch (error) {
     if (id && (input.signal.aborted || !job || job.status === 'Running')) {
-      // 清理必须使用独立请求；取消失败不能覆盖原始错误或启动新的识别。
+      // Cleanup must use a separate request; a failed cancel must not overwrite the original error or start a new recognition.
       await mapRequest(`/image-parse/jobs/${encodeURIComponent(id)}`, {
         method: 'DELETE',
       }).catch(() => undefined);

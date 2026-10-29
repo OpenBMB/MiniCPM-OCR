@@ -1,18 +1,18 @@
-/** 整页识别的可验证引用；时间为 Unix 秒，仅授权该用户/项目的 OCR 块重算。 */
+/** Verifiable reference for a full-page recognition; times are Unix seconds, and it authorizes OCR block recompute only for that user/project. */
 export interface ImageParseSource {
   requestId: string;
-  /** 来源证明绑定的模型列表模型 ID。 */
+  /** Model-list model ID bound to the source proof. */
   model: string;
   pageIndex: number;
-  /** 服务端签发时间，Unix 秒。 */
+  /** Server issue time, Unix seconds. */
   createdAt: number;
-  /** 兼容历史快照保留，不再用于禁用重算。 */
+  /** Kept for historical snapshot compatibility, and no longer used to disable recompute. */
   expiresAt: number;
   token: string;
   inputImageSha256?: string;
 }
 
-/** 白名单重建可缓存的来源；历史引用仍可随记录恢复并用于块级重算。 */
+/** Rebuild a cacheable source from the allowlist; historical references can still be restored with the record and used for block-level recompute. */
 export function sanitizeImageParseSource(value: unknown): ImageParseSource | undefined {
   if (!value || typeof value !== 'object') return undefined;
   const item = value as Record<string, unknown>;
@@ -48,7 +48,7 @@ export function sanitizeImageParseSource(value: unknown): ImageParseSource | und
   return source;
 }
 
-/** 旧缓存与新解析结果分别提供可恢复的提示；expires_at 仅保留兼容历史快照。 */
+/** Old cache and new parse results each provide a recoverable hint; expires_at is kept only for historical snapshot compatibility. */
 export function imageParseSourceUnavailable(source?: ImageParseSource): string | undefined {
   if (!source) return 'imageParseRegenerateSourceMissing';
   return undefined;

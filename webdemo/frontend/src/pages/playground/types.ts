@@ -1,19 +1,19 @@
 /**
- * 体验中心（Playground）本页类型集合。
+ * Types local to the Playground page.
  *
- * 用途：集中声明对话消息、参数偏好、思考深度等本页专用类型，供 hooks / components 共享。
- * 与 SSE API 层（src/api/map/chat.ts）的 token usage 类型对齐。
+ * Purpose: chat messages, parameter preferences, reasoning depth, and other types used only on this page, shared by hooks and components.
+ * Aligned with the token usage types in the SSE API layer (src/api/map/chat.ts).
  */
 
 import type { TokenUsage } from '@/api/map/chat';
 
-/** 对话消息角色 */
+/** Chat message role. */
 export type ChatRole = 'system' | 'user' | 'assistant';
 
-/** i18n 翻译函数签名（与 react-i18next 的 t 函数兼容）。 */
+/** i18n translate function signature (compatible with react-i18next’s t). */
 export type Translate = (key: string, options?: Record<string, unknown>) => string;
 
-/** 联网搜索过程阶段（仅用于当前回答的实时展示）。 */
+/** Web-search progress phase (live display for the current answer only). */
 export type SearchProgressStep =
   | 'searching'
   | 'found'
@@ -22,12 +22,12 @@ export type SearchProgressStep =
   | 'failed'
   | 'browse_failed';
 
-/** 工具调用事件终态。 */
+/** Terminal state of a tool-call event. */
 export type ToolEventStatus = 'running' | 'success' | 'failed' | 'interrupted';
 
 /**
- * 一次工具调用的用户可见摘要。
- * 不保存原始 arguments、工具全文结果或内部凭据。
+ * A user-visible summary of one tool call.
+ * Raw arguments, the tool’s full result, and internal credentials are not stored.
  */
 export interface ToolEvent {
   eventId: string;
@@ -35,125 +35,125 @@ export interface ToolEvent {
   tool: string;
   status: ToolEventStatus;
   queryCount?: number;
-  /** 该工具实际使用的查询词，进行中的搜索行就地展示它。 */
+  /** The query this tool actually used; an in-progress search row shows it in place. */
   queries?: string[];
   resultCount?: number;
   pageCount?: number;
   durationMs?: number;
   message?: string;
-  /** 该工具涉及的来源地址（已归一化），用于在过程时间线上就地展示站点图标与页面标题。 */
+  /** Source addresses this tool touched (already normalized), shown in place on the progress timeline as a site icon and page title. */
   citationUrls?: string[];
   /**
-   * 该工具首帧到达时已产出的思考字符数，作为思考文本的切分点。
-   * 由前端在流式期间推导，后端不下发；历史消息与非流式回答没有该字段。
+   * Reasoning character count already produced when this tool’s first frame arrived, used as the split point in the reasoning text.
+   * Derived on the frontend during streaming; the backend does not send it. History messages and non-streaming answers do not have this field.
    */
   reasoningOffset?: number;
 }
 
-/** 附件模态：图像 / 视频 / 音频 / 文件（文档等） */
+/** Attachment modality: image, video, audio, or file (documents and similar). */
 export type AttachmentKind = 'image' | 'video' | 'audio' | 'file';
 
 /**
- * 用户随消息上传的附件。体验中心优先使用对象存储 URL，dataUrl 仅作为本地预览/兼容兜底。
- * 各模态发送时映射为不同的 OpenAI content-part（见 utils/attachments.ts）。
+ * An attachment the user uploaded with a message. The Playground prefers an object-storage URL; dataUrl is only a local preview or compatibility fallback.
+ * Each modality is mapped to a different OpenAI content part when sent (see utils/attachments.ts).
  */
 export interface Attachment {
-  /** 前端生成的唯一 id（用于 key / 移除） */
+  /** Unique id generated on the frontend (used as a key and for removal). */
   id: string;
-  /** 模态类别 */
+  /** Modality. */
   kind: AttachmentKind;
-  /** 原始文件名（file 模态透传给上游识别类型，其余用于展示） */
+  /** Original filename (passed through for the file modality so the upstream can recognize the type; other modalities use it for display). */
   name: string;
-  /** MIME 类型 */
+  /** MIME type. */
   mime: string;
-  /** 字节大小 */
+  /** Size in bytes. */
   size: number;
   /**
-   * 本地预览地址。上传失败兜底使用 base64 data URL；云端 PDF 历史恢复时临时使用短时链接，
-   * 保存前会被 fileId 引用替换，不持久化短时链接。
+   * Local preview URL. A failed upload falls back to a base64 data URL; restoring a cloud PDF from history uses a short-lived link temporarily,
+   * which is replaced by a fileId reference before save. The short-lived link is not persisted.
    */
   dataUrl: string;
-  /** 后端上传到对象存储后的访问 URL，发送给模型时优先使用 */
+  /** Access URL after the backend uploads to object storage; preferred when sending to the model. */
   url?: string;
-  /** 平台同源代理 URL，用于前端展示，避免 OBS 防盗链影响浏览器访问 */
+  /** Same-origin platform proxy URL, used for display so OBS hotlink protection does not block the browser. */
   proxyUrl?: string;
-  /** 平台公开签名代理 URL，供 LIS/模型按 URL 拉取附件 */
+  /** Public signed platform proxy URL, so LIS or the model can fetch the attachment by URL. */
   publicUrl?: string;
-  /** 对象存储 key，用于问题定位 */
+  /** Object-storage key, used when tracing a problem. */
   objectKey?: string;
-  /** file-upload 的业务文件 ID；发送前按当前登录用户重新签发模型读取链接 */
+  /** Business file id from file-upload; before send, a model read link is re-signed for the current logged-in user. */
   fileId?: string;
 }
 
 /**
- * 单条对话消息。
- * assistant 消息在流式生成期间 `streaming=true`，正文增量并入 `content`、思考增量并入 `reasoning`。
+ * One chat message.
+ * While an assistant message is streaming, `streaming=true`; content deltas merge into `content` and reasoning deltas merge into `reasoning`.
  */
 export interface ChatMessage {
-  /** 消息唯一 id（前端生成） */
+  /** Unique message id (generated on the frontend). */
   id: string;
   role: ChatRole;
-  /** 正文（markdown） */
+  /** Body (markdown). */
   content: string;
-  /** 用户随消息上传的附件（图像/视频/音频/文件；仅会话内，不持久化到历史） */
+  /** Attachments the user uploaded with the message (image, video, audio, or file; session only, not persisted to history). */
   attachments?: Attachment[];
-  /** 思考过程（reasoning，部分模型才有） */
+  /** Reasoning trace (only some models have it). */
   reasoning?: string;
-  /** 是否正在流式生成 */
+  /** Whether it is currently streaming. */
   streaming?: boolean;
-  /** 是否处于联网搜索阶段（开启联网后、首个正文到达前的客户端推断态） */
+  /** Whether it is in the web-search phase (a client-inferred state after web search is on and before the first body text arrives). */
   searching?: boolean;
-  /** 联网搜索工具状态文本 */
+  /** Web-search tool status text. */
   searchStatus?: string;
-  /** 联网搜索当前过程阶段 */
+  /** Current web-search progress phase. */
   searchStep?: SearchProgressStep;
-  /** 联网搜索已发现的来源数量 */
+  /** Number of sources web search has found. */
   searchResultCount?: number;
-  /** 当前正在执行或最近完成的联网工具。 */
+  /** The web tool currently running, or the one that finished most recently. */
   searchActiveTool?: string;
-  /** 网页读取工具本次准备浏览或成功浏览的页面数量。 */
+  /** How many pages the page-read tool is about to browse, or did browse, this time. */
   searchBrowseCount?: number;
-  /** 联网搜索实际使用的查询词，用于过程区展示。 */
+  /** Query web search actually used, shown in the progress area. */
   searchQueries?: string[];
-  /** 本轮联网过程中实际调用过的工具名称。 */
+  /** Tool names actually called during this turn’s web search. */
   searchTools?: string[];
-  /** 本轮工具调用的追加式事件摘要。 */
+  /** Append-only event summary of this turn’s tool calls. */
   toolEvents?: ToolEvent[];
-  /** 联网搜索引用来源（有则在回答下方展示） */
+  /** Web-search citation sources (shown under the answer when present). */
   citations?: Citation[];
-  /** 本轮 token 用量（尾块 usage） */
+  /** Token usage for this turn (usage on the tail chunk). */
   usage?: TokenUsage;
-  /** 本轮性能指标（前端计时：首 token 延迟、总耗时） */
+  /** Performance for this turn (frontend timing: time to first token, and total duration). */
   metrics?: MessageMetrics;
-  /** 当前选中回答版本对应的平台 L2 请求 ID */
+  /** Platform L2 request id for the currently selected answer version. */
   requestId?: string;
-  /** 本次 Playground 调用的客户端关联 ID，用于响应头不可读时精确反查平台请求 ID */
+  /** Client correlation id for this Playground call, used to look up the platform request id exactly when the response header cannot be read. */
   clientRequestId?: string;
-  /** 本次 Playground 调用实际使用的 API Key ID */
+  /** API key id actually used for this Playground call. */
   apiKeyId?: string;
-  /** 错误信息（生成失败时） */
+  /** Error message (when generation fails). */
   error?: string;
-  /** 上游错误码，用于区分内容安全拦截与普通请求失败 */
+  /** Upstream error code, used to tell a content-safety block from an ordinary request failure. */
   errorCode?: string;
-  /** 安审拦截的轮次仅保留展示与审计，不再参与任何后续模型上下文。 */
+  /** A turn blocked by content-safety review is kept only for display and audit, and no longer takes part in any later model context. */
   contextExcluded?: boolean;
-  /** 回答是否因页面刷新等客户端生命周期中断而不完整 */
+  /** Whether the answer is incomplete because a client lifecycle event, such as a page refresh, interrupted it. */
   interrupted?: boolean;
-  /** 上下文分隔线标记：渲染为横线；其上的历史不再作为上下文发送给模型（非新会话） */
+  /** Context divider: rendered as a horizontal rule; history above it is not sent to the model as context (this is not a new conversation). */
   divider?: boolean;
-  /** 反馈高亮（当前选中版本的点赞/点踩；会话保存时持久化，并上报 /feedback） */
+  /** Feedback highlight (thumbs-up or thumbs-down on the selected version; persisted when the conversation is saved, and reported to /feedback). */
   feedback?: MessageFeedback;
   /**
-   * 多版本回答（「重新生成」保留旧版本，ChatGPT 式 ‹n/N›）。仅重新生成过的 assistant 轮次存在。
-   * 不变式：顶层 content/reasoning/citations/usage/metrics/feedback 始终镜像 versions[activeVersion]，
-   * 使所有读顶层字段的逻辑（toRequestMessages/复制/渲染）无需感知多版本。
+   * Multi-version answers ("regenerate" keeps older versions, ChatGPT-style ‹n/N›). Present only on assistant turns that have been regenerated.
+   * Invariant: top-level content, reasoning, citations, usage, metrics, and feedback always mirror versions[activeVersion],
+   * so every reader of the top-level fields (toRequestMessages, copy, and render) does not need to know about multiple versions.
    */
   versions?: AnswerVersion[];
-  /** 当前选中版本索引（指向 versions；默认末位） */
+  /** Index of the selected version (into versions; defaults to the last one). */
   activeVersion?: number;
 }
 
-/** 单个回答版本快照（重新生成产生的一份完整回答）。 */
+/** Snapshot of one answer version (one complete answer produced by regenerate). */
 export interface AnswerVersion {
   content: string;
   reasoning?: string;
@@ -164,110 +164,110 @@ export interface AnswerVersion {
   searchBrowseCount?: number;
   searchQueries?: string[];
   searchTools?: string[];
-  /** 该回答版本的工具调用事件摘要。 */
+  /** Tool-call event summary for this answer version. */
   toolEvents?: ToolEvent[];
   citations?: Citation[];
   usage?: TokenUsage;
   metrics?: MessageMetrics;
-  /** 该回答版本对应的平台 L2 请求 ID */
+  /** Platform L2 request id for this answer version. */
   requestId?: string;
-  /** 该回答版本对应的客户端关联 ID */
+  /** Client correlation id for this answer version. */
   clientRequestId?: string;
-  /** 该回答版本实际使用的 API Key ID */
+  /** API key id actually used for this answer version. */
   apiKeyId?: string;
   error?: string;
-  /** 该版本是否为中断后恢复的部分回答 */
+  /** Whether this version is a partial answer restored after an interruption. */
   interrupted?: boolean;
-  /** 反馈属于具体版本（不同版本可各自点赞/点踩） */
+  /** Feedback belongs to a specific version (each version can be liked or disliked on its own). */
   feedback?: MessageFeedback;
 }
 
-/** 助手消息反馈态：赞 / 踩。二者互斥，再次点击同一项即取消。 */
+/** Assistant feedback: up or down. They are mutually exclusive; clicking the same one again clears it. */
 export type MessageFeedback = 'up' | 'down';
 
 /**
- * 单轮生成的性能指标（前端计时，非后端字段）。
- * 流式下逐步填充：发起→首增量得 firstTokenMs，发起→完成得 durationMs。
+ * Performance for one generation turn (frontend timing, not a backend field).
+ * Filled in during streaming: request start to the first delta is firstTokenMs, and request start to completion is durationMs.
  */
 export interface MessageMetrics {
-  /** 首 token 延迟（ms）：从发起到第一个正文/思考增量到达 */
+  /** Time to first token (ms): from send until the first body or reasoning delta arrives. */
   firstTokenMs?: number;
-  /** 总耗时（ms）：从发起到本轮结束（含网络与生成） */
+  /** Total duration (ms): from send until this turn ends (including network and generation). */
   durationMs?: number;
 }
 
-/** 联网搜索引用来源（由响应的 url_citation annotations 归一化而来） */
+/** Web-search citation source (normalized from url_citation annotations on the response). */
 export interface Citation {
   /**
-   * 后端分配的全局来源编号（1 起），跨轮稳定、与 URL 绑定。
+   * Global source number assigned by the backend (starting at 1), stable across turns and bound to the URL.
    *
-   * 角标数字必须取它而不是数组下标：后端每轮搜索都会按相关性重排结果，
-   * 数组下标只在单轮搜索时碰巧与之相同，多轮时会静默指向无关网页。
-   * 老后端不下发时才回退到数组下标（见 citationDisplayIndex）。
+   * The marker number must come from this, not from the array index: each search reorders results by relevance,
+   * and the array index only happens to match on a single search. Across multiple searches it would silently point at an unrelated page.
+   * Fall back to the array index only when an old backend does not send it (see citationDisplayIndex).
    */
   ref?: number;
-  /** 来源 URL */
+  /** Source URL. */
   url: string;
-  /** 来源标题（缺省时前端回退展示域名） */
+  /** Source title (the frontend falls back to the domain when it is missing). */
   title?: string;
-  /** 搜索结果或网页正文中提取的短摘要。 */
+  /** Short snippet extracted from the search result or the page body. */
   snippet?: string;
 }
 
-/** 思考深度（UI 档位）：关闭 / 开启 */
+/** Reasoning depth (UI level): off or on. */
 export type ThinkingDepth = 'off' | 'on';
 
 /**
- * 思考参数风格：不同模型对「开启思考」的字段命名不一。
- * - `reasoning_effort`：OpenAI 风格枚举
- * - `thinking`：部分模型用 `{type:enabled|disabled}`
- * - `both`：两者都发，最大兼容
+ * Reasoning parameter style: models do not agree on the field name for "turn reasoning on".
+ * - `reasoning_effort`: OpenAI-style enum
+ * - `thinking`: some models use `{type:enabled|disabled}`
+ * - `both`: send both, for the widest compatibility
  */
 export type ThinkingStyle = 'reasoning_effort' | 'thinking' | 'both';
 
-/** 思考开关字段格式；与是否附加 reasoning_effort 分开处理。 */
+/** Format of the reasoning switch field; handled separately from whether reasoning_effort is also attached. */
 export type ThinkingControlFormat = 'chat_template_kwargs' | 'thinking' | 'both';
 
-/** 对话参数偏好（非敏感，可持久化到 store） */
+/** Chat parameter preferences (non-sensitive, safe to persist in the store). */
 export interface PlaygroundParams {
-  /** 采样温度 */
+  /** Sampling temperature. */
   temperature?: number;
-  /** 核采样 top_p */
+  /** Nucleus sampling top_p. */
   topP?: number;
-  /** 最大输出 token；未设置时不下发，显式 0 仍是有效值 */
+  /** Maximum output tokens; omitted when unset. An explicit 0 is still a valid value. */
   maxTokens?: number;
-  /** v4.7 图片压缩比例；仅用户显式选择时发送，否则沿用模型默认值 */
+  /** v4.7 image compression ratio; sent only when the user explicitly chooses it, otherwise the model default is kept. */
   imageDownsampleMode?: '4x' | '16x';
-  /** 思考深度档位 */
+  /** Reasoning depth level. */
   thinkingDepth: ThinkingDepth;
-  /** 思考参数风格 */
+  /** Reasoning parameter style. */
   thinkingStyle: ThinkingStyle;
-  /** 是否由体验中心显式发送思考参数；false 时交给模型 parameter_config 注入 */
+  /** Whether the Playground explicitly sends reasoning parameters; when false, the model’s parameter_config injects them. */
   includeThinkingParams: boolean;
-  /** 用户切换思考时应使用的模型协议字段 */
+  /** Model protocol field to use when the user toggles reasoning. */
   thinkingControlFormat: ThinkingControlFormat;
-  /** 当前模型的思考对象默认值，仅用于请求合并，不写入用户偏好 */
+  /** Default reasoning object for the current model, used only when merging the request, not written into user preferences. */
   thinkingDefaults?: {
     chat_template_kwargs?: Record<string, unknown>;
     thinking?: Record<string, unknown>;
   };
-  /** 是否流式输出（true=SSE 逐字；false=一次性返回完整回复） */
+  /** Whether output is streamed (true = SSE token by token; false = the full reply is returned at once). */
   stream: boolean;
-  /** 是否开启联网搜索（开启时走 L3 Playground BFF） */
+  /** Whether web search is on (when on, the call goes through the L3 Playground BFF). */
   webSearch: boolean;
   /**
-   * 本次联网请求启用的工具名称列表，三态语义与后端 enabledToolDefinitions 对齐：
-   * `undefined`（不下发该字段）= 全部工具可用；空数组 = 全部禁用；具名列表 = 按名过滤。
+   * Tool names enabled for this web-search request. The three-state meaning matches backend enabledToolDefinitions:
+   * `undefined` (field omitted) = every tool is available; an empty array = all disabled; a named list = filter by name.
    *
-   * 默认必须是 `undefined` 而非 `[]`：用户没做过工具选择时，工具集应由后端当下的注册表决定。
-   * 一旦在前端物化成显式列表存进偏好，后续新增的内置工具对老用户就永远不会生效。
+   * The default must be `undefined`, not `[]`: when the user has not chosen tools, the set should follow the backend registry as it is now.
+   * Once the frontend materializes an explicit list into preferences, a built-in tool added later never takes effect for existing users.
    */
   enabledTools?: string[];
-  /** 用户手动设置的当前位置（如"北京市"），用于 datetime 工具回答地点相关问题。 */
+  /** Location the user set manually (for example "Beijing"), used by the datetime tool for place-related questions. */
   userLocation?: string;
 }
 
-/** 参数默认值 */
+/** Parameter defaults. */
 export const DEFAULT_PARAMS: PlaygroundParams = {
   thinkingDepth: 'off',
   thinkingStyle: 'both',

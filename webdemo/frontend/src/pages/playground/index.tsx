@@ -1,4 +1,4 @@
-/** 体验中心页面：组合模型入口、凭据、对话状态与文档工作台。 */
+/** Playground page: composes the model entry, credentials, chat state, and document workspace. */
 
 import { useCallback, useState } from 'react';
 import { useNavigate, useNavigationType, useParams } from 'react-router-dom';
@@ -40,7 +40,7 @@ import { canUsePlaygroundWebSearch } from './utils/webSearchCapability';
 import { CitationDrawer } from './components/CitationDrawer';
 import { useCitationPanel } from './hooks/useCitationPanel';
 
-/** URL 体验键到免费额度类型的映射；语言模型使用缺省 language。 */
+/** Map from a URL experience key to a free-quota type; language models use the default language. */
 const playgroundCredentialExperiences = {
   language: 'language',
   tts: 'tts',
@@ -49,7 +49,7 @@ const playgroundCredentialExperiences = {
   'field-extract': 'image-parse',
 } as const;
 
-/** 按 URL 组合独立体验页与公共侧栏。 */
+/** Compose the standalone experience page and the shared sidebar from the URL. */
 export default function PlaygroundPage() {
   const { toast } = useToast();
   const { t } = useTranslation('playground');
@@ -58,19 +58,19 @@ export default function PlaygroundPage() {
   const { experience: experienceParam } = useParams();
   const collapsed = useAppStore((s) => s.playground.sidebarCollapsed);
   const setPrefs = useAppStore((s) => s.setPlaygroundPrefs);
-  // 移动端（<lg）侧栏转抽屉
+  // On mobile (<lg) the sidebar becomes a drawer.
   const isMobile = !useBreakpoint('lg');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [imageParseHistory, setImageParseHistory] = useState<PlaygroundSidebarHistory>();
   const [imageParseWorkspaceKey, setImageParseWorkspaceKey] = useState(0);
 
-  // 凭据按 URL 对应的体验类型独立回退：该类型免费额度用尽时立即改用用户自有 Key。
+  // Credentials fall back independently for the experience type in the URL: when that type’s free quota is used up, switch immediately to the user’s own key.
   const credentialExperience =
     playgroundCredentialExperiences[normalizeExperience(experienceParam)];
   const model = usePlaygroundModel(credentialExperience);
   const selectedModel = model.models.find((item) => item.id === model.modelId);
   const attachmentCapabilities = selectedModel?.capabilities;
-  // 思考展示、参数默认值与消息渲染遵从当前模型能力。
+  // Reasoning display, parameter defaults, and message rendering follow the current model’s capabilities.
   const allowReasoning = allowsReasoning(
     model.models.find((m) => m.id === model.modelId)?.capabilities,
   );
@@ -91,7 +91,7 @@ export default function PlaygroundPage() {
 
   const [input, setInput] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
-  // 引用来源面板：开合、内容归属、高亮定位统一由 useCitationPanel 编排
+  // Citation panel: open and close, which content it belongs to, and highlight positioning are all orchestrated by useCitationPanel.
   const {
     panel: citationPanel,
     open: citationPanelOpen,
@@ -99,7 +99,7 @@ export default function PlaygroundPage() {
     openPanel: openCitationPanel,
     closePanel: closeCitationPanel,
   } = useCitationPanel(chat.messages);
-  // URL 保持入口；模型加载完成后，无权限的体验回退语言模型。
+  // The URL stays the entry; after models load, an experience the user cannot access falls back to language chat.
   const hasTtsModels = model.ttsModels.length > 0;
   const hasRealtimeModels = model.realtimeModels.length > 0;
   const hasImageParseModels = model.imageParseModels.length > 0;
@@ -112,7 +112,7 @@ export default function PlaygroundPage() {
   const isDocument = isDocumentExperience(experience);
 
   const hasMessages = chat.messages.length > 0;
-  // 可发送要求：已选模型 + 已选 Key + 明文密钥已就绪（避免密钥解密未完成就发起请求而失败）
+  // Send requires a selected model, a selected key, and a plaintext secret that is ready (so a request is not sent, and fails, before the secret finishes decrypting).
   const canSend =
     Boolean(model.modelId) && Boolean(model.keyId) && (params.webSearch || model.secretReady);
   const sendDisabledReason = getSendDisabledReason(
@@ -130,11 +130,11 @@ export default function PlaygroundPage() {
     t,
   );
 
-  // 历史恢复模型时由 resolveSelection 兜底；只依赖稳定的选择函数。
+  // Restoring a model from history is covered by resolveSelection; depend only on the stable selection function.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const restoreModel = useCallback((m: string) => model.selectModel(m), [model.selectModel]);
 
-  // 历史对话持久化（列表/加载/自动保存/新建/删除）
+  // Chat history persistence (list, load, autosave, create, delete).
   const conv = useConversationPersistence({
     messages: chat.messages,
     model: model.modelId,
@@ -145,7 +145,7 @@ export default function PlaygroundPage() {
     onModelRestore: restoreModel,
   });
 
-  // 对话反馈编排：点赞静默上报，点踩弹框选原因后上报；本地高亮仍由 chat.setFeedback 持有
+  // Chat feedback: thumbs-up is reported quietly, thumbs-down opens a reason dialog and then reports; local highlight still lives in chat.setFeedback.
   const feedback = useMessageFeedback({
     messages: chat.messages,
     model: model.modelId,
@@ -153,9 +153,9 @@ export default function PlaygroundPage() {
     setLocalFeedback: chat.setFeedback,
   });
 
-  // 移动端：选会话/新建后自动收起抽屉
+  // Mobile: collapse the drawer after selecting a conversation or starting a new one.
   const closeDrawer = useCallback(() => setMobileSidebarOpen(false), []);
-  // 切换体验（语言/语音合成/实时音视频/图像解析）：写入 URL 以便刷新保持；移动端顺带收起抽屉
+  // Switch experience (language, speech synthesis, realtime audio and video, image parse): write it into the URL so refresh keeps it; on mobile, also collapse the drawer.
   const selectExperience = useCallback(
     (key: ExperienceKey) => {
       if (isDocumentExperience(key) && !hasImageParseModels) return;
@@ -177,19 +177,19 @@ export default function PlaygroundPage() {
   const currentModelId = model.modelId;
   const selectModel = model.selectModel;
   const newChat = useCallback(() => {
-    // 已是空白新对话（无消息且未落库）时，仅提示，避免"点了没反应"的困惑
+    // When it is already a blank new chat (no messages and not yet saved), only show a notice, so a click does not feel like it did nothing.
     if (chat.messages.length === 0 && !conv.activeConversationId) {
       toast({ title: t('currentNewConversation') });
       closeDrawer();
       return;
     }
     conv.newChat();
-    setInput(''); // 顺带清空输入框，回到干净的新对话现场
+    setInput(''); // Also clear the input, back to a clean new-chat scene.
     toast({ title: t('newConversationStarted') });
     closeDrawer();
   }, [chat.messages.length, closeDrawer, conv, t, toast]);
-  // 用户主动切换不同模型时，模型上下文不能继续复用。旧会话保留在最近对话中，
-  // 新模型从空白会话开始；历史会话恢复模型则继续使用 restoreModel，不经过这里。
+  // When the user switches to a different model on purpose, the model context cannot be reused. The old conversation stays in recent chats,
+  // and the new model starts from a blank conversation; restoring a model from a history conversation still uses restoreModel and does not pass through here.
   const selectLanguageModel = useCallback(
     (nextModelId: string) => {
       if (
@@ -203,7 +203,7 @@ export default function PlaygroundPage() {
     },
     [chat.messages.length, conv, currentModelId, selectModel, t, toast],
   );
-  // 删除二次确认：destructive 弹窗确认后再真正删除，避免误删历史对话
+  // Delete confirmation: a destructive dialog confirms before the history conversation is actually deleted, so it is not removed by mistake.
   const deleteSession = useCallback(
     async (id: string) => {
       const target = conv.sessions.find((s) => s.id === id);
@@ -283,7 +283,7 @@ export default function PlaygroundPage() {
     );
   }
 
-  // 语言输入槽在欢迎态与对话态复用，避免重复装配 Composer 与密钥状态行。
+  // The language input slot is shared by the welcome state and the chat state, so Composer and the key-status row are not assembled twice.
   const composer = (
     <>
       <ComposerSlot
@@ -303,7 +303,7 @@ export default function PlaygroundPage() {
     </>
   );
 
-  // 语言模型体验主区：欢迎态（居中输入 + 任务卡）与对话态（消息流 + 底部输入）二选一
+  // Language-model main area: either the welcome state (centered input plus task cards) or the chat state (message stream plus input at the bottom).
   function renderLanguage() {
     return hasMessages ? (
       <div className="flex h-full flex-col">
@@ -334,7 +334,7 @@ export default function PlaygroundPage() {
     );
   }
 
-  // 主区按体验分发：语言模型渲染真功能对话区，其余体验各自独立页面
+  // The main area is dispatched by experience: language models render the real chat area, and the other experiences each have their own page.
   function renderMain() {
     if (isLanguage) return renderLanguage();
     if (experience === 'tts') return <TtsExperience model={model} />;
@@ -388,7 +388,7 @@ export default function PlaygroundPage() {
         onReset={reset}
       />
 
-      {/* 点踩反馈弹窗：收集原因标签 + 可选正文后上报 */}
+      {/* Thumbs-down feedback dialog: collect a reason tag plus optional text, then report. */}
       <FeedbackDialog
         open={feedback.dialogOpen}
         onOpenChange={feedback.setDialogOpen}

@@ -1,22 +1,22 @@
 /**
- * 实时音视频（双工）参数状态 Hook。
+ * Realtime audio and video (duplex) parameter-state hook.
  *
- * 用途：集中管理双工通话的全部可调参数（对齐 MiniCPM-o demo）——对话模式、音色、
- * 系统提示词、TTS 开关、Length Penalty、Max Tokens、Temperature、播放延迟、麦克风/扬声器、
- * 参考音频（音色克隆）。以单对象 + patch 收敛，供页面编排与请求组装。
+ * Purpose: manage every adjustable parameter of a duplex call in one place (aligned with the MiniCPM-o demo) — conversation mode, voice,
+ * system prompt, TTS switch, Length Penalty, Max Tokens, Temperature, playback delay, microphone/speaker,
+ * and reference audio (voice clone). Collapsed to one object plus patch, for page orchestration and request assembly.
  */
 
 import { useAppStore, type AppLocale } from '@map/store';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-/** 通用选项 */
+/** Generic option */
 export interface DuplexOption {
   value: string;
   label: string;
 }
 
-/** 双工音色选项，包含声音要求和可选的参考音频素材。 */
+/** Duplex voice option, including the voice requirement and optional reference-audio asset. */
 export interface DuplexVoiceOption extends DuplexOption {
   instruction: string;
   instructionEn: string;
@@ -25,22 +25,22 @@ export interface DuplexVoiceOption extends DuplexOption {
 
 export type DuplexLanguage = 'zh' | 'en';
 
-/** 双工语言来源：跟随界面语言，或由用户在双工面板中手动指定。 */
+/** Duplex language source: follow the UI language, or be set manually by the user in the duplex panel. */
 export type DuplexLanguageMode = 'auto' | 'manual';
 
-/** 官方 Demo 支持的界面/提示词语言。 */
+/** UI and prompt languages the official demo supports. */
 export const LANGUAGES: DuplexOption[] = [
   { value: 'zh', label: 'languageChinese' },
   { value: 'en', label: 'languageEnglish' },
 ];
 
-/** 对话模式（字段名 audioSource 为兼容已有持久化配置保留） */
+/** Conversation mode (the field name audioSource is kept for compatibility with existing persisted config) */
 export const SOURCES: DuplexOption[] = [
   { value: 'mic', label: 'audioDuplex' },
   { value: 'both', label: 'videoDuplex' },
 ];
 
-/** 对话音色 */
+/** Conversation voice */
 export const VOICES: DuplexVoiceOption[] = [
   {
     value: 'female_warm',
@@ -65,14 +65,14 @@ export const VOICES: DuplexVoiceOption[] = [
   },
 ];
 
-/** 官方 MiniCPM-o-Demo 预设原文。 */
+/** Original text of the official MiniCPM-o-Demo presets. */
 export const OFFICIAL_AUDIO_DUPLEX_PROMPT =
   '扮演一个具有以上声音特征的助手。请认真、高质量地回复用户的问题。请用高自然度的方式和用户聊天。你处于双工模式，可以一边听、一边说。你是由面壁智能开发的人工智能助手：面壁小钢炮。';
 export const OFFICIAL_AUDIO_DUPLEX_ENGLISH_PROMPT =
   "Act as an assistant with the voice characteristics described above. Respond to the user's questions thoughtfully and with high quality. Chat with the user in a highly natural manner. You are in duplex mode, so you can listen and speak at the same time. You are ModelBest Xiao Gang Pao, an AI assistant developed by ModelBest Intelligence.";
 export const OFFICIAL_OMNI_PROMPT = 'Streaming Omni Conversation.';
 
-/** 场景预设 → 系统提示词；内容对应 MiniCPM-o-Demo/assets/presets。 */
+/** Scene preset → system prompt; the content corresponds to MiniCPM-o-Demo/assets/presets. */
 export const SCENES = [
   {
     value: 'audio_chinese_call',
@@ -114,7 +114,7 @@ export function promptForAudioSource(
     : { scene: 'audio_chinese_call', system: OFFICIAL_AUDIO_DUPLEX_PROMPT, language };
 }
 
-/** 双工全部参数 */
+/** Every duplex parameter */
 export interface DuplexSettings {
   audioSource: string;
   voice: string;
@@ -136,7 +136,7 @@ export interface DuplexSettings {
   subtitleTopOpacity: number;
   micDeviceId: string;
   speakerDeviceId: string;
-  /** 参考音频（音色克隆）裸 base64 */
+  /** Reference audio (voice clone) raw base64 */
   refAudio?: string;
   refAudioName?: string;
   ttsRefAudio?: string;
@@ -176,7 +176,7 @@ const DEFAULT: DuplexSettings = {
   temperature: 0.7,
   ttsEnabled: true,
   visionHD: false,
-  /** 下行播放预留缓冲(ms)：0 等于零缓冲，网络抖一下就是可听见的断裂，默认留一点余量 */
+  /** Reserved downlink playback buffer (ms): 0 means zero buffer, and one network jitter is an audible break, so a little margin is left by default */
   playbackDelay: 200,
   responseLengthPreset: 'balanced',
   subtitleHeightPercent: 20,
@@ -196,11 +196,11 @@ function createDefaultSettings(language: DuplexLanguage): DuplexSettings {
 }
 
 /**
- * 将用户选择的音色转换为实际发送给模型的声音要求。
+ * Turn the voice the user selected into the voice requirement actually sent to the model.
  *
- * @param system 用户在面板中编辑的系统提示词
- * @param voice 音色标识
- * @returns 保留原提示词并追加声音要求的有效系统提示词
+ * @param system system prompt the user edited in the panel
+ * @param voice voice id
+ * @returns an effective system prompt that keeps the original prompt and appends the voice requirement
  */
 export function buildDuplexSystemPrompt(
   system: string,
@@ -216,10 +216,10 @@ export function buildDuplexSystemPrompt(
 }
 
 /**
- * 从持久化数据恢复双工设置，并迁移旧的官方场景提示词。
+ * Restore duplex settings from persisted data, and migrate old official scene prompts.
  *
- * @param saved localStorage 中读取的部分设置
- * @returns 带默认值和迁移结果的完整双工设置
+ * @param saved partial settings read from localStorage
+ * @returns complete duplex settings with defaults and the migration result
  */
 export function resolveInitialDuplexSettings(
   saved: Partial<DuplexSettings>,
@@ -246,7 +246,7 @@ export function resolveInitialDuplexSettings(
     languageMode === 'auto' ||
     (KNOWN_SYSTEM_PROMPTS.has(saved.system) &&
       (savedScene?.language !== language || saved.scene !== official.scene));
-  // 双工只支持官方预置音色；历史持久化的私有音色 ID 必须回退，避免继续发送旧选择。
+  // Duplex supports only official preset voices; a historically persisted private voice ID must fall back, so the old selection is not sent again.
   const voice = VOICES.find((item) => item.value === saved.voice)?.value ?? DEFAULT.voice;
 
   return {
@@ -261,13 +261,13 @@ export function resolveInitialDuplexSettings(
 }
 
 /**
- * 双工参数状态。
+ * Duplex parameter state.
  */
 export function useDuplexSettings() {
   const storeLocale = useAppStore((state) => state.locale);
   const { i18n } = useTranslation();
-  // i18next 语言切换先于持久化 store hydration 完成，优先使用已生效的界面语言，
-  // 避免英文界面首次打开时短暂或持续回显中文场景提示词。
+  // An i18next language change finishes before the persisted store hydrates, so prefer the UI language that is already in effect,
+  // and avoid briefly or persistently echoing Chinese scene prompts the first time the English UI opens.
   const locale: AppLocale =
     i18n.resolvedLanguage === 'en-US' || storeLocale === 'en-US' ? 'en-US' : 'zh-CN';
   const previousLocale = useRef(locale);

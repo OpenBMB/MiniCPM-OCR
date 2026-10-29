@@ -1,10 +1,7 @@
 /**
- * 双工右侧设置面板（Tabs 分组）。
+ * Duplex right settings panel (grouped in Tabs).
  *
- * 用途：对齐 MiniCPM-o demo 的完整参数——通话（对话模式/模型/音色/系统提示词/TTS开关）、
- * 音色克隆（参考音频上传）、高级（Length Penalty/Max Tokens/Temperature/播放延迟）、设备
- * （麦克风/扬声器）。系统提示词/音色/模型/TTS开关真实生效；采样参数透传上游（支持则生效）；
- * 参考音频做音色克隆；设备切换真实。图标用 lucide-react。纯展示组件。
+ * Purpose: the full parameters aligned with the MiniCPM-o demo — call (conversation mode/model/voice/system prompt/TTS switch), voice clone (reference-audio upload), advanced (Length Penalty/Max Tokens/Temperature/playback delay), devices (microphone/speaker). System prompt/voice/model/TTS switch actually take effect; sampling parameters are passed through upstream (they take effect when supported); reference audio does voice cloning; device switching is real. Icons use lucide-react. Pure display component.
  */
 
 import { Activity, ChevronDown, RefreshCw, RotateCcw, Upload } from 'lucide-react';
@@ -48,7 +45,7 @@ interface DuplexSidePanelProps {
   patch: (p: Partial<DuplexSettings>) => void;
   onVoiceChange: (voice: string) => void;
   selectLanguage: (language: DuplexLanguage) => void;
-  /** 切换对话模式（会话中同步开/关摄像头） */
+  /** Switch conversation mode (open/close the camera in sync during a session) */
   onAudioSource: (v: string) => void;
   mics: DeviceOption[];
   speakers: DeviceOption[];
@@ -61,7 +58,7 @@ interface DuplexSidePanelProps {
 }
 
 /**
- * 右侧设置面板。
+ * Right settings panel.
  */
 export function DuplexSidePanel(props: DuplexSidePanelProps) {
   const { t } = useTranslation('playground');
@@ -114,7 +111,7 @@ export function DuplexSidePanel(props: DuplexSidePanelProps) {
           </TabsTrigger>
         </TabsList>
 
-        {/* 通话 */}
+        {/* Call */}
         <TabsContent forceMount value="call" className={`${TAB_CONTENT_CLASS} flex flex-col gap-4`}>
           <fieldset className="flex flex-col gap-1.5">
             <legend className="text-xs font-medium text-muted-foreground">
@@ -153,7 +150,7 @@ export function DuplexSidePanel(props: DuplexSidePanelProps) {
             </div>
           </fieldset>
           <Field label={t('selectModel')}>
-            {/* 候选来自管理端勾选实时能力的模型；通话中（locked）不允许换模型 */}
+            {/* Candidates come from models the admin console marked with the realtime capability; the model cannot be changed during a call (locked) */}
             <SimpleSelect
               value={model.realtimeModel?.id ?? ''}
               onChange={model.selectRealtimeModel}
@@ -226,7 +223,7 @@ export function DuplexSidePanel(props: DuplexSidePanelProps) {
           </label>
         </TabsContent>
 
-        {/* 高级 */}
+        {/* Advanced */}
         <TabsContent
           forceMount
           value="advanced"
@@ -387,7 +384,7 @@ export function DuplexSidePanel(props: DuplexSidePanelProps) {
           </Button>
         </TabsContent>
 
-        {/* 设备 */}
+        {/* Devices */}
         <TabsContent
           forceMount
           value="device"
@@ -555,7 +552,7 @@ function PresetButton({
   );
 }
 
-/** 让同组数字字段共享标签、输入框与单位三列。 */
+/** Let number fields in the same group share three columns: label, input, and unit. */
 function NumberFieldGroup({ children }: { children: React.ReactNode }) {
   return (
     <div
@@ -659,7 +656,7 @@ function AudioReferenceField({
   );
 }
 
-/** 字段容器 */
+/** Field container */
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
@@ -669,7 +666,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-/** 分段按钮 */
+/** Segmented button */
 function SegBtn({
   active,
   disabled,
@@ -696,7 +693,7 @@ function SegBtn({
   );
 }
 
-/** 精简 Select 包装。placeholder 供无候选/未选中时占位（缺省时沿用 Radix 空白态） */
+/** Slim Select wrapper. placeholder is the stand-in when there are no candidates or nothing is selected (when omitted, keep Radix's empty state) */
 function SimpleSelect({
   value,
   onChange,
@@ -722,7 +719,7 @@ function SimpleSelect({
   );
 }
 
-/** 滑块字段 */
+/** Slider field */
 function RangeField({
   label,
   value,
@@ -763,7 +760,7 @@ function RangeField({
   );
 }
 
-/** 状态行 */
+/** Status row */
 function Row({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex items-center justify-between">

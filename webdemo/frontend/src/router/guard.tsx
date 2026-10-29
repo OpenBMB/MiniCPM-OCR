@@ -4,10 +4,10 @@ import { getToken } from '@/api/map';
 import { whiteList } from './constants';
 
 /**
- * 登录守卫：照搬老 portal 的判定——以 `localStorage['map_token']` 是否存在判断登录态。
+ * Login guard: mirrors the old portal — logged in when `localStorage['map_token']` exists.
  *
- * 用途：未登录访问受保护路由时跳转 `/login`。MAP 鉴权由后端 `platform_role` 实时判定，
- * 前端无内置角色/权限体系，故守卫只判断 token 是否存在，不做权限码校验。
+ * Purpose: an unauthenticated visit to a protected route redirects to `/login`. MAP auth is decided live by the backend `platform_role`;
+ * the frontend has no built-in role or permission system, so the guard only checks that a token exists and does not check permission codes.
  */
 export function AuthGuard({ children }: PropsWithChildren) {
   const location = useLocation();

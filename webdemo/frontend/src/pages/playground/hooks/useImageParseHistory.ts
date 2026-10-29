@@ -19,7 +19,7 @@ import type {
 
 const EMPTY_HISTORY: ImageParseHistorySummary[] = [];
 
-/** 历史详情短缓存；写入只失效变更记录，手动刷新才失效全部详情。 */
+/** Short cache of history details; a write invalidates only the changed record, and only a manual refresh invalidates every detail. */
 const ENTRY_CACHE = { staleTime: 30_000, gcTime: 120_000 } as const;
 
 export type {
@@ -27,7 +27,7 @@ export type {
   UseImageParseHistoryResult,
 } from '../utils/imageParseHistoryTypes';
 
-/** 用查询缓存管理云端历史；自动保存串行执行，切换账号后不提交旧范围的排队写入。 */
+/** Manage cloud history with the query cache; autosave runs serially, and after an account switch a queued write for the old scope is not submitted. */
 export function useImageParseHistory({
   userId,
   projectId,

@@ -1,5 +1,5 @@
 export interface ApiResponse<T = unknown> {
-  /** 平台链路 ID（req_xxx），同时在响应头 X-Request-Id 回写 */
+  /** Platform trace id (req_xxx), also written back on the X-Request-Id response header. */
   requestId: string;
   code: number | string;
   data: T;
@@ -20,28 +20,28 @@ export interface PageParams {
 }
 
 /**
- * 业务错误码（与后端 internal/app/errcode.go 保持一致，此处仅声明前端需判定的子集）。
+ * Business error codes (kept in line with backend internal/app/errcode.go; only the subset the frontend must branch on is declared here).
  */
 export const BIZ_CODE = {
-  /** 成功 */
+  /** Success. */
   OK: 0,
-  /** 未登录 / 登录态失效 */
+  /** Not logged in, or the login session is no longer valid. */
   UNAUTHORIZED: 10001,
-  /** 账号被停用 */
+  /** Account disabled. */
   ACCOUNT_DISABLED: 10003,
-  /** 邮箱认证账号必须先绑定中国大陆手机号 */
+  /** An email-authenticated account must bind a mainland China mobile number first. */
   PHONE_BINDING_REQUIRED: 10011,
-  /** 权限不足 */
+  /** Insufficient permission. */
   FORBIDDEN: 10010,
-  /** 高权限本地密码已过期 */
+  /** The high-privilege local password has expired. */
   PASSWORD_EXPIRED: 10007,
-  /** 账号被要求重置本地密码 */
+  /** The account is required to reset its local password. */
   PASSWORD_RESET_REQUIRED: 10009,
 } as const;
 
 /**
- * 需清除登录态并跳转登录页的错误码集合（对齐后端 logoutCodes）。
- * 前端响应拦截器据此统一判定登出。
+ * Error codes that must clear the login session and redirect to the login page (aligned with backend logoutCodes).
+ * The frontend response interceptor uses this set to decide logout in one place.
  */
 export const LOGOUT_CODES: readonly number[] = [BIZ_CODE.UNAUTHORIZED, BIZ_CODE.ACCOUNT_DISABLED];
 

@@ -1,4 +1,4 @@
-/** 麦克风直接采集 PCM/WAV，支持暂停、继续、声纹反馈和有效时长限制。 */
+/** Capture PCM/WAV from the microphone directly, with pause, resume, voiceprint feedback, and an effective-duration limit. */
 
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -12,10 +12,10 @@ import {
 const RECORD_BAR_COUNT = 28;
 
 /**
- * 麦克风录音片段编排。
- * @param onClip 录制结束后的 WAV Blob 回调
- * @param maxSeconds 单段录音上限（秒），达上限自动停止；默认 50（对齐官方参考音频时长上限）
- * @returns 录音状态及 start / pause / resume / stop / cancel 操作
+ * Orchestration of a microphone recording clip.
+ * @param onClip WAV Blob callback after recording ends
+ * @param maxSeconds cap for one recording (seconds); it stops automatically at the cap. Default 50 (aligned with the official reference-audio duration cap)
+ * @returns recording state and the start / pause / resume / stop / cancel actions
  */
 export function useVoiceRecorder(onClip: (blob: Blob) => void, maxSeconds = 50) {
   const { t } = useTranslation('playground');
@@ -114,7 +114,7 @@ export function useVoiceRecorder(onClip: (blob: Blob) => void, maxSeconds = 50) 
       setSeconds(0);
       secondsRef.current = 0;
 
-      // 频谱失败不应影响录音主链路，因此使用独立 AudioContext 并单独容错。
+      // A spectrum failure must not affect the main recording path, so it uses a separate AudioContext and handles errors on its own.
       try {
         const vizContext = new AudioContext();
         vizContextRef.current = vizContext;
@@ -127,7 +127,7 @@ export function useVoiceRecorder(onClip: (blob: Blob) => void, maxSeconds = 50) 
           },
         );
       } catch {
-        // 浏览器禁用 AudioContext 时仍保留录音能力，只是不显示声纹。
+        // When the browser disables AudioContext, recording still works; only the voiceprint is not shown.
       }
 
       tickRef.current = setInterval(() => {

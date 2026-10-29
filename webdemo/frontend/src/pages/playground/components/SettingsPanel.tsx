@@ -1,8 +1,7 @@
 /**
- * 参数设置面板（弹窗）。
+ * Parameter settings panel (dialog).
  *
- * 用途：调节对话采样、思考参数风格与 v4.7 图片压缩比例。
- * 滑块需求暂以数字输入承载（避免新增 @map/ui 原语），范围由 min/max/step 约束。
+ * Purpose: adjust chat sampling, the reasoning-parameter style, and the v4.7 image compression ratio. Slider needs are carried by a number input for now (avoid adding an @map/ui primitive), and the range is constrained by min/max/step.
  */
 
 import {
@@ -30,16 +29,16 @@ interface SettingsPanelProps {
   modelId: string;
   onOpenChange: (open: boolean) => void;
   params: PlaygroundParams;
-  /** 当前模型是否支持深度思考，不支持时隐藏思考设置。 */
+  /** Whether the current model supports deep reasoning; hide reasoning settings when it does not. */
   showReasoning?: boolean;
   onUpdate: (patch: Partial<PlaygroundParams>) => void;
-  /** 流式输出开关 */
+  /** Streaming-output switch */
   onStreamChange: (stream: boolean) => void;
   onReset: () => void;
 }
 
 /**
- * 参数设置弹窗。
+ * Parameter settings dialog.
  */
 export function SettingsPanel({
   open,
@@ -176,7 +175,7 @@ export function SettingsPanel({
   );
 }
 
-/** 开关字段：标签 + 说明 + 右侧开关（@map/ui 暂无 Switch 原语，用受控按钮模拟） */
+/** Switch field: label + description + switch on the right (@map/ui has no Switch primitive yet; simulate it with a controlled button) */
 function ToggleField({
   label,
   hint,
@@ -217,7 +216,7 @@ function ToggleField({
   );
 }
 
-/** 带说明的数字输入字段 */
+/** Number input field with a description */
 function NumberField({
   id,
   label,

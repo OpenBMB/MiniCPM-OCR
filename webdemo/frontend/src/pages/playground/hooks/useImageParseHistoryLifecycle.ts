@@ -21,9 +21,9 @@ interface ImageParseHistoryLifecycleOptions {
 }
 
 /**
- * 在范围/模式变化时取消旧任务；缓存恢复可同步更新有效范围而不重新识别。
- * @param options 当前任务范围、状态与取消/识别入口
- * @returns 快照有效标识与恢复边界的更新函数
+ * Cancel the old task when the scope or mode changes; a cache restore can update the valid scope synchronously without running recognition again.
+ * @param options current task scope, state, and the cancel/recognition entries
+ * @returns the snapshot-valid flag and the function that updates the restore boundary
  */
 export function useImageParseHistoryLifecycle({
   scope,
@@ -95,9 +95,9 @@ interface ImageParseHistorySnapshotOptions {
 const EMPTY_LAYOUT: readonly ImageParseLayoutBlock[] = [];
 
 /**
- * 上传后立即派生可保存快照；未完成时只保留原件，重新打开后继续识别。
- * @param options 识别结果及当前任务的有效状态
- * @returns 可保存的图片/PDF 快照；共享案例或范围失效时返回 null
+ * Derive a snapshot that can be saved immediately after upload; while it is unfinished, keep only the original, and continue recognition after it is opened again.
+ * @param options recognition result and the valid state of the current task
+ * @returns an image/PDF snapshot that can be saved; null for a shared example or when the scope is no longer valid
  */
 export function useImageParseHistorySnapshot({
   attachment,
@@ -117,7 +117,7 @@ export function useImageParseHistorySnapshot({
   return useMemo(() => {
     if (!attachment || !valid || isImageParseSharedExample(attachment.id)) return null;
     if (pdfActive && mode === 'seal') return null;
-    // 后端要求 kie 快照携带合法字段；字段尚未填好时不要创建或覆盖历史。
+    // The backend requires a kie snapshot to carry legal fields; do not create or overwrite history before the fields are filled in.
     if (mode === 'kie' && imageParseKieFieldsError(fields ?? [])) return null;
     if (pdfActive) {
       if (!pdf) return null;

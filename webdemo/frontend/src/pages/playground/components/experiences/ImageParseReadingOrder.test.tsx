@@ -33,7 +33,7 @@ function block(
 const blocks = [
   block(0, 'header'),
   block(1, 'text'),
-  // 跨栏合并块有两个区域：序号只标一次
+  // A cross-column merged block has two regions: the number is marked only once
   block(2, 'table', {
     regions: [
       { x: 0.1, y: 0.3, w: 0.3, h: 0.1 },

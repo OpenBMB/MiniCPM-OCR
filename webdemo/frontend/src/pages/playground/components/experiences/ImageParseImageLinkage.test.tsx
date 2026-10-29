@@ -44,7 +44,7 @@ const ranges = imageParseBlockRanges(result.markdown, result.blocks);
 const linkedRanges = [...ranges].map(([id, range]) => ({ id, range }));
 const crops = ['data:image/png;base64,AA=='];
 
-/** 复用原图选择与结果定位链路，覆盖图片和连续 PDF 的真实图片映射。 */
+/** Reuse the original-image selection and result-location path, covering the real image mapping for images and continuous PDFs. */
 function ImageLinkageWorkspace({
   pdf,
   onFocus,

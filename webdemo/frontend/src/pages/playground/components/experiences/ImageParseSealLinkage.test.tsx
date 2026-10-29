@@ -36,7 +36,7 @@ const result = adaptImageParseV2({
 const ranges = imageParseBlockRanges(result.markdown, result.blocks);
 const linkedRanges = [...ranges].map(([id, range]) => ({ id, range }));
 
-/** 以真实适配结果连接原图框与图片/PDF 结果预览。 */
+/** Connect original-image boxes to the image/PDF result preview with the real adapted result. */
 function SealLinkageWorkspace({
   pdf,
   onFocus,

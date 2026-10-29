@@ -1,38 +1,38 @@
 /**
- * 左右对照分栏拖拽。
+ * Dragging a left-right comparison split.
  *
- * 用途：对照阅读时，原图和结果谁该占更多宽度取决于图本身——竖排表格想给原图多点，
- * 通篇文字想给 Markdown 多点。固定 50/50 是替用户做了决定。
+ * Purpose: while reading side by side, whether the original image or the result should take more width depends on the image itself — a vertical table wants more for the original,
+ * and a page of text wants more for the Markdown. A fixed 50/50 decides that for the user.
  *
- * 拖拽用 Pointer Events + setPointerCapture：一次捕获到底，
- * 指针划出分隔条甚至划出窗口都不会丢事件，不必在 window 上挂全局监听再记得摘掉。
+ * Dragging uses Pointer Events plus setPointerCapture: one capture lasts to the end,
+ * so the pointer leaving the divider or even the window does not drop events, and there is no global listener on window to remember to remove.
  *
- * 按下时记录指针、比例与容器宽度，移动按位移换算，避免从透明抓取区边缘按下时跳动。
+ * On press, record the pointer, the ratio, and the container width, and convert movement from the displacement, so pressing from the edge of the transparent grab area does not jump.
  */
 
 import { useCallback, useRef, useState } from 'react';
 
-/** 左栏占比上下限，避免任一侧被拖到不可用。 */
+/** Upper and lower bounds of the left-pane ratio, so neither side can be dragged until it is unusable. */
 const MIN_RATIO = 24;
 const MAX_RATIO = 76;
-/** 键盘每次调整的步长。 */
+/** Step for each keyboard adjustment. */
 const KEY_STEP = 2;
-/** 容器标记属性，分隔条靠它反查自己该按谁的宽度换算。 */
+/** Container marker attribute; the divider uses it to find which width it should convert against. */
 const CONTAINER_ATTR = 'data-split-container';
 
-/** 分栏控制。 */
+/** Split controls. */
 export interface SplitPane {
-  /** 左栏占比（百分数） */
+  /** Left-pane ratio (percent) */
   ratio: number;
-  /** 是否正在拖拽。拖拽期间必须关掉分栏宽度过渡，否则栏宽会慢指针一步 */
+  /** Whether a drag is in progress. The split-width transition must be turned off while dragging, or the pane width lags the pointer by one step */
   dragging: boolean;
-  /** 摊到分栏容器上，让分隔条能找到它 */
+  /** Spread onto the split container so the divider can find it */
   containerProps: Record<string, string>;
   onPointerDown: (event: React.PointerEvent<HTMLElement>) => void;
   onPointerMove: (event: React.PointerEvent<HTMLElement>) => void;
   onPointerUp: (event: React.PointerEvent<HTMLElement>) => void;
   onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => void;
-  /** 双击分隔条回到均分 */
+  /** Double-click the divider to return to an even split */
   reset: () => void;
   min: number;
   max: number;
@@ -43,13 +43,13 @@ function clamp(value: number): number {
 }
 
 /**
- * 可拖拽分栏。
- * @param initial 左栏初始占比，默认均分
+ * A draggable split.
+ * @param initial initial left-pane ratio; even split by default
  */
 export function useSplitPane(initial = 50): SplitPane {
   const [ratio, setRatio] = useState(clamp(initial));
   const [dragging, setDragging] = useState(false);
-  // 事件间同步保存拖拽快照，避免状态更新延迟或第二根手指改变本次拖拽。
+  // Save the drag snapshot synchronously between events, so a delayed state update or a second finger does not change this drag.
   const dragRef = useRef<{
     pointerId: number;
     clientX: number;
@@ -66,7 +66,7 @@ export function useSplitPane(initial = 50): SplitPane {
     const dividerRect = target.getBoundingClientRect();
     const width = containerRect?.width ?? 0;
     if (!containerRect || width <= 0) return;
-    // 负边距让分隔条右边缘贴合原图栏边界，按当前布局接续未结束的调宽过渡。
+    // A negative margin makes the divider's right edge meet the original-image pane boundary, continuing an unfinished width transition for the current layout.
     const ratio = clamp(
       ((dividerRect.left + dividerRect.width - containerRect.left) / width) * 100,
     );

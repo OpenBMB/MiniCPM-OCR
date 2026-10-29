@@ -1,9 +1,7 @@
 /**
- * 语音波形播放器。
+ * Voice waveform player.
  *
- * 用途：为合成/回复音频提供紧凑的自定义播放器——播放/暂停、可点击 seek 的波形进度、
- * 时间、倍速、下载，单行排布。波形取自音频真实峰值（解码一次高分辨率，再按容器宽度
- * 重采样），细条居中镜像，随播放进度高亮；解码失败时退化为一条中线，不影响播放。
+ * Purpose: a compact custom player for synthesized / reply audio — play/pause, a clickable seekable waveform, time, playback rate, and download, in one row. The waveform comes from the audio's real peaks (decode once at high resolution, then resample to the container width). Thin bars are mirrored around the center and highlight with playback progress; on decode failure it degrades to a center line and playback is unaffected.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -12,24 +10,24 @@ import { useTranslation } from 'react-i18next';
 import { decodeWaveformPeaks } from '../../utils/audioEncode';
 
 interface AudioWavePlayerProps {
-  /** 音频 Object URL */
+  /** Audio Object URL */
   src: string;
-  /** 下载文件名 */
+  /** Download file name */
   downloadName?: string;
-  /** 音频就绪后尝试自动播放；播放被浏览器拦截时保留手动播放入口 */
+  /** Try to autoplay once the audio is ready; if the browser blocks playback, keep a manual play entry */
   autoPlay?: boolean;
 }
 
-/** 解码分辨率：一次解够，之后按容器宽度重采样，避免缩放时反复解码 */
+/** Decode resolution: decode enough once, then resample to the container width, so resizing does not decode again */
 const PEAK_RESOLUTION = 1024;
-/** 单条占位（条宽 2px + 间隙 2px），用于按容器宽度推算条数 */
+/** Placeholder for one bar (bar width 2px + gap 2px), used to estimate the bar count from the container width */
 const BAR_PITCH = 4;
 
 /**
- * 波形播放器。
- * @param src 音频 URL
- * @param downloadName 下载文件名
- * @param autoPlay 是否在音频就绪后尝试自动播放
+ * Waveform player.
+ * @param src Audio URL
+ * @param downloadName Download file name
+ * @param autoPlay Whether to try autoplay once the audio is ready
  */
 export function AudioWavePlayer({
   src,
@@ -52,10 +50,10 @@ export function AudioWavePlayer({
   const [autoPlayBlocked, setAutoPlayBlocked] = useState(false);
 
   const progress = duration > 0 ? current / duration : 0;
-  // 结果带 src 存放：src 切换后自动视为“未解码”，无需在 effect 里同步重置
+  // Store the result with src: after src changes it is automatically treated as "not decoded," with no synchronous reset in the effect
   const peaks = decoded.src === src ? decoded.peaks : null;
 
-  // 解码真实波形（每个 src 一次）
+  // Decode the real waveform (once per src)
   useEffect(() => {
     let alive = true;
     decodeWaveformPeaks(src, PEAK_RESOLUTION).then((p) => {
@@ -66,7 +64,7 @@ export function AudioWavePlayer({
     };
   }, [src]);
 
-  // 条数跟随容器宽度，窄屏自动变稀，避免固定条数被挤成胖块
+  // Bar count follows the container width and thins out automatically on a narrow screen, so a fixed count is not squeezed into fat blocks
   useEffect(() => {
     const el = waveRef.current;
     if (!el) return undefined;
@@ -160,7 +158,7 @@ export function AudioWavePlayer({
           )}
         </button>
 
-        {/* 可点击 / 方向键 seek 的波形 */}
+        {/* Waveform that can be seeked by click / arrow keys */}
         <div
           ref={waveRef}
           onClick={onWaveClick}
@@ -216,7 +214,7 @@ export function AudioWavePlayer({
   );
 }
 
-/** 高分辨率峰值 → 指定条数（每条取区间均值，条数多于源时按比例取样） */
+/** High-resolution peaks → a given bar count (each bar takes the interval mean; when there are more bars than the source, sample proportionally) */
 function resample(peaks: number[], count: number): number[] {
   const out = new Array<number>(count).fill(0);
   const ratio = peaks.length / count;
@@ -230,7 +228,7 @@ function resample(peaks: number[], count: number): number[] {
   return out;
 }
 
-/** 秒 → mm:ss */
+/** Seconds → mm:ss */
 function fmt(sec: number): string {
   if (!Number.isFinite(sec) || sec < 0) return '00:00';
   const m = Math.floor(sec / 60);

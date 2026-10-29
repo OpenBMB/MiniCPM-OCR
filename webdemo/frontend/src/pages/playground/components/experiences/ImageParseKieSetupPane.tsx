@@ -30,10 +30,9 @@ interface ImageParseKieSetupPaneProps {
 }
 
 /**
- * 信息抽取的字段配置面板。配置阶段复用结果栏空间，左侧保留原图，
- * 让用户能一边查看图片一边决定需要抽取的信息。
- * @param props 字段状态、开始/返回回调与禁用原因
- * @returns 右侧字段配置工作区
+ * Field-configuration panel for key information extraction. The configuration phase reuses the result-column space and keeps the original image on the left, so the user can look at the image while deciding what to extract.
+ * @param props Field state, start/back callbacks, and the disable reason
+ * @returns Field-configuration workspace on the right
  */
 export function ImageParseKieSetupPane({
   fields,

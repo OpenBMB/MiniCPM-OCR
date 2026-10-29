@@ -40,8 +40,8 @@ interface OcrBlock {
 interface OcrPageData {
   request_id?: string;
   /**
-   * 当前算法只声明 standard / ocr_only。保留 stp / tts 以读取历史结果，
-   * 新请求不再发送这两个已下线的档位。
+   * The current algorithm declares only standard / ocr_only. stp / tts are kept so historical results can still be read,
+   * and new requests no longer send these two retired tiers.
    */
   mode: 'ocr_only' | 'standard' | 'stp' | 'tts' | 'seal' | 'kie';
   image_width: number;
@@ -74,9 +74,9 @@ export function imageParseOCRData(response: OcrResponse | undefined): OcrPageDat
 }
 
 /**
- * 工作台档位到当前上游 ocr.mode 的映射。
- * 算法能力接口当前只返回 standard；scored 与 high-precision 仅作为历史模式名
- * 保留，实际都使用不带评分的 standard 契约。
+ * Mapping from workbench tiers to the current upstream ocr.mode.
+ * The algorithm capability API currently returns only standard; scored and high-precision remain only as historical mode names
+ * and both actually use the unscored standard contract.
  */
 const OCR_MODE: Record<'standard' | 'scored' | 'high-precision', 'ocr_only' | 'standard'> = {
   standard: 'ocr_only',
@@ -99,7 +99,7 @@ function blockKind(label: string): ImageParseBlockKind {
   return 'text';
 }
 
-/** 校验并归一化服务端像素区域；主 bbox 仍单独保留作为兼容坐标。 */
+/** Validate and normalize server pixel regions; the primary bbox is still kept separately as a compatibility coordinate. */
 function normalizeRegions(
   value: unknown,
   width: number,
@@ -129,7 +129,7 @@ function normalizeRegions(
   });
 }
 
-/** 将上游 snake_case 旋转字段映射为工作台字段后再做统一校验。 */
+/** Map upstream snake_case rotation fields to workbench fields, then run the shared validation. */
 function normalizeRotation(value: unknown) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const raw = value as Record<string, unknown>;
@@ -146,7 +146,7 @@ function normalizeRotation(value: unknown) {
   });
 }
 
-/** 将服务端像素 bbox、0 起始 order 与可选 score 映射到工作台。 */
+/** Map the server pixel bbox, 0-based order, and optional score onto the workbench. */
 export function adaptImageParseV2(response: OcrResponse): ImageParseSdkResult {
   const markdown = response?.choices?.[0]?.message?.content;
   const ocr = imageParseOCRData(response);
@@ -178,7 +178,7 @@ export function adaptImageParseV2(response: OcrResponse): ImageParseSdkResult {
       (block.score !== undefined &&
         block.score !== -1 &&
         (!Number.isFinite(block.score) || block.score < 0 || block.score > 1)) ||
-      // 新版合并表格可能携带合并前分数；字段本身仍必须是布尔值。
+      // A newly merged table may carry the pre-merge score; the field itself must still be a boolean.
       (block.tts_invalid !== undefined && typeof block.tts_invalid !== 'boolean')
     ) {
       throw new Error('imageParseInvalidResult');
@@ -206,15 +206,15 @@ export function adaptImageParseV2(response: OcrResponse): ImageParseSdkResult {
       ...(regions ? { regions } : {}),
       text: block.content ?? '',
       markdown: '',
-      // 上游会用 -1 表示未给出置信度；工作台统一归一为 null，不伪造分数。
+      // Upstream uses -1 when no confidence was given; the workbench normalizes that to null and does not invent a score.
       confidence: block.score === -1 ? null : (block.score ?? null),
       ...(block.tts_invalid === true ? { ttsInvalid: true } : {}),
       ...(block.merged_into_previous_page === true ? { mergedIntoPreviousPage: true } : {}),
     };
   });
   blocks.sort((a, b) => a.order! - b.order!);
-  // 服务正文是排版后的权威结果：保留标题、列表、表格和公式语法，只补回遗漏的块。
-  // 个别流水线响应没有聚合正文时，才按块生成预览；空印章用原图占位符保留位置。
+  // The service body is the authoritative typeset result: keep heading, list, table, and formula syntax, and only fill in missing blocks.
+  // Only when a pipeline response has no aggregated body is a preview built from blocks; an empty seal keeps its place with an original-image placeholder.
   let result: ImageParseSdkResult;
   if (!blocks.length) result = { markdown, blocks };
   else if (markdown.trim()) result = reconcileImageParseMarkdown(markdown, blocks);
@@ -222,7 +222,7 @@ export function adaptImageParseV2(response: OcrResponse): ImageParseSdkResult {
   if (ocr.request_id && /^[a-f\d]{32}$/.test(ocr.request_id)) {
     result.requestId = ocr.request_id;
   }
-  // 旋转信息只用于展示：字段缺失或不合法时不显示，不让整页识别失败。
+  // Rotation info is for display only: hide it when fields are missing or invalid, without failing the whole-page recognition.
   const rotation = normalizeRotation(ocr.rotation);
   if (rotation) result.rotation = rotation;
   const reference = response.map_ocr_source;
@@ -236,7 +236,7 @@ export function adaptImageParseV2(response: OcrResponse): ImageParseSdkResult {
       token: reference.token,
       inputImageSha256: ocr.input_image?.sha256,
     });
-    // 来源凭据只用于后续单块重算；无效或不匹配时丢弃即可，不影响已识别的正文与坐标。
+    // Source credentials are only for a later single-block recompute; drop them when invalid or mismatched, without affecting the recognized body or coordinates.
     if (
       source &&
       source.requestId === ocr.request_id &&
@@ -250,7 +250,7 @@ export function adaptImageParseV2(response: OcrResponse): ImageParseSdkResult {
   return result;
 }
 
-/** 从 L2 错误体提取平台错误码；非 JSON 或非预期结构时返回 undefined。 */
+/** Extract the platform error code from an L2 error body; return undefined when it is not JSON or not the expected shape. */
 function extractImageParseErrorCode(raw: string): string | undefined {
   if (!raw) return undefined;
   try {
@@ -261,9 +261,9 @@ function extractImageParseErrorCode(raw: string): string | undefined {
   }
 }
 
-/** 将 L2 状态码映射为工作台稳定错误键，不透出上游原文。 */
+/** Map an L2 status code to a stable workbench error key, without passing through the upstream text. */
 function imageParseL2ErrorKey(status: number, errorCode?: string): string {
-  // 文件引用错误由 L2 以稳定错误键返回，直接交给界面本地化。
+  // File-reference errors are returned by L2 as stable error keys and handed to the UI for localization.
   if (errorCode && /^imageParse[A-Z]/.test(errorCode)) return errorCode;
   if (
     status === 402 &&
@@ -278,7 +278,7 @@ function imageParseL2ErrorKey(status: number, errorCode?: string): string {
   return 'imageParseRequestFailed';
 }
 
-/** 以 API Key 直连 L2；明文密钥仅内存传递，并同时携带 Portal 身份用于调用记录归属。 */
+/** Call L2 directly with an API Key; the plaintext secret stays in memory only, and the Portal identity is sent along so call records can be attributed. */
 async function requestImageParseL2(
   body: unknown,
   secret: string,
@@ -311,14 +311,14 @@ async function requestImageParseL2(
   return res.json();
 }
 
-/** L2 单图输入三选一：OBS file_id、平台签名资产链接或内联 data URI。 */
+/** L2 single-image input is one of three: an OBS file_id, a platform-signed asset URL, or an inline data URI. */
 export interface ImageParseV2Input {
   fileId?: string;
   fileUrl?: string;
   image?: string;
 }
 
-/** 单张图通过 L2 API Key 链路调用 OCR，保证 request_logs 与 usage_records 真实落账。 */
+/** A single image calls OCR through the L2 API Key path so request_logs and usage_records are actually recorded. */
 export async function parseImageV2(
   input: string | ImageParseV2Input,
   mode: ImageParseMode,
@@ -360,20 +360,20 @@ export async function parseImageV2(
   if (raw.metadata?.page_index !== undefined && raw.metadata.page_index !== pageIndex)
     throw new Error('imageParseInvalidResult');
   const result = adaptImageParseV2(raw);
-  // 上游可能附带自身模型的来源字段；模型不匹配时禁用重算，但保留本次识别结果。
+  // Upstream may attach its own model source fields; when the model does not match, disable recompute but keep this recognition result.
   if (result.source && result.source.model !== selectedModel) delete result.source;
   return result;
 }
 
-/** 跨页表格合并请求里的一页：本页识别的 request_id 与页码（0 起始）。 */
+/** One page in a cross-page table merge request: the request_id of this page’s recognition and the page index (0-based). */
 export interface ImageParseMergePage {
   requestId: string;
   pageIndex: number;
 }
 
 /**
- * LIS 是否支持经 L3 合并跨页表格。
- * 能力探测失败时返回 false，由调用方回退到本地合并。
+ * Whether LIS supports cross-page table merge through L3.
+ * Return false when capability probing fails, and let the caller fall back to a local merge.
  */
 export async function crossPageMergeAvailable(signal?: AbortSignal): Promise<boolean> {
   try {
@@ -387,8 +387,8 @@ export async function crossPageMergeAvailable(signal?: AbortSignal): Promise<boo
 }
 
 /**
- * 一份 PDF 的各页都识别完后，请求 L3 通过 LIS 做跨页表格合并。
- * 只返回有变化的页（页码 → 合并后的整页结果），响应与整页识别同构，走同一套校验。
+ * After every page of a PDF has been recognized, ask L3 to merge cross-page tables through LIS.
+ * Return only pages that changed (page index to the merged full-page result). The response matches full-page recognition and uses the same validation.
  */
 export async function mergeImageParseCrossPage(
   pages: readonly ImageParseMergePage[],
@@ -453,7 +453,7 @@ interface OcrBlockResponse {
   minicpm_ocr?: OcrBlockData;
 }
 
-/** 一次 L2 请求完成服务端块优化；原图与永久服务 Key 均不进入浏览器请求。 */
+/** One L2 request finishes server-side block optimization; neither the original image nor a permanent service key enters the browser request. */
 export async function regenerateImageParseV4(
   source: ImageParseSource,
   original: ImageParseLayoutBlock,

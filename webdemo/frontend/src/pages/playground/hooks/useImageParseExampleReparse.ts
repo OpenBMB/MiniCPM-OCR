@@ -12,19 +12,19 @@ interface ImageParseExampleReparseModel {
 }
 
 interface ImageParseExampleReparseOptions {
-  /** 共享案例成功恢复后的选择代次；同一代次只自动执行一次。 */
+  /** Selection generation after a shared example restores successfully; each generation runs automatically only once. */
   selectionRevision?: number;
-  /** 案例加载或识别占用工作台时关闭自动执行。 */
+  /** Turn automatic execution off while an example load or recognition occupies the workspace. */
   autoRun?: boolean;
 }
 
 /**
- * 把共享示例转换为个人上传任务；选择完成后可自动执行，上传成功后由既有自动识别和历史保存链路接管。
- * @param attachment 当前共享示例
- * @param model 模型权限与默认项目
- * @param upload 个人任务上传入口
- * @param autoRunOptions 选择代次与自动执行开关
- * @returns 是否可重跑及重跑回调
+ * Turn a shared example into a personal upload task; it may run automatically after selection, and after a successful upload the existing automatic recognition and history-save path takes over.
+ * @param attachment current shared example
+ * @param model model permission and default project
+ * @param upload upload entry for a personal task
+ * @param autoRunOptions selection generation and the automatic-execution switch
+ * @returns whether it can be run again, and the rerun callback
  */
 export function useImageParseExampleReparse(
   attachment: Attachment | undefined,

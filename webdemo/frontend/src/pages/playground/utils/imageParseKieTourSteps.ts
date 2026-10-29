@@ -9,22 +9,22 @@ interface ImageParseKieTourStepsOptions {
 }
 
 /**
- * 构造关键信息抽取引导：先选择示例，再配置字段并开始抽取，最后核对结果。
- * @param options 翻译与当前任务状态
- * @returns 示例、字段、开始抽取和结果步骤
+ * Build the key information extraction tour: choose an example, then configure fields and start extraction, and finally check the result.
+ * @param options translations and current task state
+ * @returns example, fields, start-extraction, and result steps
  */
 export function imageParseKieTourSteps({
   t,
   hasDocument = () => false,
   hasResult = () => false,
 }: ImageParseKieTourStepsOptions): DriveStep[] {
-  // 字段配置和结果都会随任务阶段挂载；缺失目标先跳过，等待生命周期恢复。
+  // Field configuration and the result both mount with the task phase; a missing target is skipped first, and the lifecycle restores it later.
   const workspaceStep = { skipMissingElement: true, waitForElement: 0 };
   const steps: DriveStep[] = [];
   if (!hasDocument()) {
     steps.push({
       ...workspaceStep,
-      // 示例载入后选择区会卸载；该步骤已完成，回退时由 driver.js 跳过而不是停在无目标遮罩。
+      // After the example loads, the picker unmounts; that step is already done, and going back lets driver.js skip it instead of stopping on a mask with no target.
       element: '[data-tour="image-parse-kie-examples"]',
       popover: {
         title: t('imageParseKieTourExampleTitle'),

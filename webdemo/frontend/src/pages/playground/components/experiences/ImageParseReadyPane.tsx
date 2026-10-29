@@ -16,9 +16,9 @@ interface ImageParseReadyPaneProps {
 }
 
 /**
- * 上传完成但尚未调用模型时的操作区；PDF 字段提取提供明确的恢复动作。
- * @param props 文件能力、开始识别和任务恢复入口
- * @returns 当前文件对应的待执行面板
+ * Action area after upload finishes but before the model is called; PDF field extraction provides a clear resume action.
+ * @param props File capabilities, start-recognition, and task-resume entries
+ * @returns The pending panel for the current file
  */
 export function ImageParseReadyPane({
   unsupported = false,

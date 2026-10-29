@@ -15,18 +15,18 @@ export interface ChipMultiSelectProps {
 }
 
 /**
- * Chip 多选组件。
+ * Chip multi-select.
  *
- * 用途：以可点选标签形式选择多个有限选项，适合模型、数据集、标签过滤等短文本选项。
- * 组件保持受控，选中值由调用方持有；内部只负责切换并返回下一组选中值。
+ * Purpose: pick several finite options as clickable tags, suited to short labels such as models, datasets, and tag filters.
+ * The component stays controlled; the caller owns the selected values. Internally it only toggles and returns the next selection.
  *
- * @param options 可选项列表
- * @param value 当前选中的 value 列表
- * @param onChange 选中变更回调
- * @param emptyText 空选项文案
- * @param ariaLabel 多选区域的无障碍名称
- * @param className 外层样式类
- * @returns chip 多选控件
+ * @param options Option list.
+ * @param value Currently selected values.
+ * @param onChange Selection change callback.
+ * @param emptyText Copy shown when there are no options.
+ * @param ariaLabel Accessible name for the multi-select region.
+ * @param className Outer style classes.
+ * @returns The chip multi-select control.
  */
 function ChipMultiSelect({
   options,

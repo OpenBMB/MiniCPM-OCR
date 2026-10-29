@@ -7,7 +7,7 @@ import {
   type UseImageParseGuidedTourOptions,
 } from './useImageParseGuidedTour';
 
-/** 文档解析引导的稳定已读标识；历史版本记录按同族引导兼容。 */
+/** Stable seen id for the document-parsing tour; history version records are compatible as the same family of tour. */
 export const IMAGE_PARSE_TOUR_ID = 'image-parse';
 const GATE_SELECTORS = ['[data-tour="image-parse-examples"]'] as const;
 
@@ -17,9 +17,9 @@ type UseImageParseTourOptions = Omit<
 >;
 
 /**
- * 文档解析首次访问引导；空态从平台示例开始，关闭后不再常驻重播入口。
- * @param options 是否启用与当前文档状态
- * @returns 手动重播引导的入口
+ * First-visit tour for document parsing; the empty state starts from a platform example, and after it is closed the replay entry does not stay on screen.
+ * @param options whether it is enabled, and the current document state
+ * @returns the entry that replays the tour manually
  */
 export function useImageParseTour(options: UseImageParseTourOptions) {
   const { t } = useTranslation('playground');

@@ -18,15 +18,15 @@ export interface PaginationProps {
   total: number;
   onChange?: (page: number, pageSize: number) => void;
   className?: string;
-  /** 每页条数可选项；传空数组或 showSizeChanger=false 时隐藏选择器。默认 [20, 50, 100]。 */
+  /** Page-size options; an empty array or showSizeChanger=false hides the selector. Default [20, 50, 100]. */
   pageSizeOptions?: number[];
-  /** 是否展示「每页条数」选择器（默认 true） */
+  /** Whether to show the "per page" selector (default true). */
   showSizeChanger?: boolean;
-  /** 是否展示「跳至 X 页」快捷跳转（默认 true） */
+  /** Whether to show the "go to page X" jump (default true). */
   showQuickJump?: boolean;
-  /** 是否展示页码按钮（默认 true）；关闭后仅保留左右翻页按钮。 */
+  /** Whether to show page-number buttons (default true); when off, only the previous and next buttons remain. */
   showPageNumbers?: boolean;
-  /** 分页文案，未传入时使用中文默认文案以兼容现有调用方。 */
+  /** Pagination copy. When omitted, Chinese defaults are used so existing callers stay compatible. */
   labels?: Partial<PaginationLabels>;
 }
 
@@ -66,7 +66,7 @@ function Pagination({
     onChange?.(page, pageSize);
   };
 
-  // 改每页条数后回到第 1 页，避免越界到空页。
+  // After the page size changes, go back to page 1 so the view does not land on an empty page.
   const changeSize = (size: number) => {
     if (size === pageSize) return;
     onChange?.(1, size);

@@ -20,9 +20,9 @@ interface ImageParseUploadSurfaceProps {
 }
 
 /**
- * 虚线框和框外限制说明。点虚线框打开同一个文件选择器，图片和 PDF 都从这里选。
- * @param props 文件选择回调、拖放事件和禁用状态
- * @returns 工作台与上传页共用的上传面
+ * Dashed frame and the limit notes outside it. Clicking the dashed frame opens the same file picker; both images and PDFs are chosen from here.
+ * @param props File-selection callback, drag-and-drop events, and disabled state
+ * @returns Upload surface shared by the workspace and the upload page
  */
 export function ImageParseUploadSurface({
   disabled,

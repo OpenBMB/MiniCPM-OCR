@@ -1,7 +1,7 @@
 /**
- * 对话消息构造与增量合并纯函数。
+ * Pure functions that build conversation messages and merge increments.
  *
- * 用途：把 useChat 的消息状态变换收敛为无副作用纯函数，便于复用与单测。
+ * Purpose: collapse useChat message-state transforms into side-effect-free pure functions, so they can be reused and unit tested.
  */
 
 import type { AnswerVersion, ChatMessage, ChatRole, Citation } from '../types';
@@ -12,28 +12,28 @@ import { buildContextWindowPlan, type ContextWindowOptions } from './contextBudg
 import { normalizeAssistantReply } from './thinkSplit';
 
 /**
- * 上下文分隔线的存储标记。
- * 分隔线在前端以 `divider:true` 标识；持久化时无独立字段，借用 role='system' + 本标记往返，
- * 加载时据此还原 divider 标记（见 conversations.ts）。
+ * Storage marker for a context divider.
+ * On the frontend a divider is identified by `divider:true`; persistence has no separate field, so it round-trips as role='system' plus this marker,
+ * and on load the divider flag is restored from that (see conversations.ts).
  */
 export const CONTEXT_DIVIDER_MARKER = '[[map:context-cleared]]';
 
-/** 生成一个轻量唯一 id（无需 crypto，足够前端去重/key 使用） */
+/** Generate a lightweight unique id (no crypto needed; enough for frontend dedupe and keys) */
 export function genId(seed: number): string {
   return `m_${seed.toString(36)}_${(seed % 1000).toString(36)}`;
 }
 
-/** 构造一条上下文分隔线消息（role=system 以便默认不参与请求，content 用标记以便持久化往返） */
+/** Build a context-divider message (role=system so it stays out of the request by default; content uses a marker so it can round-trip through persistence) */
 export function makeDivider(id: string): ChatMessage {
   return { id, role: 'system', content: CONTEXT_DIVIDER_MARKER, divider: true };
 }
 
 /**
- * 构造一条消息。
- * @param id 唯一 id
- * @param role 角色
- * @param content 正文
- * @param extra 额外字段（streaming/reasoning 等）
+ * Build one message.
+ * @param id unique id
+ * @param role role
+ * @param content body
+ * @param extra extra fields (streaming, reasoning, and so on)
  */
 export function makeMessage(
   id: string,
@@ -45,11 +45,11 @@ export function makeMessage(
 }
 
 /**
- * 把流式增量并入消息列表中指定 id 的消息（函数式更新，不可变）。
+ * Merge a streaming increment into the message with the given id (functional update, immutable).
  *
- * @param list 当前消息列表
- * @param id 目标 assistant 消息 id
- * @param patch 要合并/追加的内容（content/reasoning 为追加，其余字段为覆盖）
+ * @param list current message list
+ * @param id target assistant message id
+ * @param patch content to merge or append (content and reasoning are appended; other fields overwrite)
  */
 export function appendToMessage(
   list: ChatMessage[],
@@ -68,7 +68,7 @@ export function appendToMessage(
     const next: ChatMessage = { ...m };
     if (patch.contentDelta) next.content = m.content + patch.contentDelta;
     if (patch.reasoningDelta) next.reasoning = (m.reasoning ?? '') + patch.reasoningDelta;
-    // 引用来源按 url 去重合并（流式下可能多帧携带同一来源）
+    // Citation sources are merged and deduped by url (streaming may carry the same source on several frames)
     if (patch.citationsDelta && patch.citationsDelta.length) {
       next.citations = mergeCitations(m.citations, patch.citationsDelta);
     }
@@ -92,7 +92,7 @@ export function appendToMessage(
     if (patch.requestId !== undefined) next.requestId = patch.requestId;
     if (patch.clientRequestId !== undefined) next.clientRequestId = patch.clientRequestId;
     if (patch.apiKeyId !== undefined) next.apiKeyId = patch.apiKeyId;
-    // metrics 为增量合并：保留已有字段，仅覆盖本次提供的（首 token 与总耗时分两次到达）
+    // metrics are merged incrementally: keep existing fields, and overwrite only what this update provides (time to first token and total elapsed arrive separately)
     if (patch.metrics !== undefined) next.metrics = { ...m.metrics, ...patch.metrics };
     if (patch.error !== undefined) next.error = patch.error;
     return next;
@@ -100,15 +100,15 @@ export function appendToMessage(
 }
 
 /**
- * 合并引用来源并去重；保持首次顺序，同时保留后续工具返回的更完整元数据。
+ * Merge citation sources and dedupe them; keep first-seen order, and keep the fuller metadata a later tool returns.
  *
- * 身份优先取后端编号 ref：它跨轮跨工具与 URL 一一绑定，比任何前端归一化都准。
- * 没有 ref（老后端）时退回 citationURLKey——此前这里用的是裸 url，与别处（角标匹配、
- * 来源面板高亮）用的归一化键不是一套口径，差一个末尾斜杠就会多出一条重复来源。
+ * Identity prefers the backend number ref: it is bound one-to-one with the URL across turns and tools, and is more accurate than any frontend normalization.
+ * When there is no ref (an old backend), fall back to citationURLKey — this used to be the raw url, a different measure from elsewhere (marker matching,
+ * source-panel highlight). One trailing slash would then produce an extra duplicate source.
  *
- * @param prev 已累积的来源
- * @param incoming 本次事件带来的来源
- * @returns 合并后的来源列表；全部带 ref 时按 ref 升序，保证列表序号连续
+ * @param prev sources already accumulated
+ * @param incoming sources brought by this event
+ * @returns the merged source list; when every item has a ref, sorted by ref ascending so list numbers stay contiguous
  */
 export function mergeCitations(prev: Citation[] | undefined, incoming: Citation[]): Citation[] {
   const merged = [...(prev ?? [])];
@@ -121,7 +121,7 @@ export function mergeCitations(prev: Citation[] | undefined, incoming: Citation[
       const existing = merged[existingIndex];
       merged[existingIndex] = {
         ...existing,
-        // ref 回填：同一来源可能先由不带编号的通道到达，后续事件补上编号。
+        // ref backfill: the same source may arrive first on a channel with no number, and a later event fills the number in.
         ...(!existing.ref && c.ref ? { ref: c.ref } : {}),
         ...(!existing.title && c.title ? { title: c.title } : {}),
         ...(preferLongerText(existing.snippet, c.snippet) ? { snippet: c.snippet } : {}),
@@ -131,29 +131,29 @@ export function mergeCitations(prev: Citation[] | undefined, incoming: Citation[
     indexByIdentity.set(citationIdentity(c), merged.length);
     merged.push(c);
   }
-  // 全部带编号时按编号排序：来源面板展示的就是 ref，数组顺序与编号不一致会让列表读成 1,2,5,3。
-  // 只差一条没编号就不排，避免把「无编号」的那条挤到一个它并不属于的位置。
+  // When every item has a number, sort by number: the source panel displays ref, and an array order that disagrees with the numbers would read as 1, 2, 5, 3.
+  // If even one item has no number, do not sort, so the "no number" item is not pushed into a position it does not belong to.
   if (merged.length > 0 && merged.every((c) => Boolean(c.ref))) {
     merged.sort((a, b) => (a.ref ?? 0) - (b.ref ?? 0));
   }
   return merged;
 }
 
-/** 来源的去重身份：有后端编号用编号，否则用归一化 URL 键。 */
+/** Dedup identity of a source: use the backend number when present, otherwise the normalized URL key. */
 function citationIdentity(citation: Citation): string {
   return citation.ref ? `ref:${citation.ref}` : `url:${citationURLKey(citation.url)}`;
 }
 
-/** 后续网页读取正文比搜索摘要更完整时，用更长文本补全预览。 */
+/** When a later page-read body is fuller than the search snippet, fill the preview with the longer text. */
 function preferLongerText(current?: string, incoming?: string): incoming is string {
   return Boolean(incoming && incoming.length > (current?.length ?? 0));
 }
 
 /**
- * 把本页消息历史转为后端请求所需的最小结构（仅 role + content，剔除空的流式占位）。
+ * Turn this page's message history into the minimum structure the backend request needs (role + content only, dropping empty streaming placeholders).
  *
- * @param list 本页消息列表
- * @param systemPrompt 可选系统提示，置于最前
+ * @param list this page's message list
+ * @param systemPrompt optional system prompt, placed first
  */
 export function toRequestMessages(
   list: ChatMessage[],
@@ -167,7 +167,7 @@ export function toRequestMessages(
   if (systemPrompt && systemPrompt.trim()) {
     out.push({ role: 'system', content: systemPrompt.trim() });
   }
-  // 上下文截断：只取最后一条分隔线之后的消息（分隔线以上的历史不再作为上下文发送）
+  // Context truncation: take only messages after the last divider (history above the divider is no longer sent as context)
   let lastDivider = -1;
   for (let i = 0; i < list.length; i++) {
     if (list[i]?.divider) lastDivider = i;
@@ -177,12 +177,12 @@ export function toRequestMessages(
     if (m.contextExcluded) continue;
     if (m.role === 'system') continue;
     if (m.interrupted) continue;
-    // 跳过尚无正文/附件的流式占位（最后一条 assistant 在 send 时才追加）
+    // Skip streaming placeholders that have no body or attachment yet (the last assistant is appended only at send time)
     if (!m.content && !m.reasoning && !(m.attachments && m.attachments.length)) continue;
     const normalized =
       m.role === 'assistant' ? normalizeAssistantReply(m.content, m.reasoning) : undefined;
     if (m.role === 'assistant' && !normalized?.content.trim()) continue;
-    // 带附件的用户消息走多模态 content 数组（文本在前，附件按序在后）；否则保持纯字符串
+    // A user message with attachments uses a multimodal content array (text first, then attachments in order); otherwise keep a plain string
     if (m.role === 'user' && m.attachments && m.attachments.length) {
       const parts: ChatRequestMessage['content'] = [];
       if (m.content) parts.push({ type: 'text', text: m.content });
@@ -198,7 +198,7 @@ export function toRequestMessages(
   return out;
 }
 
-/** 取会话标题：首条用户消息前 20 字，缺省回退「新对话」 */
+/** Conversation title: the first 20 characters of the first user message, falling back to "New conversation" when absent */
 export function deriveTitle(list: ChatMessage[]): string {
   const firstUser = list.find((m) => m.role === 'user' && m.content.trim());
   if (!firstUser) return '新对话';
@@ -207,12 +207,12 @@ export function deriveTitle(list: ChatMessage[]): string {
 }
 
 /**
- * 取某条 assistant 消息对应的「问答对」：向前找最近的用户提问，答为该条正文。
- * 用于反馈上报的内容快照。找不到（异常）时返回空串。
+ * Take the "question-answer pair" for one assistant message: look backward for the nearest user question, and the answer is that message's body.
+ * Used as the content snapshot for feedback reporting. Return empty strings when it cannot be found (an abnormal case).
  *
- * @param list 消息列表
- * @param assistantId 目标 assistant 消息 id
- * @returns { question, answer } 文本快照
+ * @param list message list
+ * @param assistantId target assistant message id
+ * @returns { question, answer } text snapshot
  */
 export function findQAPair(
   list: ChatMessage[],
@@ -229,7 +229,7 @@ export function findQAPair(
   const answer = list[ai].content;
   let question = '';
   for (let i = ai - 1; i >= 0; i--) {
-    if (list[i].divider) break; // 越过分隔线不再上溯（上下文已清除）
+    if (list[i].divider) break; // Do not walk back past a divider (the context has been cleared)
     if (list[i].role === 'user') {
       question = list[i].content;
       break;
@@ -244,7 +244,7 @@ export function findQAPair(
   };
 }
 
-/** 从消息顶层「live 字段」抽出一份版本快照（一轮回答完成时调用）。 */
+/** Pull a version snapshot out of the message's top-level "live fields" (called when one answer finishes). */
 export function snapshotVersion(m: ChatMessage): AnswerVersion {
   const normalized =
     m.role === 'assistant' ? normalizeAssistantReply(m.content, m.reasoning) : undefined;
@@ -253,7 +253,7 @@ export function snapshotVersion(m: ChatMessage): AnswerVersion {
     ...((normalized?.reasoning ?? m.reasoning)
       ? { reasoning: normalized?.reasoning ?? m.reasoning }
       : {}),
-    // 联网过程字段：刷新后折叠区才能重绘工具步骤
+    // Web-search process fields: the disclosure needs them to redraw tool steps after refresh
     ...(m.searchStatus !== undefined ? { searchStatus: m.searchStatus } : {}),
     ...(m.searchStep ? { searchStep: m.searchStep } : {}),
     ...(m.searchResultCount !== undefined ? { searchResultCount: m.searchResultCount } : {}),
@@ -275,8 +275,8 @@ export function snapshotVersion(m: ChatMessage): AnswerVersion {
 }
 
 /**
- * 把指定版本的字段镜像回消息顶层（切换 ‹n/N› 或加载时调用），保持
- * 「顶层 == versions[activeVersion]」不变式。清掉未在该版本出现的可选字段避免残留。
+ * Mirror the given version's fields back onto the top level of the message (called when switching ‹n/N› or on load), keeping
+ * the invariant "top level == versions[activeVersion]". Clear optional fields that do not appear on that version so they do not linger.
  */
 export function applyVersion(m: ChatMessage, index: number): ChatMessage {
   const v = m.versions?.[index];
@@ -306,7 +306,7 @@ export function applyVersion(m: ChatMessage, index: number): ChatMessage {
   };
 }
 
-/** 合并字符串列表并去重，保持首次出现顺序。 */
+/** Merge string lists and dedupe them, keeping first-seen order. */
 function mergeUniqueStrings(previous: string[] | undefined, incoming: string[]): string[] {
   return [...new Set([...(previous ?? []), ...incoming])];
 }

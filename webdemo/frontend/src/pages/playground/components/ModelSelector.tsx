@@ -1,7 +1,7 @@
 /**
- * 模型选择器（顶栏）。
+ * Model selector (top bar).
  *
- * 用途：从可调用模型列表中选择对话模型（真功能）。
+ * Purpose: choose the chat model from the callable model list (a real feature).
  */
 
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@map/ui';
@@ -19,11 +19,11 @@ interface ModelSelectorProps {
 }
 
 /**
- * 模型下拉。
- * @param models 模型列表
- * @param loading 列表加载态
- * @param value 当前选中 id
- * @param onChange 选择回调
+ * Model dropdown.
+ * @param models Model list
+ * @param loading List loading state
+ * @param value Currently selected id
+ * @param onChange Selection callback
  */
 export function ModelSelector({ models, loading, value, onChange }: ModelSelectorProps) {
   const { t } = useTranslation('playground');
@@ -33,12 +33,12 @@ export function ModelSelector({ models, loading, value, onChange }: ModelSelecto
   return (
     <div className="flex min-w-0 max-w-full items-center gap-2">
       <Select value={value} onValueChange={onChange} disabled={loading || models.length === 0}>
-        {/* 触发器单行横排展示（名字 + 上下文），不用 SelectValue，避免镜像下拉项的两行布局造成「换行」观感 */}
-        {/* 顶栏内的「裸」触发器：显式清掉基础组件的聚焦/展开态边框与 ring，切换后不残留紫框 */}
+        {/* The trigger shows a single horizontal row (name + context). Do not use SelectValue, so mirroring the dropdown item's two-line layout does not look like a "line wrap" */}
+        {/* A "bare" trigger inside the top bar: explicitly clear the base component's focus/open border and ring so no purple frame lingers after switching */}
         <SelectTrigger className="h-9 w-auto min-w-0 max-w-full gap-2 border-0 bg-transparent px-2 shadow-none hover:bg-muted/60 hover:border-0 focus-visible:border-0 focus-visible:ring-0 data-[state=open]:border-0">
           {selected ? (
-            // 用 div 包裹：避开 SelectTrigger 的 [&>span]:line-clamp-1 把 display 改成 -webkit-box，
-            // 否则 flex/gap 会被覆盖、名字与上下文会贴在一起。
+            // Wrap with a div: avoid SelectTrigger's [&>span]:line-clamp-1 changing display to -webkit-box,
+            // otherwise flex/gap are overridden and the name sticks to the context.
             <div className="flex min-w-0 items-center gap-2.5">
               <span className="truncate font-semibold">{selected.display_name || selected.id}</span>
               {isFreeModel(selected) && <LimitedFreeTag />}
@@ -62,9 +62,9 @@ export function ModelSelector({ models, loading, value, onChange }: ModelSelecto
         <SelectContent side={isMobile ? 'top' : undefined} scrollMode="native">
           {models.map((m) => {
             const name = m.display_name || m.id;
-            // 仅当 id 与展示名不同才在副标题展示 id，避免「名字 + 名字·上下文」重复
+            // Show the id in the subtitle only when it differs from the display name, so "name + name · context" is not repeated
             const showId = Boolean(m.display_name) && m.display_name !== m.id;
-            // 副标题按「id · 上下文」拼装，缺项自动省略——没有上下文窗口时不留下孤零零的「—」
+            // The subtitle is assembled as "id · context," and a missing piece is omitted — when there is no context window, do not leave a lone "—"
             const subtitle = [
               showId ? m.id : '',
               m.parameter_count || '',
@@ -90,7 +90,7 @@ export function ModelSelector({ models, loading, value, onChange }: ModelSelecto
   );
 }
 
-/** 上下文窗口友好显示（如 128K） */
+/** Friendly display of the context window (for example, 128K) */
 function formatWindow(
   n: number,
   t: (key: string, options: { count: string | number }) => string,

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 
 /**
- * 管理字段多选与待确认删除快照，确认前不修改字段。
- * @param fields 当前字段
- * @param onChange 字段更新回调
- * @param disabled 是否禁止修改
- * @returns 选择状态、全选和确认删除入口
+ * Manage multi-select of fields and the delete snapshot waiting for confirmation, and do not modify fields before confirmation.
+ * @param fields current fields
+ * @param onChange field-update callback
+ * @param disabled whether modification is forbidden
+ * @returns selection state, and the select-all and confirm-delete entries
  */
 export function useImageParseKieFieldSelection(
   fields: readonly string[],

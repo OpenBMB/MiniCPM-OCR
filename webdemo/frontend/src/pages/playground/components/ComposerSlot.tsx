@@ -1,7 +1,7 @@
 /**
- * 语言模型输入槽：欢迎态与对话态共用的输入框 + 密钥状态行。
+ * Language-model input slot: the input plus the key-status row, shared by the welcome state and the conversation state.
  *
- * 用途：避免 Playground 入口重复装配 ChatComposer 与 KeyStatusBar。
+ * Purpose: avoid assembling ChatComposer and KeyStatusBar twice at the Playground entry.
  */
 
 import { ChatComposer } from './ChatComposer';
@@ -19,16 +19,16 @@ interface ComposerSlotProps {
   chat: ReturnType<typeof useChat>;
   canSend: boolean;
   disabledReason?: string;
-  /** 当前模型是否允许展示思考（false 时隐藏思考开关） */
+  /** Whether the current model may show reasoning (when false, hide the reasoning switch) */
   showReasoning: boolean;
-  /** 当前模型是否允许展示联网搜索入口 */
+  /** Whether the current model may show the web-search entry */
   webSearchAvailable: boolean;
-  /** 当前模型允许的输入模态，来自模型 capabilities.input_* */
+  /** Input modalities the current model allows, from model capabilities.input_* */
   attachmentCapabilities?: Record<string, boolean>;
 }
 
 /**
- * 输入框槽位。
+ * Input slot.
  */
 export function ComposerSlot({
   input,
@@ -64,7 +64,7 @@ export function ComposerSlot({
 }
 
 /**
- * 输入框下方的会话状态行（密钥自动取默认项目，不再展示选择器）。
+ * Session status row under the input (the key is taken automatically from the default project; the selector is no longer shown).
  */
 export function KeyHint({ model }: { model: ReturnType<typeof usePlaygroundModel> }) {
   return (

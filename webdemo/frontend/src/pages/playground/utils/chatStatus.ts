@@ -1,19 +1,19 @@
 /**
- * Playground 联网工具进度文案。
+ * Playground web-search tool progress copy.
  *
- * 用途：把 L3 BFF 下发的 tool_status 事件映射为用户可见的短文案。
+ * Purpose: map tool_status events from the L3 BFF to short user-visible copy.
  */
 
 import type { ToolStatusEvent } from '@/api/map/chat';
 import type { SearchProgressStep, Translate } from '../types';
 
 /**
- * 将 tool_status 事件转为 UI 状态条文案。
+ * Turn a tool_status event into status-bar copy for the UI.
  *
- * 后端自带 message 时原样透传（它比前端枚举更具体）；否则按工具与状态走 i18n。
- * @param status SSE tool_status 事件
- * @param t i18n 翻译函数（playground 命名空间）
- * @returns 用户可见的短文案；无可用文案时返回空串
+ * When the backend includes a message, pass it through (it is more specific than the frontend enum); otherwise use i18n by tool and status.
+ * @param status SSE tool_status event
+ * @param t i18n translate function (playground namespace)
+ * @returns short user-visible copy; an empty string when none is available
  */
 export function toolStatusText(status: ToolStatusEvent, t: Translate): string {
   if (status.message) return status.message;
@@ -38,16 +38,16 @@ export function toolStatusText(status: ToolStatusEvent, t: Translate): string {
 }
 
 /**
- * 将后端工具状态映射为前端过程条阶段。
+ * Map a backend tool status to a frontend process-bar phase.
  *
- * 失败状态细分：reader 工具（web_extractor）失败只影响"读取网页"步骤，不应让整个搜索条
- * 标红（搜索本身已成功），否则用户会误以为"整个联网都失败"。
- * @param status SSE tool_status 事件
+ * Failure is split: a reader-tool (web_extractor) failure only affects the "read the page" step and must not turn the whole search bar
+ * red (search itself already succeeded), or the user would think the entire web search failed.
+ * @param status SSE tool_status event
  */
 export function toolStatusStep(status: ToolStatusEvent): SearchProgressStep {
   const isReader = status.tool === 'web_extractor' || Boolean(status.urls?.length);
   if (status.status === 'failed') {
-    // 读网页失败但搜索成功 → 单独阶段，不让主标题变红
+    // Page read failed but search succeeded → its own phase, so the main title does not turn red
     return isReader ? 'browse_failed' : 'failed';
   }
   if (isReader) {

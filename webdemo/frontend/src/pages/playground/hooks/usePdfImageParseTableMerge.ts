@@ -12,7 +12,7 @@ import { IMAGE_PARSE_CROSS_PAGE_MERGE_ENABLED } from '../utils/imageParseFeature
 import { mergeImageParseTables } from '../utils/imageParseTableMerge';
 import type { PdfPageResult } from '../utils/pdfImageParse';
 
-/** 跨页表格合并状态及受影响的页码。 */
+/** Cross-page table-merge state and the page numbers affected. */
 export interface PdfTableMergeState {
   status: 'idle' | 'merging' | 'merged';
   pages: readonly number[];
@@ -29,9 +29,9 @@ interface PdfImageParseTableMergeOptions {
 }
 
 /**
- * 在逐页识别完成后拼接跨页表格，支持撤销且不覆盖用户的撤销选择。
- * @param options 当前页结果、写入入口与任务状态
- * @returns 合并操作、取消入口及重新识别时的重置入口
+ * Join cross-page tables after per-page recognition finishes, support undo, and do not overwrite the user's undo choice.
+ * @param options current page results, the write entry, and task state
+ * @returns the merge action, the cancel entry, and the reset entry used when recognition runs again
  */
 export function usePdfImageParseTableMerge({
   results,

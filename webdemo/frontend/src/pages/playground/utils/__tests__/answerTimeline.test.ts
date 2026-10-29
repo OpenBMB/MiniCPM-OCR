@@ -1,5 +1,5 @@
 /**
- * 过程时间线排序与取数纯函数单测：交错切段、两种退化、押后未播到的工具行、工具行取来源。
+ * Unit tests for process-timeline ordering and lookup pure functions: interleaved splits, two fallbacks, tool rows held back until played, and tool-row source lookup.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -21,7 +21,7 @@ function event(patch: Partial<ToolEvent> & { eventId: string }): ToolEvent {
   };
 }
 
-/** 把时间线压成 'reasoning:文本' / 'tool:eventId' 的串，便于整体断言顺序。 */
+/** Compress the timeline into 'reasoning:text' / 'tool:eventId' strings so the overall order can be asserted. */
 function outline(items: ProcessTimelineItem[]): string[] {
   return items.map((item) =>
     item.kind === 'reasoning' ? `reasoning:${item.text}` : `tool:${item.id}`,
@@ -70,7 +70,7 @@ describe('buildProcessTimeline', () => {
       reasoning: '很短',
       toolEvents: [
         event({ eventId: 'a', reasoningOffset: 999 }),
-        // 回退的 offset（理论上不该出现）不能让游标倒回去重放前面的思考
+        // A fallback offset (which should not occur in theory) must not move the cursor backward and replay earlier reasoning
         event({ eventId: 'b', reasoningOffset: 0 }),
       ],
     });
@@ -121,7 +121,7 @@ describe('buildProcessTimeline', () => {
       event({ eventId: 'b', step: 2, reasoningOffset: 11 }),
     ];
 
-    // 已显示 8 个字：第一行该出了，第二行的切点还没播到
+    // 8 characters are displayed: the first row should appear, and the second row's split point has not been played yet
     const playing = buildProcessTimeline({
       reasoning: '先搜一下。再看看',
       toolEvents,
@@ -129,7 +129,7 @@ describe('buildProcessTimeline', () => {
     });
     expect(outline(playing.items)).toEqual(['reasoning:先搜一下。', 'tool:a', 'reasoning:再看看']);
 
-    // 播到了，第二行随之出现
+    // It has been played, and the second row appears with it
     const played = buildProcessTimeline({
       reasoning: '先搜一下。再看看几页。',
       toolEvents,

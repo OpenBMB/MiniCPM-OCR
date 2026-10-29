@@ -8,14 +8,14 @@ import {
 import { mapResourcesApi } from './resources';
 
 /**
- * MAP 资源域的 TanStack Query 封装。
+ * TanStack Query wrappers for the MAP resource domain.
  *
- * 用途：把「服务端可缓存状态」（项目/Key/模型/用量/日志/限额）统一收敛为 query/mutation hooks，
- * 遵循 MAP 的 `example.query.ts` 范式（queryKey 工厂 + useXxxQuery/useXxxMutation），
- * 避免页面里散写 useState+useEffect 取数（AGENTS 硬规则 #4）。
+ * Purpose: gather server cacheable state (projects, keys, models, usage, logs, quotas) into query/mutation hooks,
+ * following the MAP `example.query.ts` pattern (queryKey factory plus useXxxQuery/useXxxMutation),
+ * so pages do not scatter useState+useEffect data fetching (AGENTS hard rule #4).
  */
 
-/** queryKey 工厂：集中管理 MAP 资源域的所有缓存键 */
+/** queryKey factory: centralize every cache key in the MAP resource domain */
 export const mapKeys = {
   all: ['map'] as const,
   me: () => [...mapKeys.all, 'me'] as const,
@@ -44,12 +44,12 @@ export const mapKeys = {
   conversation: (id: string) => [...mapKeys.all, 'conversation', id] as const,
 };
 
-/** 项目列表查询 */
+/** Project list query */
 export function useProjectsQuery() {
   return useQuery({ queryKey: mapKeys.projects(), queryFn: mapResourcesApi.projects });
 }
 
-/** 某项目下的 API Key 列表查询（projectId 为空时不发起） */
+/** API Key list query for a project (not sent when projectId is empty) */
 export function useKeysQuery(projectId: string) {
   return useQuery({
     queryKey: mapKeys.keys(projectId),
@@ -58,22 +58,22 @@ export function useKeysQuery(projectId: string) {
   });
 }
 
-/** 当前组织名下所有项目的 API Key 列表查询（跨项目，用于接入引导选 Key） */
+/** API Key list query for every project in the current organization (cross-project, used by onboarding to pick a key) */
 export function useAllKeysQuery() {
   return useQuery({
     queryKey: mapKeys.keysAll(),
     queryFn: mapResourcesApi.keysAll,
-    // 用户从 Keys 页创建后返回 Playground（或刷新）时必须重新读取，才能自动选中新 Key。
+    // After the user creates a key on the Keys page and returns to Playground (or refreshes), this must be read again so the new key can be selected automatically.
     staleTime: 0,
     refetchOnMount: 'always',
   });
 }
 
 /**
- * 某 API Key 的完整明文查询（后端 AES-GCM 解密）。
+ * Full plaintext query for an API Key (backend AES-GCM decrypt).
  *
- * 用途：接入示例按选中的 Key 回显真实明文。keyId 为空时不发起；明文敏感，不长期缓存
- * （staleTime/gcTime 设 0），且旧 Key 无密文时后端 409、query 进入 error 态供 UI 回退占位符。
+ * Purpose: onboarding examples echo the real plaintext of the selected key. Not sent when keyId is empty. The plaintext is sensitive and is not cached for long
+ * (staleTime/gcTime are 0). When an old key has no ciphertext the backend returns 409 and the query enters the error state so the UI can fall back to a placeholder.
  */
 export function useKeySecretQuery(keyId: string, enabled = true) {
   return useQuery({
@@ -87,10 +87,10 @@ export function useKeySecretQuery(keyId: string, enabled = true) {
 }
 
 /**
- * Playground 免费体验状态查询。
+ * Playground free-trial status query.
  *
- * 返回值包含仅在内存中使用的体验 Key 明文；为避免敏感凭据跨页面残留，
- * 缓存策略与 Key 明文一致（staleTime/gcTime=0），失败不自动重试。
+ * The result includes the trial key plaintext, which is used in memory only. To avoid leaving sensitive credentials across pages,
+ * the cache policy matches key plaintext (staleTime/gcTime=0), and failures are not retried automatically.
  */
 export function usePlaygroundTrialQuery() {
   return useQuery({
@@ -102,17 +102,17 @@ export function usePlaygroundTrialQuery() {
   });
 }
 
-/** 可调用模型列表查询 */
+/** Callable model list query */
 export function useModelsQuery() {
   return useQuery({
     queryKey: mapKeys.models(),
     queryFn: mapResourcesApi.models,
-    // 管理台与 Portal 是独立应用；切回 Playground 时刷新，及时获取模型能力开关变更。
+    // The admin console and Portal are separate apps; refresh when returning to Playground so model capability switches are picked up promptly.
     refetchOnWindowFocus: true,
   });
 }
 
-/** 当前用户私有音色列表查询。 */
+/** Current user's private voice list query. */
 export function useVoicesQuery(enabled = true) {
   return useQuery({
     queryKey: mapKeys.voices(),
@@ -121,7 +121,7 @@ export function useVoicesQuery(enabled = true) {
   });
 }
 
-/** 当前登录用户的产品功能权限查询。 */
+/** Product feature permission query for the currently logged-in user. */
 export function useFeatureAccessQuery() {
   return useQuery({
     queryKey: mapKeys.featureAccess(),
@@ -129,7 +129,7 @@ export function useFeatureAccessQuery() {
   });
 }
 
-/** 上传私有音色并刷新音色列表 */
+/** Upload a private voice and refresh the voice list */
 export function useCreateVoiceMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -139,7 +139,7 @@ export function useCreateVoiceMutation() {
   });
 }
 
-/** 删除私有音色并刷新音色列表 */
+/** Delete a private voice and refresh the voice list */
 export function useDeleteVoiceMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -148,7 +148,7 @@ export function useDeleteVoiceMutation() {
   });
 }
 
-/** 用量汇总查询 */
+/** Usage summary query */
 export function useUsageSummaryQuery(start?: string, end?: string) {
   return useQuery({
     queryKey: mapKeys.usageSummary(start, end),
@@ -156,7 +156,7 @@ export function useUsageSummaryQuery(start?: string, end?: string) {
   });
 }
 
-/** 调用日志查询（服务端分页，按 request_id / 模型 / 结果过滤；翻页时保留上一页数据避免闪烁） */
+/** Call-log query (server pagination, filtered by request_id / model / outcome; keep the previous page while paging to avoid flicker) */
 export function useLogsQuery(
   requestId: string,
   publicModel: string,
@@ -171,22 +171,22 @@ export function useLogsQuery(
   });
 }
 
-/** 公开配置查询 */
+/** Public config query */
 export function usePublicConfigQuery() {
   return useQuery({ queryKey: mapKeys.publicConfig(), queryFn: mapResourcesApi.publicConfig });
 }
 
-/** 本人计费账户查询 */
+/** Current user's billing account query */
 export function useBillingAccountQuery() {
   return useQuery({ queryKey: mapKeys.billingAccount(), queryFn: mapResourcesApi.billingAccount });
 }
 
-/** 本人体验额度包查询 */
+/** Current user's trial credit package query */
 export function useCreditPackagesQuery() {
   return useQuery({ queryKey: mapKeys.creditPackages(), queryFn: mapResourcesApi.creditPackages });
 }
 
-/** 本人充值流水查询 */
+/** Current user's top-up history query */
 export function useRechargesQuery() {
   return useQuery({ queryKey: mapKeys.recharges(), queryFn: mapResourcesApi.recharges });
 }
@@ -207,7 +207,7 @@ export function useClaimDailyCheckinMutation() {
   });
 }
 
-/** 本人花费统计查询（按区间） */
+/** Current user's spend statistics query (by range) */
 export function useSpendQuery(start: string, end: string) {
   return useQuery({
     queryKey: mapKeys.spend(start, end),
@@ -216,7 +216,7 @@ export function useSpendQuery(start: string, end: string) {
   });
 }
 
-/** 调用详情查询（含正文，requestId 为空时不发起） */
+/** Call detail query (including body; not sent when requestId is empty) */
 export function useCallLogDetailQuery(requestId: string, enabled: boolean) {
   return useQuery({
     queryKey: mapKeys.callLogDetail(requestId),
@@ -225,17 +225,17 @@ export function useCallLogDetailQuery(requestId: string, enabled: boolean) {
   });
 }
 
-/** 本人月账单查询 */
+/** Current user's monthly bill query */
 export function useMonthlyBillsQuery() {
   return useQuery({ queryKey: mapKeys.monthlyBills(), queryFn: mapResourcesApi.monthlyBills });
 }
 
-/** 预警配置查询 */
+/** Alert config query */
 export function useAlertConfigsQuery() {
   return useQuery({ queryKey: mapKeys.alertConfigs(), queryFn: mapResourcesApi.alertConfigs });
 }
 
-/** 创建项目（成功后失效项目列表缓存） */
+/** Create a project (invalidate the project list cache on success) */
 export function useCreateProjectMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -244,7 +244,7 @@ export function useCreateProjectMutation() {
   });
 }
 
-/** 更新预警配置（成功后失效预警配置缓存） */
+/** Update alert config (invalidate the alert config cache on success) */
 export function useUpsertAlertConfigMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -253,26 +253,26 @@ export function useUpsertAlertConfigMutation() {
   });
 }
 
-/** 提交充值申请 */
+/** Submit a top-up request */
 export function useRechargeRequestMutation() {
   return useMutation({ mutationFn: mapResourcesApi.rechargeRequest });
 }
 
-/** 提交体验中心对话反馈（点赞/点踩），fire-and-forget，无需刷新缓存 */
+/** Submit experience-center conversation feedback (like/dislike); fire-and-forget, no cache refresh */
 export function useSubmitFeedbackMutation() {
   return useMutation({ mutationFn: mapResourcesApi.submitFeedback });
 }
 
-/** 发起易宝在线支付下单（成功后前端跳转 cashier_url，无需刷新本地缓存） */
+/** Start a Yeepay online payment order (on success the frontend redirects to cashier_url; no local cache refresh) */
 export function useYeepayOrderMutation() {
   return useMutation({ mutationFn: mapResourcesApi.yeepayOrder });
 }
 
-// ===== Playground 历史对话 =====
+// ===== Playground history conversations =====
 
 /**
- * 历史对话分页查询：每页 20 条，由侧栏「加载更多对话」显式追加下一页。
- * 列表可能很多，一次性加载会卡顿/崩溃，故分页累积。
+ * Paged history-conversation query: 20 items per page, and the sidebar Load more conversations control explicitly appends the next page.
+ * The list can be very long, and loading it all at once can stall or crash, so pages are accumulated.
  */
 export function useInfiniteConversationsQuery() {
   const pageSize = 20;
@@ -281,7 +281,7 @@ export function useInfiniteConversationsQuery() {
     queryFn: ({ pageParam }) => mapResourcesApi.conversations({ page: pageParam, pageSize }),
     initialPageParam: 1,
     getNextPageParam: (last) => {
-      // 后端未部署/异常返回时字段可能缺失，做防御：拿不到合法分页信息即停止翻页
+      // When the backend is not deployed or returns an error, fields may be missing. Defend by stopping paging when valid page info is absent
       if (!last || typeof last.total !== 'number' || typeof last.page !== 'number')
         return undefined;
       const loaded = last.page * (last.page_size || pageSize);
@@ -290,7 +290,7 @@ export function useInfiniteConversationsQuery() {
   });
 }
 
-/** 单个会话详情查询（id 为空时不发起） */
+/** Single conversation detail query (not sent when id is empty) */
 export function useConversationQuery(id: string) {
   return useQuery({
     queryKey: mapKeys.conversation(id),
@@ -299,7 +299,7 @@ export function useConversationQuery(id: string) {
   });
 }
 
-/** 新建会话（成功后失效列表缓存） */
+/** Create a conversation (invalidate the list cache on success) */
 export function useCreateConversationMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -309,7 +309,7 @@ export function useCreateConversationMutation() {
   });
 }
 
-/** 保存会话消息（整段覆盖；成功后失效列表缓存以刷新标题/排序） */
+/** Save conversation messages (full overwrite; invalidate the list cache on success to refresh title and sort order) */
 export function useSaveConversationMutation() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -321,7 +321,7 @@ export function useSaveConversationMutation() {
   });
 }
 
-/** 删除会话（成功后失效列表缓存） */
+/** Delete a conversation (invalidate the list cache on success) */
 export function useDeleteConversationMutation() {
   const queryClient = useQueryClient();
   return useMutation({

@@ -14,8 +14,8 @@ const UNAVAILABLE: ImageParsePipelineCapabilities = {
 };
 
 /**
- * 探测后端流水线能力。仅在用户与文档解析模型就绪时请求，测试和无权限用户
- * 不会因为多一次网络请求改变原有工作台行为。
+ * Probe backend pipeline capabilities. Request only when the user and the document-parsing model are ready; tests and users without permission
+ * do not change existing workspace behavior because of one extra network request.
  */
 export function useImageParsePipelineCapabilities(enabled: boolean): ImageParsePipelineCapabilities {
   const query = useQuery({

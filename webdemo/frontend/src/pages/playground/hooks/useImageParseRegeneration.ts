@@ -16,9 +16,9 @@ import {
 
 interface RegenerationInput {
   resultKey: string;
-  /** 当前登录用户可见的文档解析模型 ID。 */
+  /** Document-parsing model ID visible to the current logged-in user. */
   model: string;
-  /** 当前选中 API Key 的明文密钥；仅内存传入，不落盘。 */
+  /** Plaintext secret of the currently selected API Key; passed in memory only and not persisted to disk. */
   secret: string;
   blocks: readonly ImageParseLayoutBlock[];
   draft: ImageParseDraft;
@@ -27,11 +27,11 @@ interface RegenerationInput {
   pageIndex: number;
   loading: boolean;
   source?: ImageParseSource;
-  /** 请求终态后刷新 Playground 免费体验状态。 */
+  /** Refresh Playground free-trial state after a request reaches a terminal state. */
   refreshTrial?: () => void;
 }
 
-/** 编排主动块优化：限制预算、保护人工修改，并中止跨文档/页码的旧任务。 */
+/** Orchestrate active block optimization: limit the budget, protect manual edits, and abort old tasks that cross documents or page numbers. */
 export function useImageParseRegeneration(input: RegenerationInput) {
   const { resultKey, blocks } = input;
   const { refreshTrial } = input;
@@ -81,7 +81,7 @@ export function useImageParseRegeneration(input: RegenerationInput) {
         histories: previous.histories,
         pending: new Set(eligibleIds),
       }));
-      // 批量按顺序调用，避免低分块数量放大服务并发；每块独立失败不会清空已完成结果。
+      // Call the batch in order, so the number of low-score blocks does not amplify service concurrency; one block failing on its own does not clear results already finished.
       for (const id of eligibleIds) {
         if (!isCurrent()) break;
         const original = blocks.find((block, index) => imageParseBlockId(block, index) === id);
@@ -120,7 +120,7 @@ export function useImageParseRegeneration(input: RegenerationInput) {
             onApply: (next, range) => {
               const draft = latest.current.draft;
               draft.setValue(next, range, 'model');
-              // React 可合并整批提交，下一块必须同步取得更新后的文本与偏移。
+              // React may batch the whole commit; the next block must synchronously obtain the updated text and offsets.
               latest.current = {
                 ...latest.current,
                 draft: {
@@ -150,7 +150,7 @@ export function useImageParseRegeneration(input: RegenerationInput) {
           pending: new Set([...previous.pending].filter((item) => item !== id)),
         }));
       }
-      // 每个块优化都是一次真实 L2 请求；批量结束后刷新免费次数。
+      // Each block optimization is a real L2 request; refresh the free count after the batch ends.
       refreshTrial?.();
       if (active.current === controller) {
         active.current = null;

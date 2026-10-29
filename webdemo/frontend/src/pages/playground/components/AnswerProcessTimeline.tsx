@@ -1,11 +1,9 @@
 /**
- * 回答过程时间线。
+ * Answer-process timeline.
  *
- * 用途：把一次回答的全过程——思考、联网搜索、读网页、查时间——还原成**一条**交错的时间线。
- * 模型的真实执行是「思考 → 调工具 → 继续思考」的单一流程，界面也就只给一个折叠区：
- * 顶行报「已思考（用时 N 秒）」，展开后思考段与工具行按发生顺序穿插在同一条 marker 列上。
+ * Purpose: restore one answer's whole process — reasoning, web search, reading pages, checking the time — as **one** interleaved timeline. The model's real execution is a single flow of "reason → call a tool → keep reasoning," so the UI gives only one disclosure: the top row reports "reasoned (N seconds)," and when expanded the reasoning segments and tool rows interleave in occurrence order on the same marker column.
  *
- * 来源不在这里收口：正文下方的来源胶囊统一通往来源抽屉，顶行不再兼任第二个跳转入口。
+ * Sources are not closed out here: the source chip under the body is the single path to the source drawer, and the top row is no longer a second jump target.
  */
 
 import { useId, useMemo } from 'react';
@@ -29,36 +27,36 @@ import { ProcessDisclosure, ProcessScrollArea, ReasoningSegment } from './Answer
 import { ProcessToolRow } from './ProcessToolRow';
 
 interface AnswerProcessTimelineProps {
-  /** 模型思考内容（已过展示层改写）。 */
+  /** Model reasoning content (already rewritten by the display layer). */
   reasoning: string;
-  /** 当前模型是否允许展示思考内容。 */
+  /** Whether the current model is allowed to show reasoning content. */
   showReasoning?: boolean;
-  /** 展示层是否改写过思考文本；改写过就无法交错，退化为思考整块置顶。 */
+  /** Whether the display layer rewrote the reasoning text; if it did, interleaving is impossible and reasoning falls back to one block on top. */
   reasoningRewritten?: boolean;
-  /** 是否仍在流式生成。 */
+  /** Whether generation is still streaming. */
   streaming?: boolean;
-  /** 本轮全部工具调用事件，按到达顺序。 */
+  /** All tool-call events for this turn, in arrival order. */
   toolEvents?: ToolEvent[];
-  /** 整条消息的来源，供工具行就地展示站点图标与页面标题。 */
+  /** Sources for the whole message, so a tool row can show site icons and page titles in place. */
   citations?: Citation[];
-  /** 是否已开启联网但还没有任何工具事件（首帧之前的空档）。 */
+  /** Whether web search is on but there are still no tool events (the gap before the first frame). */
   searching?: boolean;
-  /** 后端下发的过程阶段，失败态可能先于工具事件到达。 */
+  /** Process phase from the backend; a failure state may arrive before tool events. */
   searchStep?: SearchProgressStep;
-  /** 最近一次执行的工具名，用于判定失败归属。 */
+  /** Name of the most recently run tool, used to attribute a failure. */
   searchActiveTool?: string;
-  /** 后端下发的失败原因，失败态直接当标题用。 */
+  /** Failure reason from the backend; used directly as the title in the failure state. */
   searchStatus?: string;
-  /** 打开来源抽屉；给了才把搜索行做成可点。 */
+  /** Opens the source drawer; only when provided is the search row made clickable. */
   onOpenSources?: () => void;
-  /** 是否已经有回答正文，用于绘制过程与答案的分隔。 */
+  /** Whether answer body text already exists, used to draw the separator between process and answer. */
   hasAnswer?: boolean;
 }
 
 /**
- * 渲染回答的过程时间线。
- * @param props 思考内容、工具事件、来源与流式状态
- * @returns 可折叠的过程时间线；没有过程数据时不渲染
+ * Renders the process timeline for an answer.
+ * @param props Reasoning content, tool events, sources, and streaming state
+ * @returns A collapsible process timeline; renders nothing when there is no process data
  */
 export function AnswerProcessTimeline({
   reasoning,
@@ -78,27 +76,22 @@ export function AnswerProcessTimeline({
   const panelId = useId();
 
   /*
-    交给时间线的是**未 trim 的原文**：工具事件的 reasoningOffset 按原文字符数累加，先 trim
-    再按 offset 切会整体错位——模型惯常在调工具前留一个换行，trim 掉之后显示长度反而短于
-    offset，下面「等播到再出行」的判断就永远等不到。段内空白由 buildProcessTimeline 逐段收拾。
+    What is handed to the timeline is the **untrimmed original**: a tool event's reasoningOffset is accumulated in original characters, and trimming before cutting by offset shifts everything — the model usually leaves a newline before calling a tool, and after trim the displayed length is shorter than the offset, so the "wait until playback reaches it before showing the row" check never arrives. Whitespace inside a segment is cleaned up segment by segment in buildProcessTimeline.
   */
   const rawReasoning = showReasoning ? reasoning : '';
   const hasReasoning = Boolean(rawReasoning.trim());
   const failedEvents = toolEvents.filter((event) => event.status === 'failed');
   /*
-    只有联网工具失败才让整行转红、标题换成失败原因。datetime 这类工具挂掉只是思考里的一个
-    子步骤没成，回答本身照常生成——整条标红会让用户以为整个回答都不可信。
+    Only a web-search tool failure turns the whole row red and replaces the title with the failure reason. A tool such as datetime failing is just one sub-step inside reasoning that did not succeed; the answer itself is still generated — marking the whole thing red makes users think the entire answer is untrustworthy.
 
-    searchStep / searchActiveTool 是全工具共用字段，失败帧可能先于工具事件到达（甚至在
-    「刚开联网就失败」时根本没有工具事件，所以它也要计入 hasProcess）。归属以最近一次
-    工具为准，否则「查时间失败」会被报成「联网搜索失败」。
+    searchStep / searchActiveTool are fields shared by every tool. A failure frame may arrive before tool events (and when web search fails the moment it is turned on there are no tool events at all, so it still has to count toward hasProcess). Attribute the failure to the most recent tool; otherwise "time lookup failed" is reported as "web search failed."
   */
   const stepFailedIsWeb =
     searchStep === 'failed' && (!searchActiveTool || WEB_TOOLS.has(searchActiveTool));
   const webFailed = stepFailedIsWeb || failedEvents.some((event) => WEB_TOOLS.has(event.tool));
   const anyFailed = webFailed || failedEvents.length > 0;
   const interrupted = toolEvents.some((event) => event.status === 'interrupted');
-  // 已经报失败就不再转圈：失败帧到达后 searching 常常还挂着，图标会一直转
+  // Once a failure is reported, stop spinning: after the failure frame arrives, searching is often still set, and the icon would spin forever
   const running =
     !webFailed &&
     (toolEvents.some((event) => event.status === 'running') || (searching && streaming));
@@ -106,9 +99,7 @@ export function AnswerProcessTimeline({
     toolEvents.some((event) => event.status === 'running' && WEB_TOOLS.has(event.tool)) ||
     (searching && streaming && !toolEvents.some((event) => event.status === 'running'));
   /*
-    本轮是否真的联网取回了证据。判据是「有成功的联网工具调用」，而不是「联网开关开着」：
-    开关只代表用户允许联网，模型完全可以判断不需要而一次都不调，那种回答与纯思考没有区别，
-    却会被标成「已联网」——这比不标更糟，用户会以为答案有外部依据。
+    Whether this turn actually retrieved evidence from the web. The criterion is "a successful web-search tool call," not "the web-search switch is on": the switch only means the user allowed web search. The model may decide it is unnecessary and never call it. That answer is no different from reasoning alone, yet it would be labeled "searched the web" — worse than no label, because users would think the answer has external evidence.
   */
   const webSearched = toolEvents.some(
     (event) => WEB_TOOLS.has(event.tool) && event.status === 'success',
@@ -130,16 +121,11 @@ export function AnswerProcessTimeline({
   );
   const index = useMemo(() => citationIndex(citations), [citations]);
   /*
-    整个过程只有一段思考、且不会再长出别的行时不画项目符号。marker 列的意义是让多行对齐成
-    一条线；只剩一行时它退化成「一个元素的项目符号」——没有下一项可对齐，也没有连接线可挂，
-    剩下的只是一个指向空处的圆点。
+    Do not draw a bullet when the whole process is a single reasoning segment and no other row will grow. The marker column exists to align multiple rows into a line; with one row left it degrades into a "bullet for a single element" — nothing below to align to, no connector to hang, only a dot pointing at empty space.
 
-    判据里带上 toolEvents / searching：流式期间工具行可能正被播放队列押着（见
-    buildProcessTimeline 的 holdUnplayed），此刻 items 也只有一项，但行马上就会出现——
-    按当下项数决定就会让圆点凭空冒出来一次。
+    The criterion includes toolEvents / searching: during streaming a tool row may be held by the playback queue (see holdUnplayed in buildProcessTimeline). items has only one entry at that moment, but the row is about to appear — deciding by the current count makes the dot pop in once from nowhere.
 
-    列宽保留（marker 传 null，而不是绕开 ProcessRailItem）：正文要继续与顶行标题左对齐，
-    去掉这一列会让它整块左移到图标那一列，读起来像与顶行平级，而不是顶行展开出的内容。
+    Keep the column width (pass null for the marker, rather than bypassing ProcessRailItem): the body must stay left-aligned with the top-row title. Removing the column shifts the whole block left into the icon column, so it reads as a peer of the top row rather than content the top row expanded.
   */
   const soleReasoning =
     timeline.items.length === 1 &&
@@ -232,18 +218,13 @@ export function AnswerProcessTimeline({
 }
 
 /**
- * 顶行图标。
+ * Top-row icon.
  *
- * 它与标题分开着色：标题是 muted 的状态说明，图标用 primary 把「这里发生过一段过程」
- * 标出来——整行都灰下去的话，折叠状态下过程区会整个从视野里消失。
+ * It is colored separately from the title: the title is a muted status note, and the icon uses primary to mark "a process happened here" — if the whole row goes gray, the process area disappears from view while collapsed.
  *
- * 转圈只有这一枚：顶行在收起态也在场，且「开了联网到首个工具帧到达」之间还有一段
- * 时间线为空的空档，动效必须由它承担。工具行因此不转圈（见 ProcessToolRow.ToolMarker），
- * 两处同时转是同一件事报两遍，各转各的更乱。
+ * Only this one spins: the top row is present even when collapsed, and there is a gap between "web search turned on" and "the first tool frame arrives" when the timeline is empty, so the motion has to be carried here. Tool rows therefore do not spin (see ProcessToolRow.ToolMarker). Spinning in both places reports the same thing twice, and spinning independently is more confusing.
  *
- * 完成态不按「联网过没有」换图标：一列回答里每条顶行的图标都不同会让这一竖排变成
- * 杂色噪点，反而更难扫。联不联网由标题的文字区分（见 timelineTitle），那是同一行里
- * 本来就要读的内容，不必再占一个视觉通道。
+ * The finished state does not swap the icon based on "whether web search happened": a different icon on every top row in a column of answers turns the stack into colored noise and is harder to scan. Whether web search happened is distinguished by the title text (see timelineTitle), which is content on that same row that has to be read anyway, so it does not need another visual channel.
  */
 function TimelineIcon({
   running,
@@ -277,23 +258,16 @@ function TimelineIcon({
 }
 
 /**
- * 生成顶行标题。
+ * Builds the top-row title.
  *
- * 完成态只报「做了什么」，不带耗时：总耗时在正文下方的指标行里已经有一份（见
- * utils/metrics.ts），顶行再报一遍是同一个数出现两处，而且它是这一行里唯一会变的字，
- * 眼睛会先去读那个数字，反而盖住「做了什么」。总工具数同理不报；但成功搜索超过一次时
- * 报搜索次数，用户不需要展开就能知道模型分几轮取证。一次搜索本身无需重复“1 次”。
+ * The finished state only reports "what was done," without duration: total duration already appears in the metrics row under the body (see utils/metrics.ts). Reporting it again on the top row puts the same number in two places, and it is the only text on that row that changes, so the eye reads the number first and covers "what was done." The total tool count is omitted for the same reason; but when successful searches exceed one, report the search count so the user can tell how many rounds of evidence the model took without expanding. A single search does not need a redundant "1 time."
  *
- * 进行中的联网则相反，顶行要带上当前的查询词：它在这一档里是唯一会变的字，而这正是需要的——
- * 一轮搜索几秒起步，收起态除了顶行没有别的进度通道，静态文案挂在那里与卡死无从区分。
- * 完成态忌讳「唯一会变的数字」是因为那时已无进度可言，两者不冲突。
+ * In-progress web search is the opposite: the top row should carry the current query. In this phase it is the only text that changes, and that is what is needed — a search round starts at several seconds, and while collapsed there is no progress channel besides the top row. Static copy sitting there cannot be told apart from a hang. The finished state avoids "the only number that changes" because there is no progress left then; the two do not conflict.
  *
- * 联网与纯思考必须分开报，这不是措辞偏好：纯思考是模型拿自己权重里的知识作答，联网是它
- * 真去外部取了证据回来，两者的可信度来源不同。都写成「已思考」会让用户无法判断这个答案
- * 该不该自己再核一遍——而这恰恰是他看过程区的原因。
+ * Web search and reasoning-only must be reported separately. This is not a wording preference: reasoning-only means the model answered from knowledge in its weights, while web search means it actually fetched external evidence. Their sources of trust differ. Writing both as "reasoned" leaves the user unable to judge whether to check the answer again — which is exactly why they look at the process area.
  *
- * @param searchQueries 进行中的搜索查询词（已截断），空数组表示还没拿到
- * @returns 顶行标题文案
+ * @param searchQueries In-progress search queries (already truncated); an empty array means they have not arrived yet
+ * @returns Top-row title copy
  */
 function timelineTitle({
   t,
@@ -323,19 +297,19 @@ function timelineTitle({
   if (webFailed) return searchStatus || t('searchStepFailed');
   if (running) {
     if (!webRunning) return t('toolsInProgress');
-    // 查询词要到模型把 tool_call 参数生成完才随 running 帧到达，在那之前只能报静态文案。
+    // The query arrives with the running frame only after the model finishes generating tool_call arguments; before that, only static copy can be shown.
     if (searchQueries.length === 0) return t('searchingPages');
     return t('searchingPagesQuery', { query: searchQueries.join(t('queryJoiner')) });
   }
   if (streaming) return t('reasoningInProgress');
   if (webSearched) {
-    // 多轮搜索时报次数；单轮保持原文案，避免收起态被无信息量的“1 次”占宽。
+    // Report the count for multi-round search; keep the original copy for a single round so the collapsed state is not taken up by an uninformative "1 time."
     if (webSearchCount > 1) {
       return t(hasReasoning ? 'searchedAndReasonedCount' : 'searchedCompleteCount', {
         count: webSearchCount,
       });
     }
-    // 联网了但没思考（思考深度关闭）仍要报联网：证据来源比「思考过」更值得留在收起态。
+    // If web search ran but there was no reasoning (reasoning depth off), still report web search: the evidence source is more worth keeping in the collapsed state than "reasoned."
     return t(hasReasoning ? 'searchedAndReasoned' : 'searchedComplete');
   }
   if (hasReasoning) return t('reasoningComplete');

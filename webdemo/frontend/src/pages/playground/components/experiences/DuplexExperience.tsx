@@ -1,10 +1,7 @@
 /**
- * 体验中心「实时音视频（双工）」体验页。
+ * Experience-center "realtime audio-video (duplex)" page.
  *
- * 用途：对齐 MiniCPM-o Omni 全双工的通话工作台——视频舞台（真摄像头 / 环形声纹）+ 控制栏 +
- * 右侧完整参数（对话模式/模型/音色/系统提示词/TTS开关/音色克隆/采样参数/设备）+ 对话记录。
- * 通话经后端 realtime WS 代理接入 MiniCPM-O：麦克风持续上行、模型语音下行播放、文本转字幕，
- * video 模式下摄像头帧按 ~1fps 上行做视频理解。逻辑收敛在 useRealtimeSession / useCamera 等。
+ * Purpose: a call workspace aligned with MiniCPM-o Omni full duplex — video stage (real camera / ring voiceprint) + control bar + full parameters on the right (conversation mode/model/voice/system prompt/TTS switch/voice clone/sampling parameters/devices) + conversation log. The call reaches MiniCPM-O through the backend realtime WS proxy: the microphone streams up continuously, model speech plays downstream, and text becomes captions. In video mode camera frames go upstream at ~1fps for video understanding. Logic is gathered in useRealtimeSession / useCamera and the like.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -42,8 +39,8 @@ const STATUS_HINT: Record<VoiceStatus, string> = {
 };
 
 /**
- * 实时音视频双工体验页。
- * @param model 模型与密钥编排（来自页面顶层 usePlaygroundModel）
+ * Realtime audio-video duplex page.
+ * @param model Model and key orchestration (from the page-level usePlaygroundModel)
  */
 export function DuplexExperience({ model }: { model: PlaygroundModel }) {
   const { t } = useTranslation('playground');
@@ -87,7 +84,7 @@ export function DuplexExperience({ model }: { model: PlaygroundModel }) {
   );
   const connectionMessage =
     rt.status === 'requesting' ? describeConnection(rt.queue, translate) : undefined;
-  // 控制条上方提示：模型主动告别时优先提示即将结束，其次按会话状态给操作引导
+  // Hint above the control bar: when the model says goodbye on its own, prefer a hint that the call is about to end; otherwise give action guidance from the session state
   const hintText = resolveHint(rt.endedByModel, sessionActive, rt.status, forceListen, translate);
   useEffect(() => {
     if (!sessionActive || paused) return undefined;
@@ -95,13 +92,13 @@ export function DuplexExperience({ model }: { model: PlaygroundModel }) {
     return () => window.clearInterval(id);
   }, [sessionActive, paused]);
 
-  // 开始通话：视频模式先开摄像头（失败即放弃），再建立 realtime 会话；连接失败回滚。
+  // Start the call: in video mode open the camera first (give up on failure), then establish the realtime session; roll back if the connection fails.
   async function startSession() {
     setVoiceError(undefined);
     let cameraStream: MediaStream | null = null;
     if (videoMode) {
       cameraStream = await cam.start();
-      if (!cameraStream) return; // cam.error 已置，保持未开始
+      if (!cameraStream) return; // cam.error is already set; stay not started
     }
     const voice = VOICES.find((item) => item.value === effectiveVoice);
     let presetRefAudio: string | undefined;
@@ -142,7 +139,7 @@ export function DuplexExperience({ model }: { model: PlaygroundModel }) {
       onInputAudio: (samples) => recorder.current.pushLeft(samples),
       onOutputAudio: (samples, sampleRate, timestamp) =>
         recorder.current.pushRight(samples, sampleRate, timestamp),
-      // 模型输出挂断标记后自动结束：同步关摄像头、复位 UI（与手动点「结束」一致）
+      // After the model emits a hang-up marker, end automatically: turn the camera off and reset the UI in sync (the same as clicking "end" manually)
       onSessionEnd: () => {
         const result = recorder.current.stop();
         if (result) setRecordingResult(result);
@@ -253,7 +250,7 @@ export function DuplexExperience({ model }: { model: PlaygroundModel }) {
     setMode(source === 'both' ? 'video' : 'audio');
   }
 
-  // 选择音色是一次明确的覆盖操作：清空旧的手动参考音频，确保启动会话时使用用户刚选的音色。
+  // Choosing a voice is an explicit override: clear the old manual reference audio so the session starts with the voice the user just selected.
   function changeVoice(voice: string) {
     patch({
       voice,
@@ -295,7 +292,7 @@ export function DuplexExperience({ model }: { model: PlaygroundModel }) {
     else void stageRef.current.requestFullscreen?.();
   }
 
-  // 暂停/继续：暂停上行麦克风（下行播放不受影响，据实为会话级暂停）
+  // Pause/resume: pause the upstream microphone (downstream playback is unaffected; in practice this is a session-level pause)
   function togglePause() {
     setPaused((prev) => {
       const next = !prev;
@@ -307,7 +304,7 @@ export function DuplexExperience({ model }: { model: PlaygroundModel }) {
   return (
     <div className="flex h-full w-full flex-col gap-4 overflow-y-auto px-3 py-4 sm:px-4">
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        {/* 左：聚焦通话卡（上画面 + 下控制条同卡，填满与右栏等高） */}
+        {/* Left: focused call card (picture on top + control bar below, one card, filling to the same height as the right column) */}
         <div className="flex min-w-0 flex-col">
           <section
             ref={stageRef}
@@ -363,7 +360,7 @@ export function DuplexExperience({ model }: { model: PlaygroundModel }) {
           </section>
         </div>
 
-        {/* 右：完整参数面板 */}
+        {/* Right: full parameter panel */}
         <DuplexSidePanel
           model={model}
           sources={SOURCES}
@@ -384,7 +381,7 @@ export function DuplexExperience({ model }: { model: PlaygroundModel }) {
         />
       </div>
 
-      {/* 完整对话记录弹窗 */}
+      {/* Full conversation-log dialog */}
       <Dialog open={recordOpen} onOpenChange={setRecordOpen}>
         <DialogContent className="max-w-lg" onClose={() => setRecordOpen(false)}>
           <DialogHeader>
@@ -408,12 +405,12 @@ export function DuplexExperience({ model }: { model: PlaygroundModel }) {
 }
 
 /**
- * 控制条上方的提示文案。
- * @param endedByModel 模型是否已输出挂断标记（即将自动结束）
- * @param sessionActive 会话是否进行中
- * @param status 实时会话状态
- * @param forceListen 是否正在让模型优先聆听用户
- * @returns 当前该展示的提示文案
+ * Hint copy above the control bar.
+ * @param endedByModel Whether the model has emitted a hang-up marker (about to end automatically)
+ * @param sessionActive Whether the session is in progress
+ * @param status Realtime session status
+ * @param forceListen Whether the model is being made to listen to the user first
+ * @returns The hint copy that should be shown now
  */
 function resolveHint(
   endedByModel: boolean,

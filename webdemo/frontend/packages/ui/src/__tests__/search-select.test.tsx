@@ -10,7 +10,7 @@ const options = [
   { value: 'user-c', label: '其他用户' },
 ];
 
-/** 受控测试入口：区分输入关键词与按身份保存的已选项。 */
+/** Controlled test entry: distinguishes the typed keyword from the selected item saved by identity. */
 function Field({ multiple = true, maxSelected }: { multiple?: boolean; maxSelected?: number }) {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<SearchSelectOption[]>([]);

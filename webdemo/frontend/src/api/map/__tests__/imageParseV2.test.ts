@@ -68,7 +68,7 @@ describe('页图解析 v3 契约', () => {
     expect(imageParseQuality(result.blocks).suggested.map((item) => item.order)).toEqual([2]);
     expect(imageParseQuality(result.blocks).skipped).toHaveLength(1);
     expect(imageParseQuality(result.blocks).failed).toHaveLength(1);
-    // 图片与空印章各有一个占位符，标题和正文也都能定位。
+    // The image and the empty seal each have one placeholder, and the title and body can both be located.
     expect([...imageParseBlockRanges(result.markdown, result.blocks)]).toHaveLength(4);
   });
 

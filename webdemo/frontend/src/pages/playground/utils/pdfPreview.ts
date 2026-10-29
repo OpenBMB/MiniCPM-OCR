@@ -1,14 +1,14 @@
-/** PDF.js 读取本地文件：原文预览与逐页转图共用加载配置。 */
+/** PDF.js reads a local file: the original-text preview and per-page image conversion share the load config. */
 import { getDocument, GlobalWorkerOptions, type PDFDocumentLoadingTask } from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { trimEmptyPdfRevision } from './pdfPreviewSource';
 import { isImageParseSharedPdfUrl } from './imageParseExamples';
 import { clearPdfPreviewFrames } from './pdfPreviewFrameCache';
 
-// 已发布的 worker 曾以 octet-stream 缓存一年；改用新 URL 避免继续命中旧响应头。
+// A published worker was cached as octet-stream for a year; use a new URL so the old response headers are not hit again.
 GlobalWorkerOptions.workerSrc = `${workerUrl}${workerUrl.includes('?') ? '&' : '?'}mime=js`;
 
-/** 历史切换常用的 PDF 文档短缓存时长与容量，避免频繁重复解析同一原件。 */
+/** Short-cache duration and capacity for PDF documents that history switching uses often, so the same original is not parsed again and again. */
 const PDF_PREVIEW_CACHE_TTL_MS = 30_000;
 const PDF_PREVIEW_CACHE_MAX = 2;
 const SHARED_PDF_CACHE_TTL_MS = 300_000;
@@ -22,7 +22,7 @@ interface PdfPreviewCacheEntry {
 
 const pdfPreviewCache = new Map<string, PdfPreviewCacheEntry>();
 
-/** 真正销毁底层 PDF.js 任务；吞掉重复销毁等非关键清理错误。 */
+/** Actually destroy the underlying PDF.js task; swallow non-critical cleanup errors such as destroying twice. */
 function destroyPdfPreviewEntry(source: string, entry: PdfPreviewCacheEntry) {
   if (entry.releaseTimer !== undefined) window.clearTimeout(entry.releaseTimer);
   entry.releaseTimer = undefined;
@@ -31,7 +31,7 @@ function destroyPdfPreviewEntry(source: string, entry: PdfPreviewCacheEntry) {
   void entry.task.destroy().catch(() => undefined);
 }
 
-/** 释放一个引用；最后一个引用离开后再延迟销毁，给历史切换留出复用窗口。 */
+/** Release one reference; after the last reference leaves, delay destruction, leaving a reuse window for history switching. */
 function releasePdfPreviewEntry(source: string, entry: PdfPreviewCacheEntry) {
   entry.refs = Math.max(0, entry.refs - 1);
   if (entry.refs > 0 || entry.releaseTimer !== undefined) return;
@@ -44,7 +44,7 @@ function releasePdfPreviewEntry(source: string, entry: PdfPreviewCacheEntry) {
   );
 }
 
-/** 容量满时优先淘汰没有引用的文档，避免常驻过多大 PDF。 */
+/** When capacity is full, evict unreferenced documents first, so too many large PDFs do not stay resident. */
 function evictIdlePdfPreviewEntry(shared: boolean) {
   for (const [source, entry] of pdfPreviewCache) {
     if (entry.refs === 0 && isImageParseSharedPdfUrl(source) === shared) {
@@ -54,7 +54,7 @@ function evictIdlePdfPreviewEntry(shared: boolean) {
   }
 }
 
-/** 读取或创建 PDF.js 任务；失败任务不留在缓存中。 */
+/** Read or create a PDF.js task; a failed task is not left in the cache. */
 function acquirePdfPreviewTask(source: string) {
   const cached = pdfPreviewCache.get(source);
   if (cached) {
@@ -89,7 +89,7 @@ function acquirePdfPreviewTask(source: string) {
   });
   const entry: PdfPreviewCacheEntry = { task, refs: 1 };
   pdfPreviewCache.set(source, entry);
-  // 解析失败时不能让后续历史切换继续拿到同一个失败 Promise。
+  // A parse failure must not let a later history switch keep receiving the same failed Promise.
   void task.promise.catch(() => {
     if (pdfPreviewCache.get(source) === entry) pdfPreviewCache.delete(source);
     if (entry.refs === 0) destroyPdfPreviewEntry(source, entry);
@@ -98,10 +98,10 @@ function acquirePdfPreviewTask(source: string) {
 }
 
 /**
- * 创建可销毁的 PDF 读取任务，附属资源固定为同源静态文件。
+ * Create a destroyable PDF read task, with auxiliary resources fixed to same-origin static files.
  *
- * 同一地址在短时间内复用底层文档，用于加速左侧历史记录来回切换；调用方的
- * destroy 只释放引用，最后一个引用释放后延迟清理 PDF.js 资源。
+ * The same address reuses the underlying document for a short time, to speed switching back and forth in the left history list; the caller's
+ * destroy only releases a reference, and PDF.js resources are cleaned up after a delay once the last reference is released.
  */
 export function loadPdfPreview(source: string) {
   const entry = acquirePdfPreviewTask(source);

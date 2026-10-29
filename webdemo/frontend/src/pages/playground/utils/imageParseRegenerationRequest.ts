@@ -4,16 +4,16 @@ import type { ImageParseLayoutBlock } from './imageParseSample';
 
 interface BlockGenerationInput {
   source?: ImageParseSource;
-  /** 当前登录用户可见的文档解析模型 ID。 */
+  /** Document-parsing model ID visible to the current logged-in user. */
   model: string;
-  /** 当前选中 API Key 的明文密钥；仅内存传递，不落盘。 */
+  /** Plaintext secret of the currently selected API Key; passed in memory only and not persisted to disk. */
   secret: string;
   documentDataUrl: string;
   mime: string;
   pageIndex: number;
 }
 
-/** 真实 v4 只使用服务端签发的整页引用；没有来源证明时必须显式不可用。 */
+/** Real v4 uses only a whole-page reference issued by the server; without proof of origin it must be explicitly unavailable. */
 export function imageParseBlockGenerator(
   input: BlockGenerationInput,
   original: ImageParseLayoutBlock,

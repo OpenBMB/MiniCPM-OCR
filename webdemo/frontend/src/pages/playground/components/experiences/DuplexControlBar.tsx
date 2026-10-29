@@ -1,9 +1,7 @@
 /**
- * 双工底部控制栏（全双工）。
+ * Duplex bottom control bar (full duplex).
  *
- * 用途：全双工通话的控制区——未通话时为「开始通话」；通话中麦克风持续在线（无按键说话），
- * 中央为实时状态胶囊（连接中/聆听中/模型说话中/已暂停），配强制聆听 / 暂停 / 结束。
- * 三个按钮都是真实动作。图标用 lucide-react。纯展示组件。
+ * Purpose: the control area for a full-duplex call — "start call" when not in a call; during a call the microphone stays live (no push-to-talk). The center is a realtime status chip (connecting / listening / model speaking / paused), with force-listen / pause / end. All three buttons are real actions. Icons use lucide-react. Pure display component.
  */
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@map/ui';
@@ -33,7 +31,7 @@ interface DuplexControlBarProps {
 }
 
 /**
- * 控制栏。
+ * Control bar.
  */
 export function DuplexControlBar({
   mode,
@@ -157,7 +155,7 @@ export function DuplexControlBar({
   );
 }
 
-/** 通用控制按钮 */
+/** Generic control button */
 function CtrlBtn({
   children,
   icon,
@@ -203,7 +201,7 @@ function CtrlBtn({
   );
 }
 
-/** 实时状态胶囊（非交互，据 voiceStatus/paused 反映当前会话态） */
+/** Realtime status chip (non-interactive; reflects the current session state from voiceStatus/paused) */
 function StatusPill({
   status,
   paused,
@@ -226,7 +224,7 @@ function StatusPill({
   );
 }
 
-/** 状态胶囊内容：图标 + 文案 + 配色 */
+/** Status-chip content: icon + copy + color */
 function pillContent(
   status: VoiceStatus,
   paused: boolean,

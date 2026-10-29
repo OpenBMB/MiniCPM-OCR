@@ -15,7 +15,7 @@ interface ImageParseFormulaSourceProps {
   onComposing: (value: boolean) => void;
 }
 
-/** 编辑所选数学节点的 LaTeX；沿用原节点事务，不新增第二份公式或插入 HTML。 */
+/** Edit the LaTeX of the selected math node; reuse the original node transaction, and do not add a second formula or insert HTML. */
 export function ImageParseFormulaSource({
   latex,
   display,
