@@ -108,7 +108,7 @@ Extract the "店名", "金额". Format the output as a JSON object with keys: "�
 | Transformers | [Transformers 服务部署](./SKILL.md#43-transformers-serve) |
 | SGLang | [部署指南](./sglang_deploy_zh.md) |
 | llama.cpp | [GGUF 部署指南（英文）](./llamacpp_deploy.md) |
-| Ollama | [SDK 服务连接与后端配置](./minicpm_ocr_sdk_api.md#命令行参数) |
+| Ollama | [部署指南](./ollama_deploy_zh.md) |
 | FlagOS | [多芯片部署指南](./flagos_deploy_zh.md) |
 
 SDK 的 `pipeline.max_workers` 控制识别块请求数，`pipeline.page_workers` 控制页面并发。两者需结合后端能力设置：当前 DSpark 示例使用 `--max-num-seqs 32` 设置单实例并发上限；多实例部署与并发配置见 [SDK 教程](./minicpm_ocr_tutorial.md#4-解析文档)。

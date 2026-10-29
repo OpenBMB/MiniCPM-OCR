@@ -108,7 +108,7 @@ For your first PDF or image, start with the [SDK tutorial](./minicpm_ocr_tutoria
 | Transformers | [Transformers service deployment](./SKILL_en.md#43-transformers-serve) |
 | SGLang | [Deployment guide](./sglang_deploy.md) |
 | llama.cpp | [GGUF deployment guide](./llamacpp_deploy.md) |
-| Ollama | [SDK service connection and backend configuration](./minicpm_ocr_sdk_api_en.md#command-line-options) |
+| Ollama | [Deployment guide](./ollama_deploy.md) |
 | FlagOS | [Multi-chip deployment guide](./flagos_deploy_en.md) |
 
 The SDK's `pipeline.max_workers` controls recognition-region requests, while `pipeline.page_workers` controls page concurrency. Configure both to match the backend's capacity: the current DSpark example uses `--max-num-seqs 32` as its per-instance concurrency limit. See the [SDK tutorial](./minicpm_ocr_tutorial_en.md#4-parse-documents) for multiple instances and concurrency configuration.
