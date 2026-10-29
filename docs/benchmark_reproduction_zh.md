@@ -101,11 +101,11 @@ GT 的页面版本必须与评测集对应，不能直接用 v1.6 full GT 替换
 | 指标 | 每秒处理页数（pages/s），数值越高表示吞吐越高 |
 
 
-图片级并发与单页内文档块的识别并发是不同设置。SDK 中对应 `pipeline.page_workers` 和 `pipeline.max_workers`，详见 [SDK 使用教程](./minicpmvocr_tutorial.md)。上述图片级并发度为 1，不代表页内文档块也串行处理。
+图片级并发与单页内文档块的识别并发是不同设置。SDK 中对应 `pipeline.page_workers` 和 `pipeline.max_workers`，详见 [SDK 使用教程](./minicpm_ocr_tutorial.md)。上述图片级并发度为 1，不代表页内文档块也串行处理。
 
 ### 部署与 DSpark 加速
 
-- [SDK 使用教程](./minicpmvocr_tutorial.md)：安装环境、连接推理后端、解析文档与检查输出。
+- [SDK 使用教程](./minicpm_ocr_tutorial.md)：安装环境、连接推理后端、解析文档与检查输出。
 - [vLLM 部署指南](./vllm_deploy.md)：部署 API 服务与检查识别结果。
 
 DSpark 前后对照需使用相同主模型权重、数据集、硬件和 SDK 配置，仅改变 DSpark 开关。部署指南中的示例用于启动服务；用于复现 55% 提升的完整对照命令和日志待补充。

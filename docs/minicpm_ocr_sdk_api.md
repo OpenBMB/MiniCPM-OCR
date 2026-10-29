@@ -1,6 +1,6 @@
 # SDK API 与配置说明
 
-[← 返回 README](../README_zh.md) · [安装与推理教程](./minicpmvocr_tutorial.md) · [English](./minicpmvocr_api_en.md)
+[← 返回 README](../README_zh.md) · [安装与推理教程](./minicpm_ocr_tutorial.md) · [English](./minicpm_ocr_sdk_api_en.md)
 
 本文介绍 `minicpmvocr` 的命令行参数、配置覆盖方式和 Python API。运行前需安装 SDK，并启动兼容的识别服务。
 

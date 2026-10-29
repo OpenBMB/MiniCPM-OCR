@@ -6,7 +6,7 @@
 
 SGLang 通过 OpenAI 兼容 API 提供 MiniCPM-OCR 服务。本文启用 DSpark 解码，需要配套的主模型和草稿模型。SDK 运行在独立环境中，通过 HTTP 连接识别服务。
 
-环境布局和 SDK 设置与 [vLLM 教程](./minicpmvocr_tutorial.md) 一致。以下命令面向 Linux x86_64、NVIDIA GPU 和 Python 3.12。
+环境布局和 SDK 设置与 [vLLM 教程](./minicpm_ocr_tutorial.md) 一致。以下命令面向 Linux x86_64、NVIDIA GPU 和 Python 3.12。
 
 ## 1. 准备源码
 
@@ -24,7 +24,7 @@ git -C sources/sglang checkout aaab6bfc3de5354b052f2e96d5e566d70b9f69a2
 
 ## 2. 配置 SDK 环境
 
-按 [SDK 教程](./minicpmvocr_tutorial.md#1-sdk-环境配置) 在 `.minicpm-ocr` 中安装 SDK 和 GPU 版 PaddlePaddle。如果为 vLLM 安装过该环境，直接复用。
+按 [SDK 教程](./minicpm_ocr_tutorial.md#1-sdk-环境配置) 在 `.minicpm-ocr` 中安装 SDK 和 GPU 版 PaddlePaddle。如果为 vLLM 安装过该环境，直接复用。
 
 使用 CPU 做版面检测时，步骤相同，只把 `paddlepaddle-gpu` 的安装命令换成：
 

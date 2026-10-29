@@ -102,11 +102,11 @@ In this evaluation, OmniDocBench, Real5, and olmOCR use internally packaged imag
 | Hardware | NVIDIA GeForce RTX 5090; all systems run on the same hardware |
 | Metric | Pages processed per second (pages/s); higher values indicate higher throughput |
 
-Image-level concurrency and recognition concurrency for regions within a page are separate settings, corresponding to `pipeline.page_workers` and `pipeline.max_workers` in the SDK. See the [SDK tutorial](./minicpmvocr_tutorial_en.md). Image-level concurrency of 1 does not imply that regions within each page are recognized sequentially.
+Image-level concurrency and recognition concurrency for regions within a page are separate settings, corresponding to `pipeline.page_workers` and `pipeline.max_workers` in the SDK. See the [SDK tutorial](./minicpm_ocr_tutorial_en.md). Image-level concurrency of 1 does not imply that regions within each page are recognized sequentially.
 
 ### Deployment and DSpark Acceleration
 
-- [SDK tutorial](./minicpmvocr_tutorial_en.md): Install the environment, connect an inference backend, parse documents, and check outputs.
+- [SDK tutorial](./minicpm_ocr_tutorial_en.md): Install the environment, connect an inference backend, parse documents, and check outputs.
 - [vLLM deployment guide](./vllm_deploy_en.md): Deploy the API service and check recognition results.
 
 A comparison with and without DSpark must use the same main-model weights, dataset, hardware, and SDK configuration, changing only whether DSpark is enabled. The deployment examples start the service; complete comparison commands and logs for reproducing the 55% improvement remain to be added.

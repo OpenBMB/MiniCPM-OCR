@@ -13,7 +13,7 @@ The SDK (command `minicpmvocr`, distribution `minicpm-ocr`) detects layout, crop
 
 | Situation | Inference environment | SDK backend | Detailed reference |
 |---|---|---|---|
-| Linux x86_64 + NVIDIA, default route | `.venv-vllm`, DSpark available | `vllm` | [SDK tutorial](./minicpmvocr_tutorial_en.md) |
+| Linux x86_64 + NVIDIA, default route | `.venv-vllm`, DSpark available | `vllm` | [SDK tutorial](./minicpm_ocr_tutorial_en.md) |
 | Linux x86_64 + NVIDIA, SGLang selected | `.venv-sglang`, DSpark available | `sglang` | [SGLang guide](./sglang_deploy.md) |
 | CPU, local GPU or Apple Silicon, llama.cpp selected | `sources/llama.cpp/build`, GGUF weights, DSpark available | `llamacpp` | [llama.cpp guide](./llamacpp_deploy.md) |
 | Existing compatible inference service | Reuse it; install only the SDK | Select by protocol | Section 7 below |
@@ -35,7 +35,7 @@ Before deploying an inference service yourself, read the root [`pyproject.toml`]
 
 | Component | Current source / version |
 |---|---|
-| SDK | PyPI package `minicpm-ocr[all]`; install or upgrade to the latest stable version compatible with the current Python, matching the [SDK tutorial](./minicpmvocr_tutorial_en.md) |
+| SDK | PyPI package `minicpm-ocr[all]`; install or upgrade to the latest stable version compatible with the current Python, matching the [SDK tutorial](./minicpm_ocr_tutorial_en.md) |
 | Python | Installer default `3.12`; root project requires `>=3.11,<3.14` (SDK alone requires `>=3.10`) |
 | vLLM | `fa3b9d1377219247060d3c8b49eae199c9e7e154`, prepared by the installer |
 | Transformers required by vLLM | `144ecf007b8b4f2910da104c84a79801db6985a6`, pinned by the root project |
@@ -60,7 +60,7 @@ Reserve at least 40 GB of disk space for the full vLLM setup described by the tu
 
 ## 3. Install the SDK with pip
 
-Follow the [SDK tutorial](./minicpmvocr_tutorial_en.md) to create a separate `.minicpm-ocr` environment, then install the published SDK package with pip. Reuse uv if installed; otherwise `python3 -m pip install uv` is an option. If system Python is managed under PEP 668, install uv in a separate tools venv. Installing the SDK itself does not require Git; provide Git, curl and build tools when deploying an inference service yourself.
+Follow the [SDK tutorial](./minicpm_ocr_tutorial_en.md) to create a separate `.minicpm-ocr` environment, then install the published SDK package with pip. Reuse uv if installed; otherwise `python3 -m pip install uv` is an option. If system Python is managed under PEP 668, install uv in a separate tools venv. Installing the SDK itself does not require Git; provide Git, curl and build tools when deploying an inference service yourself.
 
 Start with CPU layout detection to avoid consuming inference VRAM. On a machine with a supported PaddlePaddle wheel, run:
 
@@ -414,4 +414,4 @@ Report vLLM DSpark as active only when draft / accepted-token metrics increase w
 
 Report the actual backend, source SHAs/package versions, model files, device, endpoint and the separate outcomes of installation checks, health checks, image requests and one-page parsing. Installation success, service readiness, correct recognition and active DSpark are distinct conclusions. Do not delete user environments, reset source or conceal version mismatches with unverified temporary patches.
 
-See [SDK configuration](./minicpmvocr_api_en.md) for parameter and API details. For Jev scoring, use the [Jev Skill](./SKILL_jev_en.md); its weights, classification architecture and validation criteria are separate.
+See [SDK configuration](./minicpm_ocr_sdk_api_en.md) for parameter and API details. For Jev scoring, use the [Jev Skill](./SKILL_jev_en.md); its weights, classification architecture and validation criteria are separate.

@@ -12,14 +12,14 @@
 ### `minicpmvocr parse` 报告缺少 `--config`
 **原因**：安装的是旧版 SDK；当前版本的 `parse` 支持内置快速开始配置。
 
-**解决**：按[教程](./minicpmvocr_tutorial.md#1-sdk-环境配置)安装当前 SDK，启动识别服务后，在仓库根目录运行：
+**解决**：按[教程](./minicpm_ocr_tutorial.md#1-sdk-环境配置)安装当前 SDK，启动识别服务后，在仓库根目录运行：
 
 ```bash
 minicpmvocr parse doc.pdf -o doc.md --device cuda:0 \
   --server-url http://127.0.0.1:18499 --model minicpm-ocr
 ```
 
-每次运行都需显式传入 `--server-url` 和 `--model`。自定义配置见 [SDK API 与配置说明](./minicpmvocr_api.md)。
+每次运行都需显式传入 `--server-url` 和 `--model`。自定义配置见 [SDK API 与配置说明](./minicpm_ocr_sdk_api.md)。
 
 ### `Could not find nvcc`（Blackwell/5090 首次启动）
 **原因**：FlashInfer JIT 需要 nvcc；pip 的 CUDA 包中已包含该工具链。<br>
@@ -149,4 +149,4 @@ export OCR_LIBCUDA="$OCR_CUDA_COMPAT_DIR/libcuda.so.1"
 
 ---
 
-若遇到本文未覆盖的问题，请参阅[详细教程](./minicpmvocr_tutorial.md)或在 GitHub 上提交 issue。
+若遇到本文未覆盖的问题，请参阅[详细教程](./minicpm_ocr_tutorial.md)或在 GitHub 上提交 issue。

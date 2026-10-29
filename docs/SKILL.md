@@ -13,7 +13,7 @@ SDK（命令 `minicpmvocr`，发行包 `minicpm-ocr`）负责版面检测、切�
 
 | 情况 | 推理环境 | SDK 后端 | 详细参考 |
 |---|---|---|---|
-| Linux x86_64 + NVIDIA，默认方案 | `.venv-vllm`，可用 DSpark | `vllm` | [SDK 教程](./minicpmvocr_tutorial.md) |
+| Linux x86_64 + NVIDIA，默认方案 | `.venv-vllm`，可用 DSpark | `vllm` | [SDK 教程](./minicpm_ocr_tutorial.md) |
 | Linux x86_64 + NVIDIA，选择 SGLang | `.venv-sglang`，可用 DSpark | `sglang` | [SGLang 指南](./sglang_deploy_zh.md) |
 | CPU、本地 GPU 或 Apple Silicon，选择 llama.cpp | `sources/llama.cpp/build`，使用 GGUF，可用 DSpark | `llamacpp` | [llama.cpp 指南](./llamacpp_deploy_zh.md) |
 | 已有兼容推理服务 | 复用服务，只装 SDK | 按服务协议选择 | 本文第 7 节 |
@@ -35,7 +35,7 @@ cd MiniCPM-OCR
 
 | 组件 | 当前来源 / 版本 |
 |---|---|
-| SDK | PyPI 包 `minicpm-ocr[all]`，默认安装或升级到与当前 Python 兼容的最新稳定版，与 [SDK 教程](./minicpmvocr_tutorial.md)一致 |
+| SDK | PyPI 包 `minicpm-ocr[all]`，默认安装或升级到与当前 Python 兼容的最新稳定版，与 [SDK 教程](./minicpm_ocr_tutorial.md)一致 |
 | Python | 安装脚本默认 `3.12`；根项目要求 `>=3.11,<3.14`（SDK 单独要求 `>=3.10`） |
 | vLLM | `fa3b9d1377219247060d3c8b49eae199c9e7e154`，由安装脚本准备 |
 | vLLM 依赖的 Transformers | `144ecf007b8b4f2910da104c84a79801db6985a6`，由根项目固定 |
@@ -60,7 +60,7 @@ vLLM 完整环境按教程至少预留 40 GB 磁盘；内存有限时降低 `MAX
 
 ## 3. 通过 pip 安装 SDK
 
-按 [SDK 教程](./minicpmvocr_tutorial.md#1-sdk-环境配置)创建独立的 `.minicpm-ocr` 环境，再用 pip 安装已发布的 SDK 包。已有 uv 则直接复用；没有时可执行 `python3 -m pip install uv`。若系统 Python 受 PEP 668 管理，将 uv 装进单独的工具 venv。SDK 安装本身不需要 Git；自行部署推理服务时再准备 Git、curl 和编译工具。
+按 [SDK 教程](./minicpm_ocr_tutorial.md#1-sdk-环境配置)创建独立的 `.minicpm-ocr` 环境，再用 pip 安装已发布的 SDK 包。已有 uv 则直接复用；没有时可执行 `python3 -m pip install uv`。若系统 Python 受 PEP 668 管理，将 uv 装进单独的工具 venv。SDK 安装本身不需要 Git；自行部署推理服务时再准备 Git、curl 和编译工具。
 
 默认先用 CPU 版面检测，避免占用推理卡；在支持此 PaddlePaddle wheel 的机器上执行：
 
@@ -414,4 +414,4 @@ curl --noproxy 127.0.0.1 -fsS http://127.0.0.1:18499/metrics | grep spec_decode_
 
 汇报实际使用的后端、源码 SHA/包版本、模型文件、设备、地址，以及安装检查、健康检查、带图请求、单页解析分别通过与否。安装成功、服务就绪、识别正确、DSpark 生效是不同结论。不要在排错时删除用户环境、重置源码或用未核实的临时补丁掩盖版本不匹配。
 
-参数与 API 细节见 [SDK 配置说明](./minicpmvocr_api.md)；Jev 打分服务使用 [Jev Skill](./SKILL_jev.md)，不混用其权重、分类架构和验证标准。
+参数与 API 细节见 [SDK 配置说明](./minicpm_ocr_sdk_api.md)；Jev 打分服务使用 [Jev Skill](./SKILL_jev.md)，不混用其权重、分类架构和验证标准。

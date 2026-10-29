@@ -1,6 +1,6 @@
 # MiniCPM-OCR Installation and Inference
 
-[中文](./minicpmvocr_tutorial.md)
+[中文](./minicpm_ocr_tutorial.md)
 
 MiniCPM-OCR parses PDFs and images into Markdown, including body text, tables (HTML), formulas (LaTeX), and reading order.
 
@@ -108,7 +108,7 @@ minicpmvocr parse \
   --output doc.md
 ```
 
-For more options, see [SDK API and Configuration](./minicpmvocr_api_en.md).
+For more options, see [SDK API and Configuration](./minicpm_ocr_sdk_api_en.md).
 
 ---
 ## Other inference frameworks

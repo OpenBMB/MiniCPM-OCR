@@ -31,7 +31,7 @@ Use the Free API to access MiniCPM-OCR 1.0 recognition. See the [API example](./
 
 ### Local Deployment
 
-Run the model on your own hardware to parse PDFs and images into Markdown or JSON. See the [SDK and deployment tutorial](./minicpmvocr_tutorial_en.md). The [Inference](#inference) section lists deployment guides for each backend.
+Run the model on your own hardware to parse PDFs and images into Markdown or JSON. See the [SDK and deployment tutorial](./minicpm_ocr_tutorial_en.md). The [Inference](#inference) section lists deployment guides for each backend.
 
 ## Model Base and Architecture
 
@@ -44,7 +44,7 @@ MiniCPM-OCR 1.0 is **specialized for OCR through training based on MiniCPM-V 4.6
 | Recognition tasks | Text, tables, formulas, charts, seals, and key information extraction |
 | Document parsing components | MiniCPM-OCR 1.0 recognition model + PP-DocLayoutV3 layout model + `minicpmvocr` SDK |
 
-<!-- The model base description follows flagos_deploy_zh.md; the architecture description follows minicpmvocr_tutorial.md. The exact initial checkpoint, original training data, and training stages are not yet supported by verifiable material and are not inferred from the architecture name. -->
+<!-- The model base description follows flagos_deploy_zh.md; the architecture description follows minicpm_ocr_tutorial.md. The exact initial checkpoint, original training data, and training stages are not yet supported by verifiable material and are not inferred from the architecture name. -->
 
 ## Document Parsing Workflow
 
@@ -55,7 +55,7 @@ The SDK parses complete documents, while the recognition model processes their i
 3. **Recognize the content**: The SDK sends document regions to the MiniCPM-OCR 1.0 inference service and recognizes them concurrently.
 4. **Assemble the output**: The SDK combines results into Markdown in reading order, converts OTSL table representations to HTML, and preserves formulas as LaTeX.
 
-The SDK and inference service use separate Python environments and may run on different machines. The SDK handles layout detection, cropping, and result assembly; the inference backend handles model recognition. See the [SDK tutorial](./minicpmvocr_tutorial_en.md) for installation and configuration.
+The SDK and inference service use separate Python environments and may run on different machines. The SDK handles layout detection, cropping, and result assembly; the inference backend handles model recognition. See the [SDK tutorial](./minicpm_ocr_tutorial_en.md) for installation and configuration.
 
 ### Single-Region Recognition
 
@@ -96,11 +96,11 @@ Replace both field lists with the fields needed for your application, keeping th
 | DSpark sampling head BF16 | [Download](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark) | [Download](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-DSpark) |
 | DSpark sampling head GGUF | [Download](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark-gguf) | [Download](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-DSpark-gguf) |
 
-**DSpark runs the main model together with its matching draft model (sampling head)**. For example, BF16 deployment pairs `openbmb/MiniCPM-OCR-1.0` with `openbmb/MiniCPM-OCR-1.0-DSpark`; ordinary decoding does not require a draft model. See [DSpark acceleration](./minicpmvocr_tutorial_en.md#3-start-the-service) for weight selection and startup arguments. FlagOS-adapted BF16 versions for multiple chips are listed in the [download table](./flagos_deploy_en.md#model-downloads).
+**DSpark runs the main model together with its matching draft model (sampling head)**. For example, BF16 deployment pairs `openbmb/MiniCPM-OCR-1.0` with `openbmb/MiniCPM-OCR-1.0-DSpark`; ordinary decoding does not require a draft model. See [DSpark acceleration](./minicpm_ocr_tutorial_en.md#3-start-the-service) for weight selection and startup arguments. FlagOS-adapted BF16 versions for multiple chips are listed in the [download table](./flagos_deploy_en.md#model-downloads).
 
 ## Inference
 
-For your first PDF or image, start with the [SDK tutorial](./minicpmvocr_tutorial_en.md). If a recognition service is already running, configure the SDK to connect to its address.
+For your first PDF or image, start with the [SDK tutorial](./minicpm_ocr_tutorial_en.md). If a recognition service is already running, configure the SDK to connect to its address.
 
 | Inference option | Guide |
 | :--- | :--- |
@@ -108,10 +108,10 @@ For your first PDF or image, start with the [SDK tutorial](./minicpmvocr_tutoria
 | Transformers | [Transformers service deployment](./SKILL_en.md#43-transformers-serve) |
 | SGLang | [Deployment guide](./sglang_deploy.md) |
 | llama.cpp | [GGUF deployment guide](./llamacpp_deploy.md) |
-| Ollama | [SDK service connection and backend configuration](./minicpmvocr_api_en.md#command-line-options) |
+| Ollama | [SDK service connection and backend configuration](./minicpm_ocr_sdk_api_en.md#command-line-options) |
 | FlagOS | [Multi-chip deployment guide](./flagos_deploy_en.md) |
 
-The SDK's `pipeline.max_workers` controls recognition-region requests, while `pipeline.page_workers` controls page concurrency. Configure both to match the backend's capacity: the current DSpark example uses `--max-num-seqs 32` as its per-instance concurrency limit. See the [SDK tutorial](./minicpmvocr_tutorial_en.md#4-parse-documents) for multiple instances and concurrency configuration.
+The SDK's `pipeline.max_workers` controls recognition-region requests, while `pipeline.page_workers` controls page concurrency. Configure both to match the backend's capacity: the current DSpark example uses `--max-num-seqs 32` as its per-instance concurrency limit. See the [SDK tutorial](./minicpm_ocr_tutorial_en.md#4-parse-documents) for multiple instances and concurrency configuration.
 
 ## Fine-Tuning
 

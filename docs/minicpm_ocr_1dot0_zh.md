@@ -31,7 +31,7 @@ Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL.md
 
 ### 本地部署
 
-在自己的设备上运行模型，将 PDF 和图片解析为 Markdown 或 JSON，见 [SDK 使用与部署教程](./minicpmvocr_tutorial.md)。[推理](#推理)章节列出了各后端的部署入口。
+在自己的设备上运行模型，将 PDF 和图片解析为 Markdown 或 JSON，见 [SDK 使用与部署教程](./minicpm_ocr_tutorial.md)。[推理](#推理)章节列出了各后端的部署入口。
 
 ## 模型基座与结构
 
@@ -44,7 +44,7 @@ MiniCPM-OCR 1.0 **基于 MiniCPM-V 4.6 进行 OCR 特化训练**。标准模型�
 | 识别任务 | 文本、表格、公式、图表、印章识别与关键信息抽取 |
 | 文档解析组件 | MiniCPM-OCR 1.0 识别模型 + PP-DocLayoutV3 版面模型 + `minicpmvocr` SDK |
 
-<!-- 基座说明据 flagos_deploy_zh.md；架构说明据 minicpmvocr_tutorial.md。精确初始检查点、原始训练数据与训练阶段尚无可核实材料，不据架构名称推断。 -->
+<!-- 基座说明据 flagos_deploy_zh.md；架构说明据 minicpm_ocr_tutorial.md。精确初始检查点、原始训练数据与训练阶段尚无可核实材料，不据架构名称推断。 -->
 
 ## 文档解析流程
 
@@ -55,7 +55,7 @@ MiniCPM-OCR 1.0 **基于 MiniCPM-V 4.6 进行 OCR 特化训练**。标准模型�
 3. **识别内容**：SDK 将文档块发送给 MiniCPM-OCR 1.0 推理服务，并发识别各区域。
 4. **组织输出**：SDK 按阅读顺序拼接为 Markdown，将表格的 OTSL 表示转换为 HTML，公式保留为 LaTeX。
 
-SDK 与推理服务使用独立的 Python 环境，也可部署在不同机器上。SDK 负责版面检测、切块和结果整理，推理后端负责模型识别；安装与配置见 [SDK 使用教程](./minicpmvocr_tutorial.md)。
+SDK 与推理服务使用独立的 Python 环境，也可部署在不同机器上。SDK 负责版面检测、切块和结果整理，推理后端负责模型识别；安装与配置见 [SDK 使用教程](./minicpm_ocr_tutorial.md)。
 
 ### 单块识别
 
@@ -96,11 +96,11 @@ Extract the "店名", "金额". Format the output as a JSON object with keys: "�
 | DSpark 采样头 BF16 | [下载](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark) | [下载](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-DSpark) |
 | DSpark 采样头 GGUF | [下载](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark-gguf) | [下载](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-DSpark-gguf) |
 
-**DSpark 需要主模型与配套的草稿模型（采样头）共同运行**。例如，BF16 部署将 `openbmb/MiniCPM-OCR-1.0` 与 `openbmb/MiniCPM-OCR-1.0-DSpark` 搭配使用；普通解码无需草稿模型。权重选择与启动参数见 [DSpark 加速说明](./minicpmvocr_tutorial.md#3-启动服务)。FlagOS 适配的 BF16 多芯片版本见 [下载列表](./flagos_deploy_zh.md#model-downloads)。
+**DSpark 需要主模型与配套的草稿模型（采样头）共同运行**。例如，BF16 部署将 `openbmb/MiniCPM-OCR-1.0` 与 `openbmb/MiniCPM-OCR-1.0-DSpark` 搭配使用；普通解码无需草稿模型。权重选择与启动参数见 [DSpark 加速说明](./minicpm_ocr_tutorial.md#3-启动服务)。FlagOS 适配的 BF16 多芯片版本见 [下载列表](./flagos_deploy_zh.md#model-downloads)。
 
 ## 推理
 
-首次解析 PDF 或图片，可从 [SDK 使用教程](./minicpmvocr_tutorial.md) 开始；已有识别服务时，只需配置 SDK 连接对应地址。
+首次解析 PDF 或图片，可从 [SDK 使用教程](./minicpm_ocr_tutorial.md) 开始；已有识别服务时，只需配置 SDK 连接对应地址。
 
 | 推理方式 | 使用说明 |
 | :--- | :--- |
@@ -108,10 +108,10 @@ Extract the "店名", "金额". Format the output as a JSON object with keys: "�
 | Transformers | [Transformers 服务部署](./SKILL.md#43-transformers-serve) |
 | SGLang | [部署指南](./sglang_deploy_zh.md) |
 | llama.cpp | [GGUF 部署指南（英文）](./llamacpp_deploy.md) |
-| Ollama | [SDK 服务连接与后端配置](./minicpmvocr_api.md#命令行参数) |
+| Ollama | [SDK 服务连接与后端配置](./minicpm_ocr_sdk_api.md#命令行参数) |
 | FlagOS | [多芯片部署指南](./flagos_deploy_zh.md) |
 
-SDK 的 `pipeline.max_workers` 控制识别块请求数，`pipeline.page_workers` 控制页面并发。两者需结合后端能力设置：当前 DSpark 示例使用 `--max-num-seqs 32` 设置单实例并发上限；多实例部署与并发配置见 [SDK 教程](./minicpmvocr_tutorial.md#4-解析文档)。
+SDK 的 `pipeline.max_workers` 控制识别块请求数，`pipeline.page_workers` 控制页面并发。两者需结合后端能力设置：当前 DSpark 示例使用 `--max-num-seqs 32` 设置单实例并发上限；多实例部署与并发配置见 [SDK 教程](./minicpm_ocr_tutorial.md#4-解析文档)。
 
 ## 二次微调
 

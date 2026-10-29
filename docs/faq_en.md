@@ -12,14 +12,14 @@ Common issues with installation, model download, GPU memory, input formats and u
 ### `minicpmvocr parse` reports `--config` missing
 **Cause**: An older SDK version is installed. The current `parse` command supports a built-in quickstart configuration.
 
-**Solution**: Install the current SDK as described in the [tutorial](./minicpmvocr_tutorial_en.md#1-set-up-the-sdk-environment), then run this command from the repository root with the recognition service running:
+**Solution**: Install the current SDK as described in the [tutorial](./minicpm_ocr_tutorial_en.md#1-set-up-the-sdk-environment), then run this command from the repository root with the recognition service running:
 
 ```bash
 minicpmvocr parse doc.pdf -o doc.md --device cuda:0 \
   --server-url http://127.0.0.1:18499 --model minicpm-ocr
 ```
 
-Pass `--server-url` and `--model` explicitly each time. For custom configuration, see [SDK API and Configuration](./minicpmvocr_api_en.md).
+Pass `--server-url` and `--model` explicitly each time. For custom configuration, see [SDK API and Configuration](./minicpm_ocr_sdk_api_en.md).
 
 ### `Could not find nvcc` (Blackwell/5090 first startup)
 **Cause**: FlashInfer JIT requires nvcc; pip's CUDA packages include the toolchain.<br>
@@ -149,4 +149,4 @@ If the compatibility library is already installed, set `OCR_CUDA_COMPAT_DIR` to 
 
 ---
 
-For issues not covered here, refer to the [detailed tutorial](./minicpmvocr_tutorial_en.md) or open an issue on GitHub.
+For issues not covered here, refer to the [detailed tutorial](./minicpm_ocr_tutorial_en.md) or open an issue on GitHub.
