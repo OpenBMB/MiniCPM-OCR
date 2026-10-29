@@ -6,7 +6,7 @@ MiniCPM-OCR Jev is used to check whether an OCR parsing result matches the origi
 
 To deploy MiniCPM-OCR Jev on a wider range of AI chips, see the [FlagOS multi-chip deployment guide](./flagos_deploy_en.md) for supported platforms, model downloads, and container image usage.
 
-[Hardware requirements](#hardware-requirements) · [Deploy with Docker](#option-1-docker-image) · [Deploy with the SDK](#option-2-sdk-deployment)
+[Hardware requirements](#hardware-requirements) · [Deploy with Docker](#option-1-docker-image) · [Deploy with the SDK](#option-2-sdk-deployment) · [Verify the deployment](#verify-the-deployment)
 
 ---
 
@@ -18,6 +18,8 @@ To deploy MiniCPM-OCR Jev on a wider range of AI chips, see the [FlagOS multi-ch
 | Driver | ≥535 |
 | Python | ≥3.10 (SDK deployment only) |
 | Disk | about 5–9 GB for the forward environment, about 1.5 GB for the render environment, about 2.5 GB for the weights |
+
+The commands in this document were verified on Ubuntu 24.04 with driver 590.48 and CUDA 13.0. Other distributions and versions work as well; adjust the apt commands for your own package manager.
 
 ---
 
@@ -39,7 +41,7 @@ cd scripts/minicpm-ocr-jev
 docker build -f serve/Dockerfile -t minicpm-ocr-jev-1-0:latest .
 ```
 
-On a slow network add `--build-arg PIP_INDEX_URL=https://<mirror>/simple` and `--build-arg PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>`.
+On a slow network add `--build-arg PIP_INDEX_URL=https://<your-mirror>/simple` and `--build-arg PLAYWRIGHT_DOWNLOAD_HOST=https://<your-playwright-mirror>` (in mainland China, for example `https://mirrors.ustc.edu.cn/pypi/simple` and `https://cdn.npmmirror.com/binaries/playwright`).
 
 Run (mount the weights, map the port):
 
@@ -104,6 +106,23 @@ The SDK needs two separately installed virtual environments:
 | ---- | ---- | ---- |
 | Engine environment | the forward pass | depends on the backend; see the corresponding documents above |
 | Service environment | the scoring service, plus rendering when the renderer is built in | Python ≥3.10; `Pillow==12.3.0`, `playwright==1.62.0` |
+
+A CUDA toolkit is not needed for all four backends: vLLM and Ollama use the GPU runtime each ships with, while SGLang and llama.cpp need one installed system-wide. The exact requirement is stated under "Requirements" in each backend document.
+
+The engine environment pulls several GB of dependencies; on a slow network point pip at a nearby mirror:
+
+```bash
+export PIP_INDEX_URL=https://<your-mirror>/simple
+# in mainland China, for example: https://mirrors.ustc.edu.cn/pypi/simple
+```
+
+---
+
+## Verify the deployment
+
+`scripts/minicpm-ocr-jev/examples/` holds three cases (text, formula, table), each with the original image, a reference render, the candidate text, and the reference score `observed_prob_yes` recorded in `case.json`. Once deployment is done, score them and compare against those values to confirm the install is correct; the commands are in the "Startup self-check" section of each backend document.
+
+A score within 0.02 of the reference is normal.
 
 ---
 

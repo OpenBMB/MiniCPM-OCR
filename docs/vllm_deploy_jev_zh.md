@@ -31,14 +31,24 @@
 - **驱动**：≥535
 - **Python**：≥3.10
 - **vLLM**：0.32.0
-- **系统包**：`gcc`、`g++`、`python3-dev`（runtime 依赖，装完不要删除）
+- **CUDA toolkit**：**不需要**，vLLM 自带 GPU 运行时
 - **固定版本**：`Pillow` 12.3.0、`playwright` 1.62.0（仅内置渲染器服务）
+
+**系统包**：`gcc`、`g++`、`python3-dev` 是 runtime 依赖，装完不要删除。
+
+```bash
+sudo apt-get install -y python3 python3-venv python3-pip curl gcc g++ python3-dev
+```
+
+引擎环境要装 8–9 GB 依赖，慢网下先给 pip 指一个就近镜像：
+
+```bash
+export PIP_INDEX_URL=https://mirrors.ustc.edu.cn/pypi/simple
+```
 
 ---
 
 ## 一、前向引擎
-
-两种服务都要连一个 vLLM 引擎。
 
 用随附脚本安装并启动，参数依次为 GPU 号、端口、权重路径：
 
@@ -140,8 +150,6 @@ curl -s http://127.0.0.1:18501/v1/score -H 'Content-Type: application/json' -d '
 
 你只有候选文本，让服务渲染完再打分。precheck、render、forward 三个阶段都在这个进程里完成。
 
-本服务在进程内直接调用打分层，**不需要另外起一个不带渲染器服务**，也不需要给它留端口。
-
 ### 安装
 
 ```bash
@@ -153,8 +161,8 @@ bash sdk/setup_render.sh /opt/venv-render
 
 ```bash
 cd scripts/minicpm-ocr-jev/
-PIP_INDEX_URL=https://<mirror>/simple \
-PLAYWRIGHT_DOWNLOAD_HOST=https://<mirror>/playwright \
+PIP_INDEX_URL=https://mirrors.ustc.edu.cn/pypi/simple \
+PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.npmmirror.com/binaries/playwright \
     bash sdk/setup_render.sh /opt/venv-render
 ```
 
@@ -233,3 +241,27 @@ curl -s http://127.0.0.1:18501/healthz
 ```
 
 只看 `status`：`ok` 就是自检通过、服务可用，`prompt` 下的其余字段是自检留下的明细，照上面的样子即为正常。`status` 不是 `ok` 时，`prompt.notes` 写明是哪一项没过。
+
+### 用自带用例验证
+
+自检只确认服务起得来。要确认分数也对，用 `examples/` 下三个用例打一遍，与 `case.json` 里的参考分数 `observed_prob_yes` 对照：
+
+```bash
+cd scripts/minicpm-ocr-jev
+python3 - <<'EOF'
+import base64, json, urllib.request
+for name in ("01_text_putnam", "02_formula_putnam", "03_table_gb_standard"):
+    c = json.load(open(f"examples/{name}/case.json"))
+    role = c["reference_render_of"]
+    text = next(x["text"] for x in c["candidates"] if x["role"] == role)
+    b64 = lambda f: base64.b64encode(open(f"examples/{name}/{f}", "rb").read()).decode()
+    body = {"items": [{"original_image": b64(c["block_image"]),
+                       "render_image": b64(c["reference_render"]), "ocr_text": text}]}
+    req = urllib.request.Request("http://127.0.0.1:18501/v1/score",
+            data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
+    got = json.load(urllib.request.urlopen(req))["results"][0]["prob_1"]
+    print(f"{name:24} got {got:.5f}  reference {c['observed_prob_yes'][role]:.5f}")
+EOF
+```
+
+三行分数与参考值相差都在 0.02 以内即为正常。内置渲染器服务把端点换成 `/v1/rm/score_best`、请求体换成 `image` ＋ `candidates`（见[三、内置渲染器服务 · 请求](#请求-1)），服务会自己渲染。
