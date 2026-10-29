@@ -1,141 +1,103 @@
 # llama.cpp Deployment Guide
 
+[中文](./llamacpp_deploy_zh.md)
+
 [← Back to README](../README.md)
 
-## Overview
+Deploy MiniCPM-OCR 1.0 with the **Q8_0 main model, Q8_0 DSpark draft head, and F16 4× vision projector** together, with DSpark speculative decoding enabled. Run the commands below from the **root of this repository** in Bash.
 
-llama.cpp enables CPU and local GPU inference with GGUF models, ideal for resource-constrained environments or offline deployment.
+## 1. Install llama.cpp
 
-## Requirements
+Use the verified reference version **[b11901](https://github.com/ggml-org/llama.cpp/releases/tag/b11901)**. You need Git, CMake, and a C++ compiler to build it:
 
-- **Hardware**: CPU with AVX2, or NVIDIA/AMD GPU
-- **RAM**: ≥16GB system memory
-- **Storage**: ~2.5GB for the F16 model + vision projector
+```bash
+mkdir -p ./sources
+git clone --branch b11901 --depth 1 https://github.com/ggml-org/llama.cpp.git ./sources/llama.cpp
+cmake -S ./sources/llama.cpp -B ./sources/llama.cpp/build -DCMAKE_BUILD_TYPE=Release
+cmake --build ./sources/llama.cpp/build -j --target llama-server
+./sources/llama.cpp/build/bin/llama-server --version
+```
 
-## GGUF Weights
+On Apple Silicon, the configuration above enables Metal by default; on Linux, it builds the CPU backend. For NVIDIA GPUs, append `-DGGML_CUDA=ON` to the `cmake -S ...` configuration command before building, with the CUDA toolkit installed. See the official [build instructions](https://github.com/ggml-org/llama.cpp/blob/b11901/docs/build.md) for other backends.
 
-Download from [openbmb/ MiniCPM-OCR-1.0-gguf](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-gguf):
+Alternatively, download and extract the package for your system from the same release page. Replace `./sources/llama.cpp/build/bin/llama-server` in the commands below with the extracted `llama-server` executable path. Keep the executable and its accompanying libraries together. The serving command below was verified with the official b11901 macOS ARM64 package.
 
-| File | Size | Description |
+## 2. Download the main model, projector, and DSpark draft
+
+Download the main model and projector from the [main model repository](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-gguf), and the matching quantized draft from the [DSpark GGUF repository](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark-gguf). All three files are required; use matched weights from the same 1.0 release:
+
+| File | Approximate size | Purpose |
 |---|---|---|
-| `MiniCPM-OCR-1_0-F16.gguf` | 1.4 GB | Language model (F16) |
-| `mmproj-model-f16-4x.gguf` | 859 MB | Vision projector (4x downsample) |
-
-Both files are required: the language model for `--model`, the projector for `--mmproj`.
-
-Quantized versions (Q4_K_M, Q8_0) are coming soon. To quantize them yourself:
+| `MiniCPM-OCR-1_0-Q8_0.gguf` | 0.81 GB | Q8_0 main model |
+| `mmproj-model-f16-4x.gguf` | 0.90 GB | F16 vision projector, required for image input |
+| `dspark-MiniCPM-OCR-1_0-Q8_0.gguf` | 0.33 GB | Q8_0 DSpark draft model for speculative decoding |
 
 ```bash
-./build/bin/llama-quantize MiniCPM-OCR-1_0-F16.gguf MiniCPM-OCR-1.0-Q8_0.gguf Q8_0
+mkdir -p ./models/MiniCPM-OCR-1.0-gguf
+curl -fL --retry 3 \
+  -o ./models/MiniCPM-OCR-1.0-gguf/MiniCPM-OCR-1_0-Q8_0.gguf \
+  https://huggingface.co/openbmb/MiniCPM-OCR-1.0-gguf/resolve/main/MiniCPM-OCR-1_0-Q8_0.gguf
+curl -fL --retry 3 \
+  -o ./models/MiniCPM-OCR-1.0-gguf/mmproj-model-f16-4x.gguf \
+  https://huggingface.co/openbmb/MiniCPM-OCR-1.0-gguf/resolve/main/mmproj-model-f16-4x.gguf
+curl -fL --retry 3 \
+  -o ./models/MiniCPM-OCR-1.0-gguf/dspark-MiniCPM-OCR-1_0-Q8_0.gguf \
+  https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark-gguf/resolve/main/dspark-MiniCPM-OCR-1_0-Q8_0.gguf
 ```
 
-## Installation
-
-### Build from source
+If Hugging Face is unreachable, create the same directory and use the official ModelScope [main model repository](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-gguf) and [DSpark repository](https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-DSpark-gguf) instead:
 
 ```bash
-git clone https://github.com/ggml-org/llama.cpp
-cd llama.cpp
-
-# NVIDIA GPU
-cmake -B build -DGGML_CUDA=ON -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j --target llama-server llama-quantize
-
-# AMD GPU:   cmake -B build -DGGML_HIP=ON ...
-# CPU only:  cmake -B build ...
+mkdir -p ./models/MiniCPM-OCR-1.0-gguf
+curl -fL --retry 3 \
+  -o ./models/MiniCPM-OCR-1.0-gguf/MiniCPM-OCR-1_0-Q8_0.gguf \
+  https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-gguf/resolve/master/MiniCPM-OCR-1_0-Q8_0.gguf
+curl -fL --retry 3 \
+  -o ./models/MiniCPM-OCR-1.0-gguf/mmproj-model-f16-4x.gguf \
+  https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-gguf/resolve/master/mmproj-model-f16-4x.gguf
+curl -fL --retry 3 \
+  -o ./models/MiniCPM-OCR-1.0-gguf/dspark-MiniCPM-OCR-1_0-Q8_0.gguf \
+  https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0-DSpark-gguf/resolve/master/dspark-MiniCPM-OCR-1_0-Q8_0.gguf
 ```
 
-> Tips: on recent NVIDIA GPUs you can speed up the build by targeting one architecture,
-> e.g. `-DCMAKE_CUDA_ARCHITECTURES=120` (RTX 5090), `90` (H100), or `80` (A100).
-> See the official [build documentation](https://github.com/ggml-org/llama.cpp/blob/master/docs/build.md)
-> for the full list of options.
+## 3. Start the service
 
-### Using pre-built binaries
-
-Download from [llama.cpp releases](https://github.com/ggml-org/llama.cpp/releases).
-
-## Serving
-
-### Start server
+In a service terminal at the repository root:
 
 ```bash
-./build/bin/llama-server \
-  --model ./MiniCPM-OCR-1_0-F16.gguf \
-  --mmproj ./mmproj-model-f16-4x.gguf \
-  --host 0.0.0.0 \
+./sources/llama.cpp/build/bin/llama-server \
+  --model ./models/MiniCPM-OCR-1.0-gguf/MiniCPM-OCR-1_0-Q8_0.gguf \
+  --mmproj ./models/MiniCPM-OCR-1.0-gguf/mmproj-model-f16-4x.gguf \
+  --model-draft ./models/MiniCPM-OCR-1.0-gguf/dspark-MiniCPM-OCR-1_0-Q8_0.gguf \
+  --spec-type draft-dspark \
+  --spec-draft-n-max 15 \
+  --n-gpu-layers 99 \
+  --gpu-layers-draft 99 \
+  --flash-attn on \
+  --ctx-size 8192 \
+  --parallel 1 \
+  --host 127.0.0.1 \
   --port 18499 \
-  --ctx-size 40960 \
-  --n-gpu-layers 999
+  --alias minicpm-ocr \
+  --jinja \
+  --reasoning off
 ```
 
-Flags:
-- `--mmproj FILE`: path to the multimodal projector file — required for image input
-- `--n-gpu-layers 999`: offload all layers to GPU; `0` for CPU-only inference
-- `--ctx-size`: context window size
+Keep this terminal running. The service is available at **`http://127.0.0.1:18499`**, with the OpenAI-compatible chat endpoint **`/v1/chat/completions`** and model name **`minicpm-ocr`**. Choose an unused port; stop an Ollama instance using `18499` or change the port in all commands.
 
-The official GGUF works out of the box — the embedded chat template already disables
-thinking mode, so no extra template flags are needed. (If you convert the GGUF weights
-yourself, start the server with `--chat-template-kwargs '{"enable_thinking":false}'`.)
+- `--model-draft` loads the matching quantized DSpark head; `--spec-type draft-dspark` selects DSpark decoding. The draft head cannot serve OCR on its own.
+- `--spec-draft-n-max 15` sets the maximum draft length per step to 15 tokens. `--flash-attn on` enables Flash Attention.
+- `--n-gpu-layers 99` and `--gpu-layers-draft 99` offload the main and draft model layers to GPU. For CPU-only serving, set both to `0` and add `--no-mmproj-offload`.
+- `--ctx-size 8192 --parallel 1` starts one request slot with an 8192-token context. Increase the context if the image tokens and output exceed this limit; memory usage also increases.
+- `--jinja --reasoning off` uses the official GGUF chat template with thinking disabled.
 
-### Verify service
+## 4. Check the service
+
+Open another terminal:
 
 ```bash
-curl http://127.0.0.1:18499/health
-# {"status":"ok"}
+curl --noproxy 127.0.0.1 -f http://127.0.0.1:18499/health
+curl --noproxy 127.0.0.1 -f http://127.0.0.1:18499/v1/models
 ```
 
-## SDK Configuration
-
-Install the SDK and layout model as described in the [SDK tutorial](./minicpmvocr_tutorial_en.md#installation), using `.minicpm-ocr` for the SDK environment. For CPU layout detection as shown below, replace the tutorial's `paddlepaddle-gpu` installation command with:
-
-```bash
-python -m pip install "paddlepaddle==3.2.1"
-```
-
-Then run from the root of this repository:
-
-```bash
-source .minicpm-ocr/bin/activate
-export OCR_LAYOUT_MODEL_DIR="$PWD/PP-DocLayoutV3_infer"
-export PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True
-
-minicpmvocr parse --config sdk/minicpmvocr/configs/minicpmvocr.yaml \
-  --backend llamacpp --server-url http://127.0.0.1:18499 \
-  --model minicpm-ocr \
-  --set layout.device=cpu \
-  --set pipeline.queue_mode=serial \
-  --set pipeline.max_workers=1 \
-  --input doc.pdf --output doc.md
-```
-
-For GPU layout detection, install GPU PaddlePaddle as described in the SDK tutorial, activate `.minicpm-ocr`, and use `--set layout.device=cuda:0` instead.
-
-> **Concurrency**: llama-server processes one request at a time by default. Keep
-> `pipeline.queue_mode=serial` and `pipeline.max_workers=1` in the SDK options.
-
-## Performance
-
-Measured on a single RTX 5090 (32GB) with the F16 weights:
-
-- Model + projector load: ~2.3s
-- One table crop (1,312 prompt + 265 output tokens): ~1.0s
-- VRAM: ~26GB with `--ctx-size 40960` — reduce the value on smaller GPUs
-- CPU-only (48 threads): one table image end-to-end (layout + recognition + assembly) in ~21s
-
-### Quantization trade-offs
-
-| Quantization | Size | Table | Dense text / XML | Notes |
-|---|---|---|---|---|
-| F16 | 1.4 GB | baseline | baseline | highest fidelity |
-| Q8_0 | 775 MB | lossless | ≈lossless | recommended balance |
-| Q4_K_M | 505 MB | lossless | small degradation | closing-tag slashes may be dropped in dense code — prefer Q8_0 for code-heavy documents |
-
-## Limitations
-
-- Quantization introduces small accuracy loss (~1-2% on benchmarks, most visible on dense code/XML at Q4_K_M)
-- No speculative decoding support (no DSpark)
-- Slower than vLLM on high-end GPUs
-
----
-
-For more details, see the [llama.cpp documentation](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md).
+`/health` should return `{"status":"ok"}`, and `/v1/models` should include `minicpm-ocr`. During startup, the service log should show `adding speculative implementation 'draft-dspark'` and `n_max=15`. After the first inference request, look for `draft acceptance` with accepted and generated token counts to confirm that DSpark participated in decoding.

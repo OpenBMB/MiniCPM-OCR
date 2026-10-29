@@ -38,7 +38,7 @@ python -m pip install "paddlepaddle-gpu==3.3.0" \
 
 ### 2. Set up the inference environment
 
-Choose one inference service. This tutorial uses vLLM; for SGLang and llama.cpp, see the [SGLang deployment guide](./sglang_deploy.md) and [llama.cpp deployment guide](./llamacpp_deploy.md).
+Choose one inference service. This tutorial uses vLLM; for other backends, see the [Ollama deployment guide](./ollama_deploy.md), [SGLang deployment guide](./sglang_deploy.md), and [llama.cpp deployment guide](./llamacpp_deploy.md).
 
 > **Older drivers**: For drivers below 580, first configure a CUDA compatibility library suitable for your GPU as described in the [FAQ](./faq_en.md#cuda-driver-version-is-insufficient). Set its environment variables in each terminal used to install or start vLLM, or run the GPU SDK.
 
