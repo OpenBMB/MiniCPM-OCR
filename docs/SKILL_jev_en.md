@@ -1,17 +1,75 @@
 ---
-name: minicpm-ocr-jev-sdk
-description: Install, deploy and verify the MiniCPM-OCR Jev scoring service (SDK local deployment, four inference backends: vLLM / SGLang / llama.cpp / Ollama). Use when the user wants to install the Jev SDK, start a scoring service, score OCR output for consistency or pick the best of several candidates, or troubleshoot startup and scoring errors.
+name: minicpm-ocr-jev-deploy
+description: Install, deploy and verify the MiniCPM-OCR Jev scoring service by either of two paths — the Docker image, or the SDK local deployment (four inference backends: vLLM / SGLang / llama.cpp / Ollama). Use when the user wants to start a Jev scoring service, deploy the Jev image or SDK, score OCR output for consistency or pick the best of several candidates, or troubleshoot startup and scoring errors.
 ---
 
-# MiniCPM-OCR Jev SDK local deployment
+# MiniCPM-OCR Jev local deployment
 
-Jev judges whether a piece of OCR text matches the original image: send the original image and the candidate text, get back a consistency score between 0 and 1. The SDK deployment installs the renderer and the model service separately on the host — the engine does the forward pass, the service layer does the scoring, and the two must live in different virtual environments.
+Jev judges whether a piece of OCR text matches the original image: send the original image and the candidate text, get back a consistency score between 0 and 1.
 
-The commands here come from the same source as `docs/{vllm,sglang,llamacpp,ollama}_deploy_jev_en.md`, and every section names the section of those documents it mirrors; change one side and the other must follow. If the user wants Docker rather than the SDK, go to path one in `minicpm_ocr_jev_tutorial_en.md`; this skill does not cover it.
+There are two deployment paths, using the same model and the same scoring logic: the **Docker image** carries the engine, the scoring service and the render environment in one container; the **SDK** installs the renderer and the model service separately on the host — the engine does the forward pass, the service layer does the scoring, and the two must live in different virtual environments.
+
+The commands here come from the same source as `docs/minicpm_ocr_jev_tutorial_en.md`, `docs/minicpm_ocr_jev_docker_api_en.md` and `docs/{vllm,sglang,llamacpp,ollama}_deploy_jev_en.md`, and every section names the section of those documents it mirrors; change one side and the other must follow.
 
 ## 1. Determine the plan
 
-First settle two things: **which inference backend**, and **who provides the render image**. If the user has no preference, use vLLM plus the render+score service.
+### 1.1 First settle which path
+
+| | Docker image (1.2) | SDK (1.3 onwards) |
+|---|---|---|
+| Render environment | Pinned Chromium and CJK fonts, built into the image | Installed by you (6.2), or the caller provides the render image (6.1) |
+| What the scores mean | Same render environment as the cloud API, so they can be compared against the published numbers directly | Ranking is stable; absolute values may differ in the third decimal |
+| What to install | Docker + NVIDIA Container Toolkit | Two virtual environments: engine + service layer |
+| Inference backend | vLLM, fixed inside the image | One of vLLM / SGLang / llama.cpp / Ollama |
+| Platforms | Linux + NVIDIA only | Linux + NVIDIA / macOS (see 1.3) |
+| Suited to | Comparing against the published numbers, not installing a render environment yourself | No Docker, macOS, render images already in hand, or a specific backend wanted |
+
+When the machine has Docker and an NVIDIA GPU and the user has no preference, take the Docker image. **The Docker path needs only 1.2 plus 7.3, and section 3 for the weights; sections 2, 4, 5, 6 and 8 are all SDK steps.**
+
+### 1.2 Docker image (mirrors path one in `minicpm_ocr_jev_tutorial_en.md`)
+
+Prerequisites: Docker and the NVIDIA Container Toolkit installed (`docker run --rm --gpus all ubuntu nvidia-smi` printing the GPU is enough), driver ≥535, VRAM ≥12 GB, and the weights `<WEIGHTS>` already fetched as in section 3.
+
+```bash
+cd scripts/minicpm-ocr-jev
+docker build -f serve/Dockerfile -t minicpm-ocr-jev-1-0:latest .
+
+docker run -d --name minicpm-ocr-jev --gpus '"device=<GPU>"' \
+    -p 127.0.0.1:8030:8030 \
+    -v <WEIGHTS>:/weights:ro \
+    minicpm-ocr-jev-1-0:latest 8030 /weights
+```
+
+On a slow network, add `--build-arg PIP_INDEX_URL=<mirror>` and `--build-arg PLAYWRIGHT_DOWNLOAD_HOST=<mirror>` to the build (section 3 has usable values).
+
+Pass criteria: `curl -f http://127.0.0.1:8030/healthz` reports `status` as `ok`. `loading` means the weights are still being loaded and scoring returns 503; wait for it to turn `ok`.
+
+Scoring:
+
+```bash
+curl -s http://127.0.0.1:8030/v1/rm/score -H 'Content-Type: application/json' -d '{
+  "input_form": "ternary",
+  "items": [
+    {"case_id": "blk-001", "image": "<base64>",
+     "ocr_text": "the OCR text to score", "category": "text"}
+  ]
+}'
+```
+
+Four endpoints: `/healthz`, `/v1/rm/score` (one score per block), `/v1/rm/score_best` (best of N candidates for one block) and `/v1/rm/score_best_batch` (best-of-N for many blocks, which is the one to use when there are many). The full field definitions are in `minicpm_ocr_jev_docker_api_en.md`; the rules to keep to when calling:
+
+- `input_form` is fixed at `"ternary"`, and `score_best_batch` needs it again inside every item — 422 without it.
+- `image` takes the base64 body of a PNG or JPEG **without** the `data:image/png;base64,` prefix; with the prefix that item comes back as `encode_error`.
+- `category` is one of `text` / `formula` / `table` and **has to match what the block really is**: a formula block sent as `text` is rendered literally, which does not error but does distort the score.
+- Check `verdict` before reading a score: `0.0` and `-1.0` are the fixed return values for a failed scoring, not low scores.
+- When render images are already in hand, send `items[].render_image` (`render_images` for `score_best*`) and the service skips rendering.
+- The number of candidates in one request is capped by `max_items` (64 by default; 400 above that), and `threshold` (0.5 by default) only affects `throughput_rate` in the summary, never any `prob_yes`.
+
+Once it is up, check the scores with the bundled cases as in [7.3](#73-docker-path-score-the-bundled-cases) — `/healthz` returning `ok` only says the service came up.
+
+### 1.3 SDK: picking a backend and a service shape
+
+On the SDK path, settle two more things: **which inference backend**, and **who provides the render image**. If the user has no preference, use vLLM plus the render+score service.
 
 There are two service shapes, split by where the render image comes from; both use the same model and the same scoring code:
 
@@ -30,14 +88,16 @@ The four backends differ a lot in what they cost to set up; pick by the user's c
 | vLLM | Not needed | No | 8.4 GB | Linux + NVIDIA only | Default choice, best throughput |
 | SGLang | **Needed** | No | 9.5 GB | Linux + NVIDIA only | An existing SGLang stack |
 | llama.cpp | **Needed** (Linux only) | **Yes** | 214 MB (build) | Linux + NVIDIA / macOS | Small VRAM, no torch wanted |
-| Ollama | Not needed | No | 4.8 GB conversion env | Linux + NVIDIA / macOS | Lightest requirements, an existing Ollama |
+| Ollama | Not needed | No | None (the engine ships with Ollama) | Linux + NVIDIA / macOS | Lightest requirements, an existing Ollama |
 
-- llama.cpp and Ollama both need the weights converted to GGUF first; the conversion environment (CPU torch) is 4.8 GB and can be deleted afterwards.
+- llama.cpp and Ollama use GGUF weights, which are **published officially and downloaded directly by default** (see 5.3) — no HF weights and no conversion environment. Convert them yourself only when the user wants different conversion settings or the weights are their own fine-tune; that needs a 4.8 GB conversion environment (CPU torch), which can be deleted afterwards.
 - Ollama runs llama.cpp's own runner, so their scores share one source — **do not use one to verify the other**.
 - ⭐ **On macOS (Apple Silicon) only llama.cpp and Ollama are available**: vLLM and SGLang depend on the CUDA stack and will not start on a mac, so do not suggest them. Both macOS paths go through Metal; where the commands differ from Linux is covered in 5.3 / 5.4.
 - ⭐ **On macOS only run the score service**: the render+score service needs a pinned font environment, and that step depends on apt, which is not available on a mac (see 6.2).
 
 ## 2. Pre-installation checks
+
+This section, like sections 4, 5, 6 and 8, applies to the SDK path only; the Docker path's prerequisites are in 1.2.
 
 ```bash
 # Linux + NVIDIA
@@ -59,7 +119,7 @@ Things the user has to supply (ask when they are not given; do not guess):
 
 | Placeholder | Meaning |
 |---|---|
-| `<WEIGHTS>` | Absolute path of the Jev weights directory; download it as in section 3 when the user has no copy |
+| `<WEIGHTS>` | Absolute path of the Jev weights directory; download it as in section 3 when the user has no copy. **Needed by the Docker path and by SDK vLLM and SGLang** — SDK llama.cpp and Ollama download the GGUF directly by default (5.3) |
 | `<GPU>` | Which GPU to use (confirm it is idle with the commands above); not applicable on macOS |
 
 Every command below runs under `scripts/minicpm-ocr-jev/` in the repository, with the virtual environments created in `/opt/venv-*`; on macOS writing to `/opt` needs sudo, so put them under the home directory instead (`~/venv-*`) and adjust the paths that follow.
@@ -73,7 +133,7 @@ git clone https://github.com/OpenBMB/MiniCPM-OCR.git
 cd MiniCPM-OCR/scripts/minicpm-ocr-jev
 ```
 
-The weights are [MiniCPM-OCR-Jev](https://huggingface.co/openbmb/MiniCPM-OCR-Jev), one copy shared by all four backends (llama.cpp and Ollama convert their GGUF from it). Skip this step when the user already has a copy, and take its absolute path as `<WEIGHTS>`:
+The weights are [MiniCPM-OCR-Jev](https://huggingface.co/openbmb/MiniCPM-OCR-Jev). **vLLM and SGLang need these HF weights**; llama.cpp and Ollama use GGUF, downloaded directly as in 5.3, so they can skip this step. Skip it as well when the user already has a copy, and take its absolute path as `<WEIGHTS>`:
 
 ```bash
 python3 -m venv /opt/venv-dl && /opt/venv-dl/bin/pip install -U "huggingface_hub[cli]"
@@ -185,16 +245,11 @@ Pass criteria: the log reaches `The server is fired up and ready to roll!`; `cur
 
 ### 5.3 llama.cpp (mirrors `llamacpp_deploy_jev_en.md` §1)
 
+Fetch the source and build it. Run the grep probe from [section 4](#4-probe-upstream-support-do-this-before-installing-anything) before building:
+
 ```bash
 git clone https://github.com/ggml-org/llama.cpp.git && cd llama.cpp
 
-python3 -m venv /opt/venv-convert && source /opt/venv-convert/bin/activate
-pip install -r requirements/requirements-convert_hf_to_gguf.txt
-```
-
-The conversion dependencies have to go into their own venv — Debian/Ubuntu and others refuse to install into the system Python under PEP 668. Run the grep probe from [section 4](#4-probe-upstream-support-do-this-before-installing-anything) before building:
-
-```bash
 # Configure; pick the line for your platform
 # Linux + NVIDIA
 cmake -B build -DGGML_CUDA=ON -DCMAKE_BUILD_TYPE=Release
@@ -204,7 +259,7 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j --target llama-server
 ```
 
-The backend is only attached if the configure log says `Including METAL backend` (mac) or `Including CUDA backend` (Linux).
+The configure log has to say `Including METAL backend` (mac) or `Including CUDA backend` (Linux); that line is what confirms the intended backend is enabled.
 
 **Linux only**: when the CUDA toolkit lives somewhere other than `/usr/local/cuda`, register its libraries with `ldconfig` first, otherwise linking `llama-server` produces dozens of `undefined reference to cudaXxx@libcudart.so.13`:
 
@@ -212,9 +267,23 @@ The backend is only attached if the configure log says `Including METAL backend`
 echo /path/to/cuda/lib64 | sudo tee /etc/ld.so.conf.d/cuda.conf && sudo ldconfig
 ```
 
-Convert to GGUF (one file for the language model and one for the vision encoder; **both have to be converted from the directory with the patched `architectures`**):
+**Getting the GGUF — this is the default path**: both files are published officially, one for the language model and one for the `mmproj`:
 
 ```bash
+HF_ENDPOINT=https://hf-mirror.com hf download openbmb/MiniCPM-OCR-Jev-gguf \
+  --include "MiniCPM-OCR-Jev-F16.gguf" "mmproj-model-f16.gguf" \
+  --local-dir ./models
+```
+
+- `F16` is the unquantized build (3.78 GB). When VRAM or memory is tight, swap the language model for `Q8_0` (2.01 GB) or `Q4_K_M` (1.27 GB) — the model card labels the first near-lossless and the second the smallest recommended build; there is only one `mmproj` build.
+- This path needs **no** `<WEIGHTS>` and no conversion environment. The same repository is on ModelScope as `OpenBMB/MiniCPM-OCR-Jev-gguf`.
+
+Converting it yourself is for two cases only: the user wants different conversion settings, or the weights are their own fine-tune. That needs the conversion dependencies installed separately (in their own venv — Debian/Ubuntu and others refuse to install into the system Python under PEP 668), and the language model and the vision encoder converted separately, **both from the directory with the patched `architectures`**:
+
+```bash
+python3 -m venv /opt/venv-convert && source /opt/venv-convert/bin/activate
+pip install -r requirements/requirements-convert_hf_to_gguf.txt
+
 mkdir -p ./models/MiniCPM-OCR-Jev-gguf
 for f in <WEIGHTS>/*; do
   [ "$(basename "$f")" = config.json ] || ln -sf "$f" ./models/MiniCPM-OCR-Jev-gguf/
@@ -232,20 +301,20 @@ python convert_hf_to_gguf.py ./models/MiniCPM-OCR-Jev-gguf --mmproj \
   --outtype bf16 --outfile ./models/mmproj-MiniCPM-OCR-Jev-bf16.gguf
 ```
 
-(Run `export W=<WEIGHTS>` before that heredoc.) Converting `mmproj` from the conversion directory is what carries over the image downscale floor the model was trained with; otherwise small images score off.
+(Run `export W=<WEIGHTS>` before that heredoc.) Converting `mmproj` from the conversion directory is what carries over the image downscale floor the model was trained with; otherwise small images score off. Self-converted files are named differently from the official pair, so change the start command below to match.
 
 ```bash
 ./build/bin/llama-server \
-  -m ./models/MiniCPM-OCR-Jev-bf16.gguf \
-  --mmproj ./models/mmproj-MiniCPM-OCR-Jev-bf16.gguf \
+  -m ./models/MiniCPM-OCR-Jev-F16.gguf \
+  --mmproj ./models/mmproj-model-f16.gguf \
   -ngl 99 -c 32768 --port 18499
 ```
 
-Pass criteria: the conversion produces two GGUF files of 3.6 GB and 641 MB; the startup log shows `decision model type: openbmb-minicpm-ocr-jev` and `listening on`; `curl http://127.0.0.1:18499/health` returns `{"status":"ok"}`. Same criteria on both platforms. If that `decision model type` line is **missing**, this build does not know the model — go back to [section 4](#4-probe-upstream-support-do-this-before-installing-anything).
+Pass criteria: the startup log shows `decision model type: openbmb-minicpm-ocr-jev` and `listening on`; `curl http://127.0.0.1:18499/health` returns `{"status":"ok"}`. Same criteria on both platforms. If that `decision model type` line is **missing**, this build does not know the model — go back to [section 4](#4-probe-upstream-support-do-this-before-installing-anything). When converting yourself, also check one more thing: the conversion produces two GGUF files of 3.6 GB and 641 MB.
 
 ### 5.4 Ollama (mirrors `ollama_deploy_jev_en.md` §1)
 
-The lightest of the four: no CUDA toolkit, and nothing to compile. But **the GGUF files from 5.3 have to exist first** (only the clone and the conversion dependencies are needed there; the build can be skipped).
+The lightest of the four: the engine ships inside the Ollama package, there is no CUDA toolkit, nothing to compile, and llama.cpp is not needed at all. **Get the GGUF with the same `hf download` as in 5.3** (or convert it as in 5.3, and then change the two `FROM` lines below to the files you produced).
 
 ```bash
 # Linux
@@ -254,8 +323,8 @@ curl -fsSL https://ollama.com/install.sh | sh
 brew install ollama
 
 cat > Modelfile <<'EOF'
-FROM ./models/MiniCPM-OCR-Jev-bf16.gguf
-FROM ./models/mmproj-MiniCPM-OCR-Jev-bf16.gguf
+FROM ./models/MiniCPM-OCR-Jev-F16.gguf
+FROM ./models/mmproj-model-f16.gguf
 EOF
 
 ollama serve &                       # 11434 by default
@@ -314,6 +383,8 @@ Replace `sglang.yaml` with `llamacpp.yaml` / `ollama.yaml`. **Without that varia
 
 ## 7. Verification
 
+7.1 and 7.2 are the SDK path (they call the service layer on 18501); for the Docker path go to [7.3](#73-docker-path-score-the-bundled-cases).
+
 ### 7.1 Startup self-check
 
 ```bash
@@ -357,6 +428,33 @@ For the render+score service, switch to `/v1/rm/score_best` and give the body `i
 
 Before reading any score, check `verdict` (the Docker-image-shaped endpoints) or `error` (`/v1/score`): `0.0` and `-1.0` are the fixed return values for a failed scoring, not low scores.
 
+### 7.3 Docker path: score the bundled cases
+
+Run this from `scripts/minicpm-ocr-jev/` as well, against the 8030 mapped in 1.2:
+
+```bash
+python3 - <<'EOF'
+import base64, json, urllib.request
+for name in ("01_text_putnam", "02_formula_putnam", "03_table_gb_standard"):
+    c = json.load(open(f"examples/{name}/case.json"))
+    role = c["reference_render_of"]
+    text = next(x["text"] for x in c["candidates"] if x["role"] == role)
+    b64 = lambda f: base64.b64encode(open(f"examples/{name}/{f}", "rb").read()).decode()
+    body = {"input_form": "ternary",
+            "items": [{"case_id": name, "image": b64(c["block_image"]),
+                       "render_image": b64(c["reference_render"]),
+                       "ocr_text": text, "category": c["category"]}]}
+    req = urllib.request.Request("http://127.0.0.1:8030/v1/rm/score",
+            data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
+    r = json.load(urllib.request.urlopen(req))["results"][0]
+    print(f"{name:24} {r['verdict']:8} got {r['prob_yes']:.5f}  reference {c['observed_prob_yes'][role]:.5f}")
+EOF
+```
+
+Pass criteria: all three `verdict`s are `scored` and all three scores are within 0.02 of the reference. This is the same test as 7.2, only the endpoint, the field name and the port differ (`/v1/rm/score`, `prob_yes`, 8030).
+
+The call above sends `reference_render` along with the request, which is the "caller provides the render image" shape. Drop the `render_image` line to let the image render for itself and the scores should still land within 0.02 — the render environment built into the image is the reference one. For best-of-N within a block, call `/v1/rm/score_best` instead with `image` plus `category` plus `candidates`; both candidates get scored and `best_index` should point at the `ground_truth` one.
+
 ## 8. Temporary path while upstream support is missing
 
 ```
@@ -399,6 +497,16 @@ ln -sfn $L/libggml-cuda.so $O/cuda_v13/libggml-cuda.so
 
 ## 9. Error handling
 
+### Docker path
+
+| Symptom | What to do |
+|---|---|
+| `could not select device driver "nvidia"` | The NVIDIA Container Toolkit is missing, or docker was not restarted after installing it; get the `--gpus all` probe in 1.2 to pass first |
+| `/healthz` stays at `loading` and scoring returns 503 | The weights are still loading; wait, and read `docker logs minicpm-ocr-jev` for the real exception if it drags on |
+| 422 | `input_form` is not `"ternary"`, or `score_best_batch` is missing the copy inside an item |
+| `verdict` is `encode_error` | The base64 carries a `data:image/...;base64,` prefix, or the bytes themselves are bad |
+| 400 mentioning `max_items` | One request carried more candidates than the default 64; split the batch |
+
 ### Installation
 
 | Symptom | What to do |
@@ -440,16 +548,18 @@ ln -sfn $L/libggml-cuda.so $O/cuda_v13/libggml-cuda.so
 | SGLang | Stable 0.5.22 has **no support for this model**; the PR #45829 source tree works, venv 9.5 GB |
 | llama.cpp | Release **v0.8.0** (includes PR #30980, merged into master on 2026-10-27), build 214 MB |
 | Ollama | Stock v0.40.11 has **no support for this model**; works after the runner swap |
+| Docker image | Built from `serve/Dockerfile`, with the engine, the scoring service and the render environment all inside it; for the versions actually in the image, read the `scorer` and `render` fields of `/healthz` |
 | Service layer | Python 3.12.3, fastapi 0.162.0, uvicorn 0.54.0, httpx 0.28.1, pydantic 2.14.1, Pillow 12.3.0, venv 59 MB |
 | Render environment | playwright 1.62.0, KaTeX 0.16.47, render pipeline v8.5, venv 205 MB |
-| GGUF | Language model 3.6 GB + mmproj 641 MB |
+| GGUF | Official `MiniCPM-OCR-Jev-gguf` repository: `MiniCPM-OCR-Jev-F16.gguf` 3.78 GB + `mmproj-model-f16.gguf` 671 MB; equivalent in scoring to a self-converted bf16 pair (three cases, scores within 5e-5, measured on a mac through both llama.cpp and Ollama on 2026-10-29) |
 | Hardware | Single RTX 5090, driver 590.48.01, CUDA 13.0.88, Ubuntu 24.04.5 (2026-10-28) |
 | macOS | Apple M5 / 16 GB unified memory / macOS 26.x, Command Line Tools 26.6.0, llama.cpp v0.8.0 built from source (Metal), conversion dependencies torch 2.11.0 arm64 + transformers 4.57.6 (2026-10-29) |
 
 ## 11. Reporting rules
 
-- The 5090 and the M5 are only the machines this was verified on; do not say either one is required. The floors are the numbers in section 2.
+- Say which path was taken (Docker image or SDK) and on which port. The two paths have different render environments, so their absolute scores are not interchangeable, and only the Docker path's can be compared against the published numbers directly.
+- The 5090 and the M5 are only the machines this was verified on; do not say either one is required. The floors are the numbers in section 2 (1.2 for the Docker path).
 - Report only the checks that actually ran. Without 7.2 do not say the scores are right; `/healthz` returning `ok` only says the service came up.
 - When the temporary path in section 8 was taken, say so explicitly and spell out how it differs from the documented path.
 - Do not treat the four backends' scores as independent verification of one another, least of all Ollama and llama.cpp — they run the same binary.
-- The scores are an ordering quantity only. Do not interpret an absolute score as some level of quality on the user's behalf.
+- The scores carry no threshold and no label, and they are not calibrated to an absolute quality scale: comparing them within one set of inputs is what is meaningful, and a single absolute score does not translate into a level of quality. State that boundary alongside the numbers.

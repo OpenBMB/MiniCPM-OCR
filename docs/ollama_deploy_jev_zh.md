@@ -6,7 +6,7 @@
 
 本文介绍SDK部署模式下，以 Ollama 作为前向引擎时，**不带渲染器服务**与**内置渲染器服务**的安装、启动、接口与请求格式。
 
-Ollama 把 MiniCPM-OCR Jev 当作决策模型（decision model）来服务。与其他后端的两点不同：模型要先转成 GGUF 并注册给 Ollama；prompt 由引擎按 GGUF 内置的模板自己拼，不由 SDK 拼。
+Ollama 把 MiniCPM-OCR Jev 当作决策模型（decision model）来服务。与其他后端的两点不同：模型以 GGUF 格式注册给 Ollama，官方已发布，直接下载即可；prompt 由引擎按 GGUF 内置的模板自己拼，不由 SDK 拼。
 
 两种服务共用同一个前向引擎，区别只在渲染图从哪里来：
 
@@ -20,7 +20,7 @@ Ollama 把 MiniCPM-OCR Jev 当作决策模型（decision model）来服务。与
 
 ## 部署流程
 
-1. 装 Ollama → 转 GGUF 并注册模型 → 起前向引擎（两种服务都要）
+1. 装 Ollama → 取 GGUF 并注册模型 → 起前向引擎（两种服务都要）
 2. 二选一：
    - **不带渲染器服务** → 装服务环境 → 起服务
    - **内置渲染器服务** → 装渲染环境 → 起服务
@@ -36,7 +36,6 @@ Ollama 把 MiniCPM-OCR Jev 当作决策模型（decision model）来服务。与
 | CUDA Toolkit | 不需要                                           | 不需要                   |
 | Python       | ≥3.10                                         | ≥3.10，系统自带的是 3.9，须另装  |
 | Ollama       | 最新稳定版，其内置 runner 需含本模型支持                      | 同左                    |
-| llama.cpp    | ≥ v0.8.0，只用它的转换脚本，不需要编译                       | 同左                    |
 | 固定版本         | `Pillow` 12.3.0、`playwright` 1.62.0（仅内置渲染器服务） | `Pillow` 12.3.0       |
 
 **系统包**：
@@ -66,17 +65,30 @@ brew install ollama
 # 从 https://ollama.com/download/windows 下载安装
 ```
 
+### 取 GGUF
+
+两份都要：语言模型一份，视觉编码器（`mmproj`）一份。官方仓库 [MiniCPM-OCR-Jev-gguf](https://huggingface.co/openbmb/MiniCPM-OCR-Jev-gguf) 已发布，直接下载即可，不必安装 llama.cpp，也不必准备转换环境：
+
+```bash
+HF_ENDPOINT=https://hf-mirror.com hf download openbmb/MiniCPM-OCR-Jev-gguf \
+  --include "MiniCPM-OCR-Jev-F16.gguf" "mmproj-model-f16.gguf" \
+  --local-dir ./models
+```
+
+- `hf` 命令来自 `huggingface_hub`，没有的话装进任一虚拟环境：`pip install -U "huggingface_hub[cli]"`。
+- `F16` 是未量化的完整版本（3.78 GB）。显存或内存吃紧时，把 `--include` 里的语言模型换成量化版本：`Q8_0`（2.01 GB）或 `Q4_K_M`（1.27 GB）——官方卡把前者标为接近无损、后者标为建议的最小档。`mmproj` 只有一个版本，始终用 `mmproj-model-f16.gguf`。
+- ModelScope 上有同一个仓库：`OpenBMB/MiniCPM-OCR-Jev-gguf`。
+- 换成量化版本时，下面 `Modelfile` 的第一行要改成你下载的那一份。
+
 ### 注册模型
 
-先把权重转成 GGUF，两步都在 llama.cpp 部署文档里：先按[准备源码与转换依赖](./llamacpp_deploy_jev_zh.md#准备源码与转换依赖)取源码、装转换依赖（**跳过它的「编译」节**，转换是纯 Python），再按[转 GGUF](./llamacpp_deploy_jev_zh.md#转-gguf)转出两份 GGUF。
-
-转出来的 GGUF 自带 `systemone` 对话模板与决策模型标识，Ollama 靠它们认出这是决策模型。
+GGUF 自带 `systemone` 对话模板与决策模型标识，Ollama 靠它们认出这是决策模型。
 
 写一个 `Modelfile`，第一个 `FROM` 是语言模型，第二个是视觉编码器：
 
 ```
-FROM ./models/MiniCPM-OCR-Jev-bf16.gguf
-FROM ./models/mmproj-MiniCPM-OCR-Jev-bf16.gguf
+FROM ./models/MiniCPM-OCR-Jev-F16.gguf
+FROM ./models/mmproj-model-f16.gguf
 ```
 
 注册并确认：
