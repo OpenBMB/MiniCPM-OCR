@@ -4,7 +4,7 @@
 
 [← 返回使用教程](./minicpm_ocr_jev_tutorial_zh.md)
 
-本文是 [MiniCPM-OCR Jev 本地部署](./minicpm_ocr_jev_tutorial_zh.md) 的 Docker 镜像接口参考，描述四个端点的请求与响应格式。请求体是扁平的 `input_form + items` 结构，与 [云端 API](./minicpm_ocr_jev_api_zh.md) 的 OpenAI Chat Completions 协议不同，两者不能互换。
+本文是 [MiniCPM-OCR Jev 本地部署](./minicpm_ocr_jev_tutorial_zh.md) 的 Docker 镜像接口参考，描述四个端点的请求与响应格式。请求体是扁平的 `input_form + items` 结构，与 [云端 API](https://platform.modelbest.cn/console/docs/api/ocr-jev) 的 OpenAI Chat Completions 协议不同，两者不能互换。
 
 ## 通用约定
 

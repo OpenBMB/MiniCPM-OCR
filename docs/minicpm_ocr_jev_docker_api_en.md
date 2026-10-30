@@ -4,7 +4,7 @@
 
 [← Back to the deployment guide](./minicpm_ocr_jev_tutorial_en.md)
 
-This is the interface reference for the Docker image of [MiniCPM-OCR Jev Local Deployment](./minicpm_ocr_jev_tutorial_en.md), describing the request and response formats of its four endpoints. The request body is a flat `input_form + items` structure, which is not the OpenAI Chat Completions protocol used by the [cloud API](./minicpm_ocr_jev_api_en.md); the two are not interchangeable.
+This is the interface reference for the Docker image of [MiniCPM-OCR Jev Local Deployment](./minicpm_ocr_jev_tutorial_en.md), describing the request and response formats of its four endpoints. The request body is a flat `input_form + items` structure, which is not the OpenAI Chat Completions protocol used by the [cloud API](https://platform.modelbest.ai/console/docs/api/ocr-jev); the two are not interchangeable.
 
 ## Common conventions
 
