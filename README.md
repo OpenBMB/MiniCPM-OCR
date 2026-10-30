@@ -15,11 +15,11 @@
 </p>
 
 <p align="center">
+  Demo (<a href="https://platform.modelbest.cn/console/playground/document-parse">CN</a> / <a href="https://platform.modelbest.ai/console/playground/document-parse">Global</a>)
+  &nbsp;·&nbsp;
   <a href="#quick-start">Get Started</a> &nbsp;·&nbsp;
   <a href="#model-weights">Weights</a> &nbsp;·&nbsp;
   <a href="https://platform.modelbest.ai/console/docs/api/document-parse">Free API</a> &nbsp;·&nbsp;
-  <strong>Demo</strong> (<a href="https://platform.modelbest.cn/console/playground/document-parse">CN</a> / <a href="https://platform.modelbest.ai/console/playground/document-parse">Global</a>)
-  &nbsp;·&nbsp;
   <a href="#skill">Skill</a> &nbsp;·&nbsp;
   <a href="./docs/minicpm_ocr_tutorial_en.md">Local Deployment</a>
   &nbsp;|&nbsp; <a href="./README_zh.md">中文</a>
