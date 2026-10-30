@@ -15,13 +15,11 @@
 </p>
 
 <p align="center">
-  <strong>官方体验</strong>（<a href="https://platform.modelbest.cn/console/playground/document-parse">CN</a> / <a href="https://platform.modelbest.ai/console/playground/document-parse">Global</a>）
-  &nbsp;·&nbsp;
-  基础试用（<a href="http://82.157.64.212:10111/playground/document-parse">CN</a> / <a href="https://huggingface.co/spaces/openbmb/MiniCPM-OCR">Global</a>）
-  <br>
   <a href="#quick-start">开始使用</a> &nbsp;·&nbsp;
   <a href="#model-weights">模型权重</a> &nbsp;·&nbsp;
   <a href="https://platform.modelbest.cn/console/docs/api/document-parse">免费 API</a> &nbsp;·&nbsp;
+  <strong>Demo</strong>（<a href="https://platform.modelbest.cn/console/playground/document-parse">国内</a> / <a href="https://platform.modelbest.ai/console/playground/document-parse">海外</a>）
+  &nbsp;·&nbsp;
   <a href="#skill">Skill</a> &nbsp;·&nbsp;
   <a href="./docs/minicpm_ocr_tutorial.md">本地部署</a>
   &nbsp;|&nbsp; <a href="./README.md">English</a>
@@ -44,7 +42,7 @@
 - 🏆 **SOTA 的文档解析能力**：MiniCPM-OCR 1.0 在真实场景文档解析评测 **Real5-OmniDocBench 上取得 93.68 的 SOTA 成绩**，并在 OmniDocBench v1.6、Wild-OmniDocBench 和 olmOCR-Bench 等评测中展现领先的解析能力。模型支持中英双语文档与 PDF 解析，兼顾标准文档和复杂采集条件，在扫描、弯曲、拍照、倾斜及翻拍等场景下保持稳定表现。
 - ⚡ **高效推理。** 基于 DSpark 解码加速（[**DSpark-BF16**](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark)、[**DSpark-GGUF**](https://huggingface.co/openbmb/MiniCPM-OCR-1.0-DSpark-gguf)），MiniCPM-OCR 1.0 的**端到端处理效率提升 55%**。其处理吞吐量约为 PaddleOCR-VL-1.6 的 **1.49 倍**、MinerU2.5 Pro 的 **3.62 倍**，降低大规模文档解析的时间开销。
 - 🔍 **通用识别与信息抽取**：MiniCPM-OCR 1.0 在 **OCRBench v2 上取得 54.7 的 SOTA** 成绩，具备扎实的通用 OCR 能力；**同时支持关键信息抽取（KIE）**，可根据业务需求提取文档中的关键内容，支持后续信息整理与自动化处理。
-- 🛠️ **部署与开发友好**：MiniCPM-OCR 1.0 首日**适配 vLLM、SGLang、llama.cpp 和 Ollama**，同步提供多芯片适配与多种量化版本。模型**支持二次微调**，提供 **[pip SDK](https://pypi.org/project/minicpm-ocr/)** 和 **[功能完备的 API](#api)**，方便应用集成与定制开发，也可 **[通过 SKILL.md 快速上手](#skill)**；同时提供官方体验（[CN](https://platform.modelbest.cn/console/playground/document-parse) / [Global](https://platform.modelbest.ai/console/playground/document-parse)）和基础试用（[CN](http://82.157.64.212:10111/playground/document-parse) / [Global](https://huggingface.co/spaces/openbmb/MiniCPM-OCR)），方便用户查看解析效果。
+- 🛠️ **部署与开发友好**：MiniCPM-OCR 1.0 首日**适配 vLLM、SGLang、llama.cpp 和 Ollama**，同步提供多芯片适配与多种量化版本。模型**支持二次微调**，提供 **[pip SDK](https://pypi.org/project/minicpm-ocr/)** 和 **[功能完备的 API](#api)**，方便应用集成与定制开发，也可 **[通过 SKILL.md 快速上手](#skill)**；同时提供线上 Demo（[国内](https://platform.modelbest.cn/console/playground/document-parse) / [海外](https://platform.modelbest.ai/console/playground/document-parse)），方便用户查看解析效果。
 
 ### SOTA 表现，更高吞吐
 
@@ -70,6 +68,8 @@
 各基准柱状图与吞吐明细见 [MiniCPM-OCR 1.0 模型指南](./docs/minicpm_ocr_1dot0_zh.md#评测)。
 
 ### 典型示例
+
+<p align="center"><a href="https://youtu.be/lJOzZytWoK8"><img src="./assets/minicpm-ocr/main_video_zh_play.PNG" alt="MiniCPM-OCR 1.0 与 Jev 宣传视频封面。点击在 YouTube 观看演示。" width="80%"></a></p>
 
 从左至右依次为原始文档、检测到的版面和渲染后的 Markdown。
 
@@ -134,8 +134,6 @@
 <p align="center"><a href="./assets/minicpm-ocr/jev-case-zh.png"><img src="./assets/minicpm-ocr/jev-case-zh.png" alt="文本、公式和表格的原图、两份 OCR 候选结果及其 Jev 评分。" width="100%"></a></p>
 
 使用方法、技术规格、评测结果和效率结果详见 [MiniCPM-OCR Jev 模型指南](./docs/minicpm_ocr_jev_zh.md)。
-
-<p align="center"><a href="https://youtu.be/lJOzZytWoK8"><img src="./assets/minicpm-ocr/main_video_zh_play.PNG" alt="MiniCPM-OCR 1.0 与 Jev 宣传视频封面。点击在 YouTube 观看演示。" width="80%"></a></p>
 
 <a id="quick-start"></a>
 
