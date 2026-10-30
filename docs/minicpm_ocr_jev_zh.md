@@ -28,7 +28,7 @@ MiniCPM-OCR Jev **基于 Qwen3.5-2B 训练**，保留其视觉编码器和语言
 | 输出   | 0–1 质量评分，分数越高表示模型越倾向于判为正确 |
 
 
-模型内部使用一一对应的区域原图、候选文本和渲染图。调用 [云端 API](./minicpm_ocr_jev_api_zh.md)、Docker 镜像或内置渲染器的 SDK 服务时，只需提供区域原图、候选文本和正确的区域类别 `category`（`text`、`formula` 或 `table`），渲染由服务完成；不带渲染器的 SDK 服务则需要调用方提供渲染图。请求字段与图像编码格式见对应的 [部署教程](./minicpm_ocr_jev_tutorial_zh.md)。
+模型内部使用一一对应的区域原图、候选文本和渲染图。调用 [云端 API](https://platform.modelbest.cn/console/docs/api/ocr-jev)、Docker 镜像或内置渲染器的 SDK 服务时，只需提供区域原图、候选文本和正确的区域类别 `category`（`text`、`formula` 或 `table`），渲染由服务完成；不带渲染器的 SDK 服务则需要调用方提供渲染图。请求字段与图像编码格式见对应的 [部署教程](./minicpm_ocr_jev_tutorial_zh.md)。
 
 ## 使用场景
 
@@ -63,7 +63,7 @@ MiniCPM-OCR Jev **基于 Qwen3.5-2B 训练**，保留其视觉编码器和语言
 
 | 接入方式              | 使用说明                                               |
 | ----------------- | -------------------------------------------------- |
-| 云端 API            | [单候选打分、单块选优与批量选优](./minicpm_ocr_jev_api_zh.md)     |
+| 云端 API            | [单候选打分、单块选优与批量选优](https://platform.modelbest.cn/console/docs/api/ocr-jev)     |
 | Docker / SDK 本地部署 | [环境准备、渲染方式与服务启动](./minicpm_ocr_jev_tutorial_zh.md) |
 | vLLM 后端           | [不带渲染器与内置渲染器的服务配置](./vllm_deploy_jev_zh.md)        |
 | FlagOS            | [Torch-FL 多芯片部署指南](./flagos_deploy_zh.md)          |
@@ -80,7 +80,7 @@ MiniCPM-OCR Jev **基于 Qwen3.5-2B 训练**，保留其视觉编码器和语言
 3. 检查返回状态并将有效评分与原候选关联，按所选阈值分配自动通过或人工复核；多模型场景按区域比较候选分数。
 4. 按原阅读顺序输出选定结果，并保留待复核区域，便于回看原文。
 
-单候选打分使用 `score`，单块多候选选优使用 `score_best`，多块批量选优使用 `score_best_batch`。请求字段、响应读取和 Python 示例见 [API 文档](./minicpm_ocr_jev_api_zh.md)。
+单候选打分使用 `score`，单块多候选选优使用 `score_best`，多块批量选优使用 `score_best_batch`。请求字段、响应读取和 Python 示例见 [API 文档](https://platform.modelbest.cn/console/docs/api/ocr-jev)。
 
 ## 二次微调
 

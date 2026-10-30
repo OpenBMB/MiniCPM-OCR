@@ -24,7 +24,7 @@ MiniCPM-OCR Jev is **trained from Qwen3.5-2B**. It retains the architecture of t
 | Candidate content | OCR text and an image rendered from that text |
 | Output | A quality score between 0 and 1; a higher score indicates that the model is more likely to judge the candidate correct |
 
-Internally, the model uses a matched original region image, candidate text, and rendered image. When calling the [cloud API](./minicpm_ocr_jev_api_en.md), the Docker image, or the SDK service with a built-in renderer, provide the original region image, candidate text, and the correct region `category` (`text`, `formula`, or `table`); the service handles rendering. The SDK service without a renderer requires the caller to supply the rendered image. See the [deployment guide](./minicpm_ocr_jev_tutorial_en.md) for request fields and image encoding formats.
+Internally, the model uses a matched original region image, candidate text, and rendered image. When calling the [cloud API](https://platform.modelbest.ai/console/docs/api/ocr-jev), the Docker image, or the SDK service with a built-in renderer, provide the original region image, candidate text, and the correct region `category` (`text`, `formula`, or `table`); the service handles rendering. The SDK service without a renderer requires the caller to supply the rendered image. See the [deployment guide](./minicpm_ocr_jev_tutorial_en.md) for request fields and image encoding formats.
 
 ## Use cases
 
@@ -56,7 +56,7 @@ See [Model weights on the homepage](../README.md#model-weights) for the official
 
 | Deployment method | Guide |
 | :--- | :--- |
-| Cloud API | [Single-candidate scoring, best-of-N for one block, and batched best-of-N](./minicpm_ocr_jev_api_en.md) |
+| Cloud API | [Single-candidate scoring, best-of-N for one block, and batched best-of-N](https://platform.modelbest.ai/console/docs/api/ocr-jev) |
 | Docker / SDK local deployment | [Environment setup, rendering options, and service startup](./minicpm_ocr_jev_tutorial_en.md) |
 | vLLM backend | [Service configuration with and without a built-in renderer](./vllm_deploy_jev_en.md) |
 | FlagOS | [Torch-FL deployment guide for multiple chips](./flagos_deploy_en.md) |
@@ -72,7 +72,7 @@ When placing MiniCPM-OCR Jev after MiniCPM-OCR 1.0 or another parser, organize t
 3. Check the return status and associate valid scores with their original candidates. Apply your chosen threshold to route results to automatic acceptance or human review; for multiple models, compare candidate scores within each region.
 4. Output the selected results in the original reading order and retain regions awaiting review so reviewers can refer back to the source.
 
-Use `score` for single-candidate scoring, `score_best` to select among several candidates for one block, and `score_best_batch` for batched selection across multiple blocks. See the [API documentation](./minicpm_ocr_jev_api_en.md) for request fields, response handling, and Python examples.
+Use `score` for single-candidate scoring, `score_best` to select among several candidates for one block, and `score_best_batch` for batched selection across multiple blocks. See the [API documentation](https://platform.modelbest.ai/console/docs/api/ocr-jev) for request fields, response handling, and Python examples.
 
 ## Fine-tuning
 
