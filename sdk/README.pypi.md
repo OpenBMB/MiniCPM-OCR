@@ -7,6 +7,10 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/OpenBMB/MiniCPM"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/minicpm-logo.jpg" width="300" alt="MiniCPM logo"></a>
+</p>
+
+<p align="center">
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_1dot0_en.md"><strong>MiniCPM-OCR 1.0 Guide</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-1.0" title="Hugging Face"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-1.0" title="ModelScope"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
   &emsp;
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_jev_en.md"><strong>MiniCPM-OCR Jev Guide</strong></a>&ensp;<a href="https://huggingface.co/openbmb/MiniCPM-OCR-Jev" title="Hugging Face"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/huggingface_logo-noborder.svg" width="19" height="18" alt="Hugging Face"></a>&ensp;<a href="https://modelscope.cn/models/OpenBMB/MiniCPM-OCR-Jev" title="ModelScope"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/modelscope_logo_padded.svg" width="25" height="14" alt="ModelScope"></a>
@@ -21,6 +25,10 @@
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#skill">Skill</a> &nbsp;·&nbsp;
   <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_tutorial_en.md">Local Deployment</a>
   &nbsp;|&nbsp; <a href="https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md">中文</a>
+  <br>
+  Join the Community via
+  <a href="https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=c35j072a-9abe-4ba6-ba1d-3ab340f9ba8c">Feishu / Lark</a> &nbsp;·&nbsp;
+  <a href="https://discord.gg/JE8KQqtdn">Discord</a>
 </p>
 
 </div>
@@ -62,6 +70,8 @@ Among the open-source OCR models shown below, MiniCPM-OCR 1.0 achieves 1.2 pages
 See the [MiniCPM-OCR 1.0 guide](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_1dot0_en.md#evaluation) for per-benchmark bar charts and throughput details.
 
 ### Examples
+
+<p align="center"><a href="https://youtu.be/lJOzZytWoK8"><img src="https://raw.githubusercontent.com/OpenBMB/MiniCPM-OCR/main/assets/minicpm-ocr/main_video_en_play.PNG" alt="MiniCPM-OCR 1.0 and Jev promo video. Click to watch the demo on YouTube." width="80%"></a></p>
 
 Left to right: original document, detected layout, and rendered Markdown.
 
@@ -161,6 +171,14 @@ Use the Free API to access MiniCPM-OCR 1.0 recognition and MiniCPM-OCR Jev quali
 
 [MiniCPM-OCR 1.0 API docs](https://platform.modelbest.ai/console/docs/api/document-parse) &emsp;·&emsp; [MiniCPM-OCR Jev API docs](https://platform.modelbest.ai/console/docs/api/ocr-jev)
 
+<a id="mobile-demo"></a>
+
+### MiniCPM-V Demo — iOS, Android & HarmonyOS
+
+MiniCPM-OCR 1.0 now runs fully on-device on iOS in the MiniCPM-V Demo app (document OCR is currently iOS only).
+
+[On-device demo tutorial](https://github.com/OpenBMB/MiniCPM-V-Apps/blob/main/README.md)
+
 <a id="手动部署"></a>
 
 <a id="本地部署"></a>
@@ -169,7 +187,7 @@ Use the Free API to access MiniCPM-OCR 1.0 recognition and MiniCPM-OCR Jev quali
 
 Run the models on your own hardware: MiniCPM-OCR 1.0 parses PDFs and images into Markdown or JSON, while MiniCPM-OCR Jev scores the parsing results.
 
-[MiniCPM-OCR 1.0 deployment tutorial](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_tutorial_en.md) · [MiniCPM-OCR Jev deployment tutorial](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_jev_tutorial_en.md)
+[MiniCPM-OCR 1.0 deployment tutorial](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_tutorial_en.md) · [MiniCPM-OCR Jev deployment tutorial](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/minicpm_ocr_jev_tutorial_en.md) · [Web demo deployment tutorial](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/webdemo_deploy.md)
 
 <a id="模型微调"></a>
 
