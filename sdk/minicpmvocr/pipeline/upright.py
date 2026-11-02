@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import io
 import json
+import logging
 import os
 import queue
 import threading
@@ -13,6 +14,8 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
+
+LOGGER = logging.getLogger(__name__)
 
 SMALL = 1100
 
@@ -310,8 +313,12 @@ class UprightCorrector:
 def _predictor_kwargs(model_name: str, model_dir: str, up: Dict) -> Dict:
 
     kwargs = {"model_name": model_name}
-    if model_dir:
+    if model_dir and os.path.isdir(model_dir):
         kwargs["model_dir"] = model_dir
+    elif model_dir:
+        # The packaged config points at ${ASSETS_DIR}/paddle_upright, which only
+        # the CLI prepares; let paddleocr fetch the same official model instead.
+        LOGGER.warning("%s 模型目录不存在：%s，改由 paddleocr 按模型名下载。", model_name, model_dir)
     device = str(up.get("device") or os.environ.get("OCR_UPRIGHT_DEVICE") or "").strip()
     if device:
         kwargs["device"] = device
@@ -524,4 +531,16 @@ def build_upright_fleet(local: "UprightPool | None", registry: str) -> UprightFl
 
 def build_upright_corrector(cfg: Dict) -> "UprightCorrector | None":
     'A corrector when the config asks for one, else None.'
-    return UprightCorrector(cfg) if upright_enabled(cfg) else None
+    if not upright_enabled(cfg):
+        return None
+    try:
+        return UprightCorrector(cfg)
+    except RuntimeError as exc:
+        # Missing optional paddleocr dependency degrades to "no upright" with a
+        # warning instead of failing the whole run; model problems still raise.
+        if "requires paddleocr" not in str(exc):
+            raise
+        LOGGER.warning(
+            "upright.enabled=true 但缺少 paddleocr 依赖，本次运行跳过摆正（%s）。"
+            "安装 minicpm-ocr[upright] 后重启可启用。", exc)
+        return None

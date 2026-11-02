@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import json
 import os
 import re
@@ -16,7 +17,7 @@ from .backends import BACKEND_ALIASES, list_backends
 from .config import _deep_merge, load_config
 from .constants import PARAMS_FILENAME, SUPPORTED_INPUT_SUFFIXES
 from .layouts import LAYOUT_ALIASES, list_layout_providers, normalize_layout_provider
-from .layouts.download import ensure_layout_model
+from .layouts.download import ensure_layout_model, ensure_upright_models
 from .pipeline import infer_run, parse_layout_run, pipelined_run, prepare_run
 from ._utils import read_jsonl
 
@@ -84,6 +85,7 @@ def _build_parser() -> argparse.ArgumentParser:
     p_parse.add_argument("--stdout", action="store_true", help="Print markdown to stdout")
     p_parse.add_argument("--run-tag", default="", help="Optional run tag for this one-shot run")
     p_parse.add_argument("--no-merge-pages", action="store_true", help="Do not merge pages into a single markdown")
+    p_parse.add_argument("--json", default="", metavar="FILE", help="Also write the result as JSON in the online document-parse job shape (pages[] + markdown)")
     p_parse.add_argument("--page-delimiter", default="\n\n<!-- page-break -->\n\n", help="Delimiter between pages when merging")
     _add_engine_args(p_parse, require_connection=True)
 
@@ -222,6 +224,23 @@ def _quickstart_layout_model() -> str:
     return str(next((path for path in candidates if (path / PARAMS_FILENAME).is_file()), candidates[0]))
 
 
+def _quickstart_upright_root() -> str:
+    configured = os.environ.get("OCR_UPRIGHT_DIR", "").strip()
+    if configured:
+        return str(Path(configured).expanduser().resolve())
+    assets = Path(os.environ.get("OCR_ASSETS_DIR") or Path.cwd() / "models").expanduser().resolve()
+    return str(assets / "paddle_upright")
+
+
+def _quickstart_upright_dirs() -> dict:
+    root = Path(_quickstart_upright_root())
+    return {
+        "model_dir": str(root / "PP-LCNet_x1_0_doc_ori"),
+        "det_model_dir": str(root / "PP-OCRv5_mobile_det"),
+        "textline_model_dir": str(root / "PP-LCNet_x1_0_textline_ori"),
+    }
+
+
 def _load_parse_config(args: argparse.Namespace) -> dict:
     if not args.server_url or any(not url.strip() for url in args.server_url):
         raise ValueError("--server-url URL is required and must not be empty")
@@ -249,6 +268,7 @@ def _load_parse_config(args: argparse.Namespace) -> dict:
                 "model_dir": _quickstart_layout_model(),
                 "device": os.environ.get("OCR_LAYOUT_DEVICE") or "cuda:0",
             },
+            "upright": _quickstart_upright_dirs(),
             "engine": {"max_model_len": 40960},
             "pipeline": {"overlap_layout": True},
         }
@@ -262,6 +282,21 @@ def _load_parse_config(args: argparse.Namespace) -> dict:
         and normalize_layout_provider(overrides["layout"].get("provider", "ppdoclayout3_paddlex")) == "ppdoclayout3_paddlex"
     ):
         ensure_layout_model(Path(overrides["layout"]["model_dir"]))
+    explicit_upright = explicit_overrides.get("upright") or {}
+    upright_models_managed = (
+        "model_dir" in explicit_upright
+        or "det_model_dir" in explicit_upright
+        or "textline_model_dir" in explicit_upright
+        or bool(os.environ.get("OCR_UPRIGHT_DIR", "").strip())
+    )
+    if (
+        not args.config
+        and not upright_models_managed
+        and overrides.get("upright", {}).get("enabled") is not False
+        # Without paddleocr the run skips rotation; the models would go unused.
+        and importlib.util.find_spec("paddleocr") is not None
+    ):
+        ensure_upright_models(Path(_quickstart_upright_root()))
     config = args.config or str(Path(__file__).parent / "configs" / "minicpmvocr.yaml")
     try:
         return load_config(config, overrides=overrides)
@@ -395,6 +430,17 @@ def main() -> int:
             cfg=cfg,
         )
 
+        json_path = None
+        if args.json:
+            from .pipeline._response import assemble_document_json
+
+            json_path = Path(args.json).resolve()
+            json_path.parent.mkdir(parents=True, exist_ok=True)
+            json_path.write_text(
+                json.dumps(assemble_document_json(run_dir), ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
         if args.stdout or not args.output:
             print(_absolute_image_links(markdown, run_dir))
             return 0
@@ -410,6 +456,7 @@ def main() -> int:
                     "command": "parse",
                     "input": str(Path(args.input).resolve()),
                     "output_md": str(output_path),
+                    **({"output_json": str(json_path)} if json_path else {}),
                     "pages": pages,
                     "run_dir": str(run_dir),
                     "layout_summary": layout_summary,

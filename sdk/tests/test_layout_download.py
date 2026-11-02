@@ -182,3 +182,70 @@ def test_concurrent_callers_download_once(tmp_path, remote):
     assert results == [model] * 4
     assert len(remote["calls"]) == 1
     assert download.layout_model_ready(model)
+
+
+def upright_archive(name):
+    output = io.BytesIO()
+    files = {
+        "inference.pdiparams": b"upright-weights",
+        "inference.json": b'{"model": "test"}',
+        "inference.yml": f"Global:\n  model_name: {name}\n".encode(),
+    }
+    with tarfile.open(fileobj=output, mode="w") as archive:
+        for fname, content in files.items():
+            info = tarfile.TarInfo(f"{name}_infer/" + fname)
+            info.size = len(content)
+            archive.addfile(info, io.BytesIO(content))
+    return output.getvalue()
+
+
+def test_ensure_upright_models_downloads_missing_and_reuses_existing(tmp_path, monkeypatch):
+    root = tmp_path / "models/paddle_upright"
+    bodies = {name: upright_archive(name) for name in download.UPRIGHT_MODELS}
+    monkeypatch.setattr(download, "UPRIGHT_MODELS", {
+        name: hashlib.sha256(body).hexdigest() for name, body in bodies.items()
+    })
+    calls = []
+
+    class Response:
+        def __init__(self, body):
+            self._body = body
+            self.headers = {"Content-Length": str(len(body))}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def raise_for_status(self):
+            pass
+
+        def iter_content(self, chunk_size):
+            yield self._body
+
+    def get(url, **kwargs):
+        calls.append(url)
+        name = url.rsplit("/", 1)[-1][: -len("_infer.tar")]
+        return Response(bodies[name])
+
+    monkeypatch.setattr(download.requests, "get", get)
+    # One model already present locally: only the other two download.
+    ready_name = next(iter(download.UPRIGHT_MODELS))
+    write_local(root / ready_name, {
+        "inference.pdiparams": b"upright-weights",
+        "inference.json": b'{"model": "test"}',
+        "inference.yml": f"Global:\n  model_name: {ready_name}\n".encode(),
+    })
+    installed = download.ensure_upright_models(root)
+    assert set(installed) == set(download.UPRIGHT_MODELS)
+    for name in download.UPRIGHT_MODELS:
+        assert download.layout_model_ready(root / name)
+        if name == ready_name:
+            continue
+        metadata = json.loads((root / name / ".minicpmvocr-model.json").read_text())
+        assert metadata["source"] == f"{download.UPRIGHT_MODEL_BASE}/{name}_infer.tar"
+    assert len(calls) == len(download.UPRIGHT_MODELS) - 1
+    # A second call reuses everything without more downloads.
+    download.ensure_upright_models(root)
+    assert len(calls) == len(download.UPRIGHT_MODELS) - 1

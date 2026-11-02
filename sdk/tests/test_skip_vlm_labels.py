@@ -203,3 +203,28 @@ def test_explicitly_ignored_header_footer_images_stay_hidden(label):
     assert assemble_markdown(
         [{"label": label, "content": "COURT OFFICE"}], prompt_map
     ) == ""
+
+
+def test_skipped_seal_reports_online_contract_status():
+    from pathlib import Path
+
+    from minicpmvocr.pipeline._blocks import _execute_block
+
+    out = _execute_block(None, prompts.DEFAULT_PROMPT_MAP, "img", Path("."), {
+        "label": "seal", "order": 0, "bbox": [0, 0, 1, 1], "skip_vlm": True,
+    })
+    assert out["result_block"]["status"] == "skipped_seal"
+    assert out["result_block"]["content"] == ""
+    assert out["crop_row"]["status"] == "skipped_seal"
+
+
+def test_other_skipped_labels_keep_skipped_no_vlm():
+    from pathlib import Path
+
+    from minicpmvocr.pipeline._blocks import _execute_block
+
+    out = _execute_block(None, prompts.DEFAULT_PROMPT_MAP, "img", Path("."), {
+        "label": "image", "order": 0, "bbox": [0, 0, 1, 1], "skip_vlm": True,
+    })
+    assert out["result_block"]["status"] == "skipped_no_vlm"
+    assert out["crop_row"]["status"] == "skipped_no_vlm"

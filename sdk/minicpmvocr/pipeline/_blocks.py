@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 
 from PIL import Image
 
+from ._response import RESPONSE_DIRNAME, page_response, public_block_status
 from ._text import _normalize_and_dedupe_blocks
 from ._tts import _execute_block_adaptive, _execute_block_tts
 from ..backends import PNG_COMPRESS_LEVEL
@@ -52,13 +53,16 @@ def _execute_block(engine, prompt_map: Dict, image_id: str, crop_dir: Path, bloc
     queue_wait_sec = round(crop_started - submitted_at, 6) if submitted_at else 0.0
 
     if elem_cfg is None or block.get("skip_vlm", False):
+        # Skipped seal blocks keep the online contract status; every other
+        # skipped label reports skipped_no_vlm.
+        skip_status = "skipped_seal" if label == "seal" else "skipped_no_vlm"
         return {
             "result_block": {
                 "label": label,
                 "order": block.get("order", 0),
                 "bbox": block.get("bbox"),
                 "crop_filename": crop_filename,
-                "status": "skipped_no_vlm",
+                "status": skip_status,
                 "content": "",
                 "raw_content": "",
             },
@@ -66,7 +70,7 @@ def _execute_block(engine, prompt_map: Dict, image_id: str, crop_dir: Path, bloc
                 "image_id": image_id,
                 "label": label,
                 "crop_filename": crop_filename,
-                "status": "skipped_no_vlm",
+                "status": skip_status,
                 "duration_sec": 0.0,
             },
             "prep_sec": 0.0,
@@ -83,7 +87,7 @@ def _execute_block(engine, prompt_map: Dict, image_id: str, crop_dir: Path, bloc
                 "order": block.get("order", 0),
                 "bbox": block.get("bbox"),
                 "crop_filename": crop_filename,
-                "status": "missing_crop",
+                "status": "failed",
                 "content": "",
                 "raw_content": "",
             },
@@ -253,7 +257,9 @@ def _execute_block(engine, prompt_map: Dict, image_id: str, crop_dir: Path, bloc
         "order": block.get("order", 0),
         "bbox": block.get("bbox"),
         "crop_filename": crop_filename,
-        "status": infer_status,
+        # The crop row keeps the specific failure reason; the block carries the
+        # public status only.
+        "status": public_block_status(infer_status),
         "content": content,
         "raw_content": raw_text,
         "inline_formula_mixed": (
@@ -568,6 +574,15 @@ def _finalize_page(
         "result_stage": "infer_final",
     }
     write_json(json_path, result_obj)
+    usage = {
+        "prompt_tokens": sum(int(r.get("prompt_tokens") or 0) for r in crop_rows),
+        "completion_tokens": sum(int(r.get("completion_tokens") or 0) for r in crop_rows),
+    }
+    usage["total_tokens"] = usage["prompt_tokens"] + usage["completion_tokens"]
+    write_json(
+        run_dir / RESPONSE_DIRNAME / f"{image_id}.json",
+        page_response(layout=layout, blocks=final_blocks, markdown=markdown, usage=usage),
+    )
 
     status = "ok" if num_failed_blocks == 0 else "partial_failed"
     row = {

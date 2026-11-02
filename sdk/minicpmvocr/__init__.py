@@ -12,6 +12,7 @@ _EXPORTS = {
     "load_config": "minicpmvocr.config",
 
     "parse_layout_run": "minicpmvocr.pipeline",
+    "assemble_document_json": "minicpmvocr.pipeline",
     "prepare_run": "minicpmvocr.pipeline",
     "infer_run": "minicpmvocr.pipeline",
     "pipelined_run": "minicpmvocr.pipeline",
@@ -59,6 +60,12 @@ if TYPE_CHECKING:
         assemble_markdown,
         convert_otsl_to_html,
     )
-    from .pipeline import infer_run, parse_layout_run, pipelined_run, prepare_run
+    from .pipeline import (
+        assemble_document_json,
+        infer_run,
+        parse_layout_run,
+        pipelined_run,
+        prepare_run,
+    )
     from .prompts import DEFAULT_PROMPT_MAP, get_element_cfg, load_prompt_map
     from .pipeline.upright import UprightCorrector

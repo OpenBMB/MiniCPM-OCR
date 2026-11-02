@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 __all__ = [
+    "assemble_document_json",
     "infer_run",
     "parse_layout_run",
     "pipelined_run",
@@ -9,6 +10,9 @@ __all__ = [
 
 
 def __getattr__(name: str):
+    if name == "assemble_document_json":
+        from ._response import assemble_document_json
+        return assemble_document_json
     if name == "pipelined_run":
         from .overlapped import pipelined_run
         return pipelined_run

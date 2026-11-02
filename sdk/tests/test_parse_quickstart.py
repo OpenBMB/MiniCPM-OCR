@@ -49,7 +49,7 @@ class FakeEngine:
 
 @pytest.fixture
 def quickstart(tmp_path, monkeypatch):
-    for name in ("OCR_LAYOUT_MODEL_DIR", "OCR_ASSETS_DIR", "OCR_LAYOUT_DEVICE", "VLLM_URL", "OCR_SERVED_NAME", "OCR_INPUT_DIR", "OCR_RUN_ROOT"):
+    for name in ("OCR_LAYOUT_MODEL_DIR", "OCR_ASSETS_DIR", "OCR_LAYOUT_DEVICE", "OCR_UPRIGHT_DIR", "VLLM_URL", "OCR_SERVED_NAME", "OCR_INPUT_DIR", "OCR_RUN_ROOT"):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.chdir(tmp_path)
     def reject_network(*args, **kwargs):
@@ -61,7 +61,13 @@ def quickstart(tmp_path, monkeypatch):
     (model / "inference.pdiparams").write_bytes(b"test-weights")
     (model / "inference.json").write_text("{}")
     (model / "inference.yml").write_text("Global:\n  model_name: PP-DocLayoutV3\n")
-    seen = {"configs": [], "layouts": []}
+    for name in download.UPRIGHT_MODELS:
+        upright_model = tmp_path / "models/paddle_upright" / name
+        upright_model.mkdir(parents=True)
+        (upright_model / "inference.pdiparams").write_bytes(b"test-weights")
+        (upright_model / "inference.json").write_text("{}")
+        (upright_model / "inference.yml").write_text(f"Global:\n  model_name: {name}\n")
+    seen = {"configs": [], "layouts": [], "uprights": []}
 
     def build_detector(config):
         seen["layouts"].append(deepcopy(config))
@@ -71,9 +77,14 @@ def quickstart(tmp_path, monkeypatch):
         seen["configs"].append(deepcopy(config))
         return FakeEngine()
 
+    def build_upright(config):
+        seen["uprights"].append(deepcopy(config))
+        return None
+
     for module in (staged, overlapped):
         monkeypatch.setattr(module, "create_layout_detector", build_detector)
         monkeypatch.setattr(module, "create_backend", build_engine)
+        monkeypatch.setattr(module, "build_upright_corrector", build_upright)
     return tmp_path, model, seen
 
 
@@ -91,9 +102,30 @@ def test_short_cpu_and_gpu_commands_write_markdown(quickstart, monkeypatch, caps
     assert cfg["engine"]["server_urls"] == [SERVER_URL]
     assert cfg["pipeline"]["max_workers"] == 32
     assert cfg["pipeline"]["merge_cross_page_tables"] is False
+    assert cfg["upright"]["enabled"] is True
+    assert cfg["upright"]["model_dir"] == str(root / "models/paddle_upright/PP-LCNet_x1_0_doc_ori")
+    assert cfg["upright"]["det_model_dir"] == str(root / "models/paddle_upright/PP-OCRv5_mobile_det")
+    assert cfg["upright"]["textline_model_dir"] == str(root / "models/paddle_upright/PP-LCNet_x1_0_textline_ori")
+    assert seen["uprights"], "quickstart should build an upright corrector"
     summary = json.loads(capsys.readouterr().out)
     assert summary["pages"] == 1
     assert summary["layout_summary"]["overlapped"] is True
+
+
+def test_upright_can_be_disabled_with_set(quickstart, monkeypatch, capsys):
+    _, _, seen = quickstart
+    _set_argv(monkeypatch, [
+        "minicpmvocr", "parse", "input.png", "-o", "result.md", "--device", "cpu",
+        "--set", "upright.enabled=false",
+    ])
+    assert cli.main() == 0
+    cfg = seen["configs"][0]
+    assert cfg["upright"]["enabled"] is False
+    # The runners ask for a corrector unconditionally and drop it when
+    # disabled, so every recorded config must be an upright-off one.
+    assert seen["uprights"]
+    assert all(not entry["upright"]["enabled"] for entry in seen["uprights"])
+    assert json.loads(capsys.readouterr().out)["pages"] == 1
 
 
 def test_pdf_quickstart_renders_and_exports_all_pages(quickstart, monkeypatch, capsys):
