@@ -167,6 +167,14 @@ Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL_jev
 
 [MiniCPM-OCR 1.0 API 文档](https://platform.modelbest.cn/console/docs/api/document-parse) &emsp;·&emsp; [MiniCPM-OCR Jev API 文档](https://platform.modelbest.cn/console/docs/api/ocr-jev)
 
+<a id="mobile-demo"></a>
+
+### MiniCPM-V Demo — iOS、Android 与 HarmonyOS
+
+MiniCPM-OCR 1.0 现已可在 MiniCPM-V Demo 中于 iOS 设备端离线运行（文档识别目前仅支持 iOS）。
+
+[端侧 Demo 教程](https://github.com/OpenBMB/MiniCPM-V-Apps/blob/main/README_zh.md)
+
 <a id="手动部署"></a>
 
 <a id="local-deployment"></a>
