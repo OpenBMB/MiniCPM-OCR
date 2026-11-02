@@ -15,8 +15,9 @@ minicpmvocr parse doc.pdf -o doc.md --device cuda:0 \
 
 | Option | Description |
 |---|---|
-| `INPUT` / `--input FILE` | Input file: PDF, PNG, JPG, JPEG, BMP, WebP, TIF, or TIFF; use either form |
+| `INPUT` / `--input FILE` | Input file: PDF, PNG, JPG, JPEG, GIF, BMP, WebP, TIF, or TIFF; use either form |
 | `-o FILE` / `--output FILE` | Output Markdown path; writes to standard output when omitted |
+| `--json FILE` | Also write JSON shaped like an online document-parse job: `status`, `pages_done`, `pages_total`, `pages[]`, and `markdown` |
 | `--server-url URL` | Required recognition service URL; repeat to connect to multiple service instances |
 | `--model NAME` | Required model name exposed by the service, matching vLLM's `--served-model-name` |
 | `--device DEVICE` | Layout detection device, such as `cuda:0`; does not change the device used by the recognition service |
@@ -37,9 +38,11 @@ Run `minicpmvocr parse --help` for the complete option list.
 
 When `--config` is supplied, the selected configuration file is loaded first, then command-line options are applied. `--set` takes precedence over other command-line options. See the [SDK configuration file](../sdk/minicpmvocr/configs/minicpmvocr.yaml) for all configuration fields.
 
-Without `--config`, the quickstart configuration uses GPU 0 for layout detection, a recognition context length of 40960, and 32 concurrent recognition requests. Layout detection and recognition overlap, and cross-page table merging is disabled. The service URL and model name have no default values.
+Without `--config`, the quickstart configuration uses GPU 0 for layout detection, enables rotation adaptation (`upright`), a recognition context length of 40960, and 32 concurrent recognition requests. Layout detection and recognition overlap, and cross-page table merging is disabled. The service URL and model name have no default values.
 
-The default Paddle layout model is stored in `models/PP-DocLayoutV3_infer/` under the working directory. Complete model files are reused; missing or incomplete files trigger an automatic download. Set `OCR_ASSETS_DIR` to change the root directory for model assets.
+The default Paddle layout model is stored in `models/PP-DocLayoutV3_infer/` under the working directory, and the three Paddle models used by rotation adaptation are stored in `models/paddle_upright/`. Complete model files are reused; missing or incomplete files trigger an automatic download. Set `OCR_ASSETS_DIR` to change the root directory for model assets, or `OCR_UPRIGHT_DIR` to point at a prepared `paddle_upright` directory. If the optional `paddleocr` dependency is missing, parsing does not fail: a warning is logged and rotation adaptation is skipped for that run.
+
+Disable rotation with `--set upright.enabled=false`.
 
 When specifying a model path through `--layout-model DIR`, `OCR_LAYOUT_MODEL_DIR`, or a custom configuration file, prepare the local model first. Relative paths in a custom YAML file are resolved against that file's directory; relative `--layout-model` paths are resolved against the directory where the command is run.
 
@@ -91,4 +94,4 @@ if __name__ == "__main__":
 
 `ensure_layout_model()` reuses or downloads the official layout model; `load_config()` merges the configuration and validates the input; `pipelined_run()` runs layout detection and recognition; `assemble_document_markdown()` returns the combined Markdown, page count, and number of cross-page table merges.
 
-Run artifacts are written to `runs/<run_tag>/` under the working directory by default, including per-page Markdown, structured results, and run records. Change the output root with `run.run_root` in the configuration or the `OCR_RUN_ROOT` environment variable.
+Run artifacts are written to `runs/<run_tag>/` under the working directory by default, including per-page Markdown, structured results, and run records. `pages_json/<image_id>.json` has the same shape as one page of the online [Document Parsing API](https://platform.modelbest.cn/console/docs/api/document-parse): `metadata.page_index` (zero-based), `choices[0].message.content` (page Markdown), and `ocr` (`image_width`, `image_height`, `blocks[]`, `rotation`). Block `status` is `ok`, `failed`, `skipped_no_vlm`, or `skipped_seal`; `rotation.total_angle` is positive counterclockwise, and coordinates refer to the corrected page when `applied=true`. `assemble_document_json(run_dir)` returns the same document as `--json`, joining page Markdown with a blank line. Change the output root with `run.run_root` in the configuration or the `OCR_RUN_ROOT` environment variable.

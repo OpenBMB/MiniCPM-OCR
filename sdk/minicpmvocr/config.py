@@ -62,7 +62,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     },
     "upright": {
 
-        "enabled": False,
+        "enabled": True,
 
         "doc_gate": True,
 
@@ -213,7 +213,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
 }
 
 
-ALLOWED_FILE_SUFFIXES = {".pdf", ".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tif", ".tiff"}
+ALLOWED_FILE_SUFFIXES = {".pdf", ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".tif", ".tiff"}
 
 
 REQUIRED_TTS_SAMPLING_KEYS = ("temperature", "top_k", "top_p")

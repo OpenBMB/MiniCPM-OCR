@@ -45,7 +45,7 @@ engine:
 
 
 upright:
-  enabled: false
+  enabled: true
   doc_gate: true
   gate_min_side: 500
   gate_min_lines: 6

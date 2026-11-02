@@ -215,6 +215,9 @@ def _parse_one_page(
             layout["page_image"] = page_image_rel
         if upright_record is not None:
             layout["upright"] = upright_record
+        elif bool((cfg.get("upright") or {}).get("enabled", False)):
+            # Requested but no corrector could be built (paddleocr missing).
+            layout["upright"] = {"skipped_reason": "unavailable"}
 
 
         phase["png_save_sec"] = float(layout.get("png_save_sec", 0.0))

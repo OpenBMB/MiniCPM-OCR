@@ -15,8 +15,9 @@ minicpmvocr parse doc.pdf -o doc.md --device cuda:0 \
 
 | 参数 | 说明 |
 |---|---|
-| `INPUT` / `--input FILE` | 输入文件，支持 PDF、PNG、JPG、JPEG、BMP、WebP、TIF、TIFF；两种写法任选其一 |
+| `INPUT` / `--input FILE` | 输入文件，支持 PDF、PNG、JPG、JPEG、GIF、BMP、WebP、TIF、TIFF；两种写法任选其一 |
 | `-o FILE` / `--output FILE` | 输出 Markdown 路径；省略时输出到标准输出 |
+| `--json FILE` | 另外输出 JSON，结构与线上文档解析异步任务一致：`status`、`pages_done`、`pages_total`、`pages[]` 和 `markdown` |
 | `--server-url URL` | 必填，识别服务地址；可重复传入以连接多个服务实例 |
 | `--model NAME` | 必填，服务暴露的模型名称，对应 vLLM 的 `--served-model-name` |
 | `--device DEVICE` | 版面检测设备，例如 `cuda:0`；不改变识别服务使用的设备 |
@@ -37,9 +38,11 @@ minicpmvocr parse doc.pdf -o doc.md --device cuda:0 \
 
 指定 `--config` 时，先读取所选配置文件，再应用命令行选项；`--set` 的优先级高于其他命令行选项。完整配置项见 [SDK 配置文件](../sdk/minicpmvocr/configs/minicpmvocr.yaml)。
 
-省略 `--config` 时，快速开始配置使用 GPU 0 进行版面检测，识别上下文长度为 40960，识别请求并发数为 32，版面检测与识别重叠执行，关闭跨页表格合并。服务地址和模型名称没有默认值。
+省略 `--config` 时，快速开始配置使用 GPU 0 进行版面检测，开启自适应旋转（`upright`），识别上下文长度为 40960，识别请求并发数为 32，版面检测与识别重叠执行，关闭跨页表格合并。服务地址和模型名称没有默认值。
 
-默认 Paddle 版面模型位于运行目录下的 `models/PP-DocLayoutV3_infer/`。文件完整时直接复用；缺失或不完整时自动下载。`OCR_ASSETS_DIR` 可更改模型所在的资产根目录。
+默认 Paddle 版面模型位于运行目录下的 `models/PP-DocLayoutV3_infer/`，自适应旋转使用的三个 Paddle 模型位于 `models/paddle_upright/`。文件完整时直接复用；缺失或不完整时自动下载。`OCR_ASSETS_DIR` 可更改模型所在的资产根目录，`OCR_UPRIGHT_DIR` 可指向已准备好的 `paddle_upright` 目录。运行环境缺少可选的 `paddleocr` 依赖时解析不会失败：记录告警后本次运行跳过摆正。
+
+关闭旋转用 `--set upright.enabled=false`。
 
 使用 `--layout-model DIR`、`OCR_LAYOUT_MODEL_DIR` 或自定义配置文件指定模型路径时，需提前准备本地模型。自定义 YAML 中的相对路径以配置文件所在目录为基准；`--layout-model` 的相对路径以运行命令时的目录为基准。
 
@@ -91,4 +94,4 @@ if __name__ == "__main__":
 
 `ensure_layout_model()` 复用或下载官方版面模型；`load_config()` 合并配置并校验输入；`pipelined_run()` 执行版面检测和识别；`assemble_document_markdown()` 返回合并后的 Markdown、页数和跨页表格合并次数。
 
-运行产物默认写入当前目录下的 `runs/<run_tag>/`，包括逐页 Markdown、结构化结果和运行记录。可通过配置项 `run.run_root` 或环境变量 `OCR_RUN_ROOT` 更改输出根目录。
+运行产物默认写入当前目录下的 `runs/<run_tag>/`，包括逐页 Markdown、结构化结果和运行记录。其中 `pages_json/<image_id>.json` 与线上 [文档解析 API](https://platform.modelbest.cn/console/docs/api/document-parse) 的单页响应同构：`metadata.page_index`（从 0 起）、`choices[0].message.content`（整页 Markdown）和 `ocr`（`image_width`、`image_height`、`blocks[]`、`rotation`）。块的 `status` 取值为 `ok`、`failed`、`skipped_no_vlm`、`skipped_seal`；`rotation.total_angle` 以逆时针为正，`applied=true` 时坐标基于摆正后的页面。`assemble_document_json(run_dir)` 返回与 `--json` 相同的整份结果，页间 Markdown 以空行连接。可通过配置项 `run.run_root` 或环境变量 `OCR_RUN_ROOT` 更改输出根目录。

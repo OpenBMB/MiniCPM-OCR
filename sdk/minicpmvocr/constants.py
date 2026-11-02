@@ -41,7 +41,7 @@ CONFIG_FILENAME = "inference.yml"
 
 
 SUPPORTED_IMAGE_SUFFIXES: Set[str] = {
-    ".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tif", ".tiff",
+    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".tif", ".tiff",
 }
 SUPPORTED_INPUT_SUFFIXES: Set[str] = SUPPORTED_IMAGE_SUFFIXES | {".pdf"}
 
