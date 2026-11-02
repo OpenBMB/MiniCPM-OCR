@@ -169,6 +169,14 @@ Use the Free API to access MiniCPM-OCR 1.0 recognition and MiniCPM-OCR Jev quali
 
 [MiniCPM-OCR 1.0 API docs](https://platform.modelbest.ai/console/docs/api/document-parse) &emsp;·&emsp; [MiniCPM-OCR Jev API docs](https://platform.modelbest.ai/console/docs/api/ocr-jev)
 
+<a id="mobile-demo"></a>
+
+### MiniCPM-V Demo — iOS, Android & HarmonyOS
+
+MiniCPM-OCR 1.0 now runs fully on-device on iOS in the MiniCPM-V Demo app (document OCR is currently iOS only).
+
+[On-device demo tutorial](https://github.com/OpenBMB/MiniCPM-V-Apps/blob/main/README.md)
+
 <a id="手动部署"></a>
 
 <a id="本地部署"></a>
