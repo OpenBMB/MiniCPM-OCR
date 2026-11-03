@@ -37,11 +37,11 @@
 
 ## 📢 News
 
-- **[2026.11.02]** MiniCPM-OCR 1.0 now runs fully on-device on iOS in the [MiniCPM-V Demo](#mobile-demo).
-- **[2026.11.02]** [pip SDK](https://pypi.org/project/minicpm-ocr/) 1.0.4: page JSON follows the response shape of the online document-parse API, page orientation correction is on by default, and GIF input is supported.
-- **[2026.10.30]** Open-sourced a self-hosted Web Demo with a Chinese/English interface switch. See the [Web Demo deployment tutorial](./docs/webdemo_deploy.md).
-- **[2026.10.29]** SDK 1.0.3: Markdown keeps the recognized text of image blocks and links their crops; the [Skill](#skill) adds an Ollama route.
-- **[2026.10.27]** Released and open-sourced MiniCPM-OCR 1.0 and MiniCPM-OCR Jev, with [model weights](#model-weights), the pip SDK, the [Skill](#skill), and a [free API](#api).
+- 🔥🔥🔥 **[2026.11.02] MiniCPM-OCR 1.0 is now on iOS!** Try it in the 📱 [MiniCPM-V Demo](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#mobile-demo) app, where documents are parsed entirely on your device, even offline.
+- **[2026.11.02]** [pip SDK 1.0.4](https://pypi.org/project/minicpm-ocr/1.0.4/): page JSON follows the response shape of the online document-parse API, page orientation correction is on by default, and GIF input is supported.
+- **[2026.10.30]** Open-sourced a self-hosted Web Demo with a Chinese/English interface switch. See the [Web Demo deployment tutorial](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/webdemo_deploy.md).
+- **[2026.10.29]** [SDK 1.0.3](https://pypi.org/project/minicpm-ocr/1.0.3/): Markdown keeps the recognized text of image blocks and links their crops; the [Skill](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#skill) adds an Ollama route.
+- 🚀🚀🚀 **[2026.10.27] MiniCPM-OCR 1.0 and MiniCPM-OCR Jev are released and open-sourced!** Available now: [model weights](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#model-weights), the [pip SDK](https://pypi.org/project/minicpm-ocr/), the [Skill](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#skill), and a [free API](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#api).
 
 ## MiniCPM-OCR 1.0
 
@@ -152,6 +152,7 @@ See the [MiniCPM-OCR Jev model guide](./docs/minicpm_ocr_jev_en.md) for more on 
 Choose how to integrate MiniCPM-OCR 1.0 and MiniCPM-OCR Jev:
 
 <a id="使用-agent-skill-部署推荐"></a>
+<a id="skill"></a>
 
 ### Skill
 
@@ -181,7 +182,7 @@ Use the Free API to access MiniCPM-OCR 1.0 recognition and MiniCPM-OCR Jev quali
 
 ### MiniCPM-V Demo — iOS, Android & HarmonyOS
 
-MiniCPM-OCR 1.0 now runs fully on-device on iOS in the MiniCPM-V Demo app (document OCR is currently iOS only).
+The MiniCPM-V Demo app now includes MiniCPM-OCR 1.0, which parses documents entirely on your device, even offline. Document OCR is currently available on iOS only.
 
 [On-device demo tutorial](https://github.com/OpenBMB/MiniCPM-V-Apps/blob/main/README.md)
 
