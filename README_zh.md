@@ -37,10 +37,10 @@
 
 ## 📢 最新动态
 
-- 🔥🔥🔥 **[2026.11.02] MiniCPM-OCR 1.0 登陆 iOS！** 在 📱 [MiniCPM-V Demo](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md#mobile-demo) App 中即可体验，文档解析全程在设备本地完成，断网也能用。
-- **[2026.11.02]** [pip SDK 1.0.4](https://pypi.org/project/minicpm-ocr/1.0.4/) 发布：页面 JSON 与在线文档解析 API 的返回结构保持一致，默认开启页面方向矫正，并支持 GIF 输入。
-- **[2026.10.30]** 开源可自行部署的 Web Demo，界面支持中英文切换，详见 [Web Demo 部署教程](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/webdemo_deploy_zh.md)。
-- **[2026.10.29]** [SDK 1.0.3](https://pypi.org/project/minicpm-ocr/1.0.3/) 发布：Markdown 保留图片块的识别文字并链接图片裁图；[Skill](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md#skill) 新增 Ollama 部署路线。
+- 🔥🔥🔥 **[2026.11.02] MiniCPM-OCR 1.0 现已支持 iOS 端侧运行！** 文档解析全程在设备本地完成，支持离线使用。[立即体验](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md#mobile-demo)。
+- **[2026.11.02]** [pip SDK 1.0.4](https://pypi.org/project/minicpm-ocr/1.0.4/) 发布：JSON 输出格式与在线文档解析 API 保持一致，默认自动校正页面方向，并支持 GIF 图片输入。
+- **[2026.10.30]** Web Demo 已开源，支持自行部署和中英文界面切换，详见 [Web Demo 部署教程](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/webdemo_deploy_zh.md)。
+- **[2026.10.29]** [SDK 1.0.3](https://pypi.org/project/minicpm-ocr/1.0.3/) 发布：Markdown 输出保留图片区域的识别文字，并附上对应裁图的链接；[Skill](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md#skill) 新增 Ollama 部署指南。
 - 🚀🚀🚀 **[2026.10.27] MiniCPM-OCR 1.0 与 MiniCPM-OCR Jev 正式发布并开源！** 同步提供[模型权重](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md#model-weights)、[pip SDK](https://pypi.org/project/minicpm-ocr/)、[Skill](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md#skill) 和[免费 API](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md#api)。
 
 ## MiniCPM-OCR 1.0
@@ -180,7 +180,7 @@ Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL_jev
 
 ### MiniCPM-V Demo — iOS、Android 与 HarmonyOS
 
-MiniCPM-V Demo App 现已内置 MiniCPM-OCR 1.0，文档解析全程在设备本地完成，断网也能用。文档识别目前仅支持 iOS。
+MiniCPM-OCR 1.0 支持完全在设备本地完成文档解析，离线也能使用。该文档识别功能目前仅在 iOS 上提供。
 
 [端侧 Demo 教程](https://github.com/OpenBMB/MiniCPM-V-Apps/blob/main/README_zh.md)
 
