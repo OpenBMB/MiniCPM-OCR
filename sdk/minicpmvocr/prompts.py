@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import copy
 import json
+import logging
 from pathlib import Path
 from typing import Dict
 
 import yaml
+
+from .postprocess.markdown import DEFAULT_MARKDOWN, validate_markdown
+
+LOGGER = logging.getLogger(__name__)
 
 DEFAULT_PROMPT_MAP = {
     "default": {
@@ -44,17 +50,8 @@ DEFAULT_PROMPT_MAP = {
 
 
     },
-    "markdown_assembly": {
-        "ignore_labels": ["number", "footnote", "header", "header_image", "footer", "footer_image", "aside_text"],
-        "title_format": {"doc_title": "# {content}", "paragraph_title": "## {content}", "figure_title": "*{content}*"},
-        "formula_format": {"display_formula": "$$\n{content}\n$$", "inline_formula": "${content}$"},
-        "table_format": "{content}",
-        "image_format": "![image]()",
-        "image_render": "reference",
-        "image_show_ocr_content": None,
-        "chart_format": "{content}",
-        "seal_format": "{content}",
-    },
+    # Markdown assembly is run configuration (config `markdown:`); the copy here serves callers without a config.
+    "markdown_assembly": copy.deepcopy(DEFAULT_MARKDOWN),
 }
 
 
@@ -71,12 +68,17 @@ def _merge_prompt_map_section(base: Dict, external: Dict) -> None:
 
 
 def load_prompt_map(cfg: Dict) -> Dict:
-    'The effective prompt map for a run.'
+    'The effective prompt map for a run; its markdown_assembly comes from the config `markdown:` section.'
     prompt_map_path = cfg["prompt"].get("prompt_map", "")
     prompt_map = json.loads(json.dumps(DEFAULT_PROMPT_MAP))
+    _merge_prompt_map_section(prompt_map["markdown_assembly"], cfg.get("markdown") or {})
     if prompt_map_path and Path(prompt_map_path).is_file():
         with Path(prompt_map_path).open("r", encoding="utf-8") as f:
             external = yaml.safe_load(f) or {}
+        if isinstance(external.get("markdown_assembly"), dict):
+            # Deprecated: older prompt maps carried the Markdown settings; they still win over the config.
+            LOGGER.warning("prompt map %s sets markdown_assembly; move these settings to the config `markdown:` section",
+                           prompt_map_path)
         for section in _NESTED_PROMPT_MAP_SECTIONS:
             if isinstance(external.get(section), dict):
                 _merge_prompt_map_section(prompt_map[section], external.pop(section))
@@ -84,8 +86,7 @@ def load_prompt_map(cfg: Dict) -> Dict:
     prompt_map = apply_prompt_override_mode(prompt_map, cfg["prompt"].get("override_mode", "legacy"))
     from .layouts.base import resolve_skip_vlm_labels
     prompt_map = apply_skip_vlm_labels(prompt_map, resolve_skip_vlm_labels(cfg.get("layout")))
-    from .postprocess.markdown import image_render_mode
-    image_render_mode(prompt_map["markdown_assembly"])
+    validate_markdown(prompt_map["markdown_assembly"])
     return prompt_map
 
 

@@ -116,6 +116,7 @@ run_sdk() {
         --set layout.device=cuda:0 \
         --set engine.max_model_len=40960 \
         --set pipeline.overlap_layout=true --set pipeline.max_workers=32 \
+        --set markdown.table_figures=separate \
         --set logging.progress_log_every=50
     ' 2>&1 | grep -v "Warning\|warnings.warn\|Connectivity check" | tee "$RUN_ROOT/$tag.log"
   local actual; actual="$(find "$RUN_ROOT/$tag/output" -maxdepth 1 -type f -name '*.md' | wc -l)"

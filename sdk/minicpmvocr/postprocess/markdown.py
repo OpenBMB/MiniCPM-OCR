@@ -17,12 +17,14 @@ TEXT_BLOCK_LABELS = {
     "reference_content",
     "vertical_text",
     "vision_footnote",
-    "algorithm",
     "header",
     "footer",
     "footnote",
     "aside_text",
 }
+
+# Blocks kept line for line (code, terminal output): never re-flowed or whitespace-collapsed.
+VERBATIM_LABELS = {"algorithm"}
 
 
 def _strip_spacing_tokens(content: str) -> str:
@@ -224,7 +226,8 @@ def truncate_repetitive_content(content: str, min_count: int = 50) -> str:
 def postprocess_content(content: str, output_format: str, label: str = "") -> str:
     if content is None:
         return ""
-    content = truncate_repetitive_content(content.strip(), min_count=5000 if label == "table" else 50)
+    content = content.strip("\n") if label in VERBATIM_LABELS else content.strip()
+    content = truncate_repetitive_content(content, min_count=5000 if label == "table" else 50)
 
     if output_format == "latex":
         if label == "display_formula":
@@ -262,15 +265,118 @@ def postprocess_content(content: str, output_format: str, label: str = "") -> st
 IMAGE_RENDER_MODES = ("reference", "placeholder")
 
 
+# Title / section-heading / formula-number formatting ported from PaddleX
+# common/result/converter/markdown_format_funcs.py (Apache-2.0), as PaddleOCR-VL renders Markdown.
+_TITLE_NUMBERING = (
+    r"(?:" + r"[1-9][0-9]*(?:\.[1-9][0-9]*)*[\.、]?|" + r"[\(\（](?:[1-9][0-9]*|["
+    r"一二三四五六七八九十百千万亿零壹贰叁肆伍陆柒捌玖拾]+)[\)\）]|" + r"["
+    r"一二三四五六七八九十百千万亿零壹贰叁肆伍陆柒捌玖拾]+"
+    r"[、\.]?|" + r"(?:I|II|III|IV|V|VI|VII|VIII|IX|X)(?:\.|\s)" + r")"
+)
+TITLE_RE = re.compile(r"^\s*(" + _TITLE_NUMBERING + r")(\s*)(.*)$")
+
+# label -> (first-line templates, heading format, splitter), as PaddleOCR-VL's abstract/reference handlers.
+FIRST_LINE_HEADINGS = {
+    "abstract": (("摘要", "abstract"), "## {line}\n", " "),
+    "reference": (("参考文献", "references"), "## {line}", "\n"),
+}
+
+
+def _collapse_soft_newlines(text: str) -> str:
+    return text.replace("-\n", "").replace("\n", " ")
+
+
+def format_numbered_title(content: str) -> str:
+    'Paragraph title whose depth follows its numbering: "2" -> ##, "2.1" -> ###, unnumbered -> ##.'
+    title = content
+    match = TITLE_RE.match(title)
+    if match:
+        title = match.group(1).strip() + " " + match.group(3).lstrip()
+    title = title.rstrip(".")
+    level = title.count(".") + 1 if "." in title else 1
+    return _collapse_soft_newlines("#%s %s" % ("#" * level, title))
+
+
+def format_first_line(content: str, label: str) -> str:
+    'Turn the first non-empty line into a heading when it is just "Abstract" / "References" (or 摘要 / 参考文献).'
+    templates, heading, splitter = FIRST_LINE_HEADINGS[label]
+    lines = content.split(splitter)
+    for index, line in enumerate(lines):
+        if line.strip() == "":
+            continue
+        if line.lower() in templates:
+            lines[index] = heading.format(line=line)
+        break
+    return splitter.join(lines)
+
+
+def merge_formula_and_number(formula: str, number: str) -> str:
+    return "%s \\tag*{%s}" % (formula.replace("$$", ""), number)
+
+
+TABLE_FIGURE_MODES = ("separate", "inline")
+
+
+def table_figures_inline(assembly: dict) -> bool:
+    'markdown.table_figures: "inline" puts a figure found inside a table into its cell (PaddleOCR-VL); "separate" leaves the cell empty and keeps the figure as its own block.'
+    mode = str(assembly.get("table_figures") or "inline").strip().lower()
+    if mode not in TABLE_FIGURE_MODES:
+        raise ValueError(
+            "markdown.table_figures must be one of %s, got %r"
+            % (", ".join(TABLE_FIGURE_MODES), assembly.get("table_figures"))
+        )
+    return mode == "inline"
+
+
+def markdown_url(path: str) -> str:
+    'Image paths carry page names, which may hold spaces, parentheses or "%"; percent-encode those for the link target.'
+    return path.replace("%", "%25").replace(" ", "%20").replace("(", "%28").replace(")", "%29")
+
+
 def image_render_mode(assembly: dict) -> str:
-    'markdown_assembly.image_render: "reference" links the saved crop, "placeholder" emits image_format.'
+    'markdown.image_render: "reference" links the saved crop, "placeholder" emits image_format.'
     mode = str(assembly.get("image_render") or "reference").strip().lower()
     if mode not in IMAGE_RENDER_MODES:
         raise ValueError(
-            "markdown_assembly.image_render must be one of %s, got %r"
+            "markdown.image_render must be one of %s, got %r"
             % (", ".join(IMAGE_RENDER_MODES), assembly.get("image_render"))
         )
     return mode
+
+
+# Defaults of the config `markdown:` section, i.e. the prompt map's markdown_assembly.
+DEFAULT_MARKDOWN = {
+    "ignore_labels": ["number", "footnote", "header", "header_image", "footer", "footer_image", "aside_text"],
+    "title_format": {"doc_title": "# {content}", "paragraph_title": "## {content}", "figure_title": "*{content}*"},
+    # PaddleOCR-VL Markdown: "numbered" derives the paragraph-title depth from its numbering
+    # ("template" uses title_format); first_line_headings turns a leading "Abstract" / "References"
+    # line into a heading; formula numbers are dropped unless show_formula_number folds them in as \tag*{}.
+    "title_style": "numbered",
+    "first_line_headings": True,
+    "show_formula_number": False,
+    # Figures painted as [F<n>] tokens inside a table: "inline" puts the <img> in the cell (PaddleOCR-VL);
+    # "separate" empties the cell and keeps the figure as its own image (OmniDocBench leaves such cells empty).
+    "table_figures": "inline",
+    "formula_format": {"display_formula": "$$\n{content}\n$$", "inline_formula": "${content}$"},
+    "table_format": "{content}",
+    "image_format": "![image]()",
+    "image_render": "reference",
+    "image_show_ocr_content": None,
+    "chart_format": "{content}",
+    "seal_format": "{content}",
+}
+TITLE_STYLES = ("numbered", "template")
+
+
+def validate_markdown(assembly: dict) -> None:
+    'Reject unknown modes up front instead of on the first page.'
+    image_render_mode(assembly)
+    table_figures_inline(assembly)
+    style = str(assembly.get("title_style") or "template").strip().lower()
+    if style not in TITLE_STYLES:
+        raise ValueError("markdown.title_style must be one of %s, got %r" % (", ".join(TITLE_STYLES), assembly.get("title_style")))
+    if not isinstance(assembly.get("ignore_labels", []), (list, tuple, set)):
+        raise ValueError("markdown.ignore_labels must be a list of label names, got %r" % (assembly.get("ignore_labels"),))
 
 
 def assemble_markdown(blocks: list, prompt_cfg: dict) -> str:
@@ -285,12 +391,18 @@ def assemble_markdown(blocks: list, prompt_cfg: dict) -> str:
     image_render = image_render_mode(assembly)
     # None (default): show whatever text an image block was recognized with; False hides it.
     show_image_ocr = assembly.get("image_show_ocr_content") is not False
+    # "numbered": PaddleOCR-VL titles (paragraph depth from numbering, newlines folded); "template": title_format.
+    numbered_titles = str(assembly.get("title_style") or "template").strip().lower() == "numbered"
+    first_line_headings = bool(assembly.get("first_line_headings", False))
+    # PaddleOCR-VL drops formula numbers unless asked to fold them into the formula as \tag*{}.
+    show_formula_number = bool(assembly.get("show_formula_number", False))
+    figures_inline = table_figures_inline(assembly)
 
     def render_image_block(block: dict, content: str) -> str:
         'PaddleOCR-VL plain style: the image reference, then its recognized text when enabled.'
         image_path = block.get("image_path") if image_render == "reference" else ""
         if image_path:
-            part = "![image](%s)" % image_path
+            part = "![image](%s)" % markdown_url(image_path)
         elif "{content}" in image_fmt:
             return image_fmt.replace("{content}", content)
         else:
@@ -300,20 +412,32 @@ def assemble_markdown(blocks: list, prompt_cfg: dict) -> str:
         return part
 
     parts = []
-    for block in sorted(blocks, key=lambda x: x.get("order", 0)):
+    ordered = sorted(blocks, key=lambda x: x.get("order", 0))
+    for index, block in enumerate(ordered):
         label = block.get("label", "")
         content = block.get("content", "")
-        if label in ignore_labels:
+        if label in ignore_labels or (figures_inline and block.get("in_table")):
+            continue
+        if label == "formula_number":
             continue
         if not content and label not in ("image", "header_image", "footer_image", "chart", "seal"):
             continue
-        if label in title_fmt:
+        if numbered_titles and label == "doc_title":
+            parts.append(_collapse_soft_newlines("# " + content))
+        elif numbered_titles and label == "paragraph_title":
+            parts.append(format_numbered_title(content))
+        elif label in title_fmt:
             parts.append(title_fmt[label].format(content=content))
         elif label in formula_fmt:
             if label == "inline_formula" and block.get("inline_formula_mixed", False):
                 parts.append(content)
             else:
+                next_block = ordered[index + 1] if index + 1 < len(ordered) else {}
+                if show_formula_number and label == "display_formula" and next_block.get("label") == "formula_number":
+                    content = merge_formula_and_number(content, (next_block.get("content") or "").replace("$", "").strip())
                 parts.append(formula_fmt[label].format(content=content))
+        elif first_line_headings and label in FIRST_LINE_HEADINGS:
+            parts.append(format_first_line(content, label))
         elif label == "table":
             parts.append(table_fmt.format(content=content))
         elif label in ("image", "header_image", "footer_image"):

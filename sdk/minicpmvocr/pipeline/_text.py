@@ -4,49 +4,21 @@ import re
 from typing import Dict, List
 
 from ..constants import OTSL_LABELS
-from ..postprocess.markdown import TEXT_BLOCK_LABELS, split_text_block
+from ..postprocess.markdown import TEXT_BLOCK_LABELS, VERBATIM_LABELS, split_text_block
 
 INLINE_LATEX_RE = re.compile(r"\\\((.+?)\\\)")
 DISPLAY_BRACKET_SEP_RE = re.compile(re.escape(r"\]") + r"\s*" + re.escape(r"\["))
-_CLOSING_TOKENS_RE = re.compile(r"\\end\{[^}]*\}|\\\]|\$\$|</(?:table|tr|td|th)>")
-
-
-def _truncate_repetitive_suffix(text: str) -> str:
-
-    words = list(re.finditer(r"\S+", text))
-    if len(words) < 18:
-        return text
-
-    normalized = [match.group(0).lower() for match in words]
-    earliest_cut = len(text)
-    max_window = min(64, len(words) // 3)
-    for window in range(6, max_window + 1):
-        limit = len(words) - (window * 3) + 1
-        for start in range(limit):
-            first = normalized[start : start + window]
-            if (
-                first == normalized[start + window : start + (window * 2)]
-                and first == normalized[start + (window * 2) : start + (window * 3)]
-            ):
-                earliest_cut = min(earliest_cut, words[start].start())
-                break
-
-    if earliest_cut < len(text):
-        truncated = text[:earliest_cut].rstrip()
-
-
-        tail = text[earliest_cut:]
-        closing = _CLOSING_TOKENS_RE.findall(tail)
-        if closing:
-            truncated = truncated + " " + " ".join(closing)
-        return truncated
-    return text
 
 
 def _normalize_crop_text(text: str, label: str) -> str:
     if text is None:
         return ""
-    out = _truncate_repetitive_suffix(text.strip())
+    if label in VERBATIM_LABELS:
+        # Code / terminal output: keep indentation and line structure, as PaddleOCR-VL does.
+        return INLINE_LATEX_RE.sub(lambda m: f"${m.group(1).strip()}$", text.strip("\n"))
+    # Repetition loops are cut once, in postprocess_content (PaddleOCR-VL's truncate_repetitive_content).
+    # No word-level cut here: it took legitimately repeated matrix rows and table cells for a loop.
+    out = text.strip()
     if label != "display_formula":
         out = INLINE_LATEX_RE.sub(lambda m: f"${m.group(1).strip()}$", out)
     else:
