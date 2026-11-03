@@ -151,14 +151,14 @@
 
 ### 文档解析的两阶段流程
 
-整页解析由 `minicpmvocr` SDK 统一编排，运行在**两阶段流水线**上：两个阶段使用不同的模型、运行在相互独立的环境中，也可以部署在不同机器上：
+整页文档解析由 [`minicpmvocr` SDK](https://pypi.org/project/minicpm-ocr/) 统一编排，采用**两阶段流水线**：两个阶段使用不同的模型，分别运行在相互独立的环境中，也可以部署在不同的机器上：
 
 ```mermaid
 flowchart LR
     DOC["PDF / 图片"] --> S1
 
     subgraph SDKENV ["minicpmvocr SDK（独立环境）"]
-        S1["阶段一 · 版面检测<br>PP-DocLayoutV3 版面模型（PaddlePaddle / PaddleX）<br>区域、阅读顺序、切块"]
+        S1["阶段一 · 版面检测<br>PP-DocLayoutV3 版面模型（PaddlePaddle / PaddleX）<br>检测区域与阅读顺序并切块"]
         ASM["拼接输出<br>按阅读顺序生成 Markdown / JSON"]
     end
 
@@ -166,14 +166,14 @@ flowchart LR
         S2["阶段二 · 区域识别<br>MiniCPM-OCR 1.0<br>vLLM / SGLang / llama.cpp / Ollama"]
     end
 
-    S1 -- "每个切块经 HTTP 发送，<br>按区域类型匹配提示词" --> S2
+    S1 -- "各区域切块通过 HTTP 逐块发送，<br>提示词按区域类型选择" --> S2
     S2 -- "文本、表格、公式、图表、印章" --> ASM
 ```
 
-- **阶段一 · 版面检测（SDK 本地运行）**：PP-DocLayoutV3 版面模型检测文档区域（文本、表格、公式、图表、印章等）并分析阅读顺序，SDK 按区域切块。版面检测在 SDK 环境内运行，依赖 PaddlePaddle / PaddleX。
-- **阶段二 · 区域识别（推理服务）**：SDK 通过 HTTP 将每个切块发送给 MiniCPM-OCR 1.0 推理服务（由 vLLM、SGLang、llama.cpp 或 Ollama 部署），并按区域类型匹配提示词（`Text Recognition:`、`Table Recognition:`、`Formula Recognition:` 等），随后按阅读顺序把识别出的内容拼接为最终的 Markdown / JSON。
+- **阶段一 · 版面检测（SDK 本地运行）**：PP-DocLayoutV3 版面模型检测文档区域（文本、表格、公式、图表、印章等）并分析阅读顺序，SDK 按区域切块。版面检测在 SDK 环境中本地完成，依赖 PaddlePaddle / PaddleX。
+- **阶段二 · 区域识别（推理服务）**：SDK 通过 HTTP 将每个切块发送给 MiniCPM-OCR 1.0 推理服务（由 vLLM、SGLang、llama.cpp 或 Ollama 部署），提示词按区域类型选择（`Text Recognition:`、`Table Recognition:`、`Formula Recognition:` 等），识别结果再按阅读顺序拼接为最终的 Markdown / JSON。
 
-因此，完整的本地部署需要同时准备**两套环境**：SDK 环境（pip 包 `minicpm-ocr`，另装 PaddlePaddle / PaddleX 用于版面模型）和所选推理后端的服务环境。[Skill](#skill) 给出了从后端选择、环境安装、模型下载到验证的完整步骤；[SDK 使用教程](./docs/minicpm_ocr_tutorial.md)覆盖了手动部署的相同步骤。各区域提示词与分阶段细节见[文档解析流程](./docs/minicpm_ocr_1dot0_zh.md#文档解析流程)。
+因此，完整的本地部署需要同时准备**两套环境**：SDK 环境（pip 包 `minicpm-ocr`，并额外安装 PaddlePaddle / PaddleX 以运行版面模型）和所选推理后端的服务环境。[Skill](#skill) 给出了从后端选择、环境安装、模型下载到验证的完整步骤；手动部署的相同步骤见 [SDK 使用教程](./docs/minicpm_ocr_tutorial.md)。各区域提示词与各阶段的详细说明见[文档解析流程](./docs/minicpm_ocr_1dot0_zh.md#文档解析流程)。
 
 <a id="使用-agent-skill-部署推荐"></a>
 

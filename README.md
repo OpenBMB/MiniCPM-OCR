@@ -153,7 +153,7 @@ Choose how to integrate MiniCPM-OCR 1.0 and MiniCPM-OCR Jev:
 
 ### How Document Parsing Works
 
-Full-page parsing runs as a **two-stage pipeline** orchestrated by the `minicpmvocr` SDK. The two stages use separate models, run in separate environments, and may run on different machines:
+Full-page parsing runs as a **two-stage pipeline** orchestrated by the [`minicpmvocr` SDK](https://pypi.org/project/minicpm-ocr/). The two stages use separate models, run in separate environments, and may run on different machines:
 
 ```mermaid
 flowchart LR
