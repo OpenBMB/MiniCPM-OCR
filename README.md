@@ -151,6 +151,32 @@ See the [MiniCPM-OCR Jev model guide](./docs/minicpm_ocr_jev_en.md) for more on 
 
 Choose how to integrate MiniCPM-OCR 1.0 and MiniCPM-OCR Jev:
 
+### How Document Parsing Works
+
+Full-page parsing runs as a **two-stage pipeline** orchestrated by the `minicpmvocr` SDK. The two stages use separate models, run in separate environments, and may run on different machines:
+
+```mermaid
+flowchart LR
+    DOC["PDF / image"] --> S1
+
+    subgraph SDKENV ["minicpmvocr SDK (its own environment)"]
+        S1["Stage 1 · Layout detection<br>PP-DocLayoutV3 layout model (PaddlePaddle / PaddleX)<br>regions, reading order, cropping"]
+        ASM["Assemble output<br>Markdown / JSON in reading order"]
+    end
+
+    subgraph SRVENV ["Recognition service (separate environment)"]
+        S2["Stage 2 · Region recognition<br>MiniCPM-OCR 1.0<br>vLLM / SGLang / llama.cpp / Ollama"]
+    end
+
+    S1 -- "each cropped region, over HTTP,<br>with a prompt for its region type" --> S2
+    S2 -- "text, tables, formulas, charts, seals" --> ASM
+```
+
+- **Stage 1 — Layout detection (run locally by the SDK).** The PP-DocLayoutV3 layout model detects document regions — text, tables, formulas, charts, seals — and analyzes reading order; the SDK then crops the regions. It runs inside the SDK environment and requires PaddlePaddle / PaddleX.
+- **Stage 2 — Region recognition (inference service).** The SDK sends each cropped region over HTTP to a MiniCPM-OCR 1.0 inference service — served by vLLM, SGLang, llama.cpp, or Ollama — with a prompt matching the region type (`Text Recognition:`, `Table Recognition:`, `Formula Recognition:`, …). The SDK assembles the recognized content into the final Markdown / JSON in reading order.
+
+A full local deployment therefore prepares **two environments side by side**: the SDK environment (pip package `minicpm-ocr`, plus PaddlePaddle / PaddleX for the layout model) and the inference-service environment of the chosen backend. The [Skill](#skill) walks through the complete setup — backend choice, environment installation, model downloads, and verification — and the [SDK tutorial](./docs/minicpm_ocr_tutorial_en.md) covers the same steps for manual deployment. For region prompts and per-stage details, see the [document parsing workflow](./docs/minicpm_ocr_1dot0_en.md#document-parsing-workflow).
+
 <a id="使用-agent-skill-部署推荐"></a>
 
 ### Skill
