@@ -60,6 +60,12 @@ def test_paddlex_provider_hands_paddlex_bgr():
         # PaddleX keeps the numbering's trailing dot, and counts it as one more level.
         ("2.1.3. Setup.", "##### 2.1.3. Setup"),
         ("(一)总体要求", "## (一) 总体要求"),
+        ("5.", "### 5."),
+        ("3.3. Compatibility. Throughout", "#### 3.3. Compatibility. Throughout"),
+        # Dots outside the leading numbering do not deepen the title.
+        ("Vol. 17: Cumulative Index", "## Vol. 17: Cumulative Index"),
+        ("Diane S. Rosenberg, Mark D. Meyer, et al., Trustees", "## Diane S. Rosenberg, Mark D. Meyer, et al., Trustees"),
+        ("1、关于支持新能源商品汽车铁路运输 2023.01.30", "## 1、 关于支持新能源商品汽车铁路运输 2023.01.30"),
         ("Related\nWork", "## Related Work"),
     ],
 )

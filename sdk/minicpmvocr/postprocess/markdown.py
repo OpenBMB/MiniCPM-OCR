@@ -289,11 +289,15 @@ def _collapse_soft_newlines(text: str) -> str:
 def format_numbered_title(content: str) -> str:
     'Paragraph title whose depth follows its numbering: "2" -> ##, "2.1" -> ###, unnumbered -> ##.'
     title = content
+    numbering = ""
     match = TITLE_RE.match(title)
     if match:
-        title = match.group(1).strip() + " " + match.group(3).lstrip()
-    title = title.rstrip(".")
-    level = title.count(".") + 1 if "." in title else 1
+        numbering = match.group(1).strip()
+        title = numbering + " " + match.group(3).lstrip()
+    title = title.rstrip(".").rstrip()
+    # Only the dots of the leading numbering set the depth. PaddleX counts every dot in the title, which pushes
+    # "Vol. 17", "Dr. B. K. B. College" or "2023.01.30" down to #### and below.
+    level = numbering.count(".") + 1
     return _collapse_soft_newlines("#%s %s" % ("#" * level, title))
 
 
