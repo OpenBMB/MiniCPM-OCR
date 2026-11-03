@@ -35,6 +35,14 @@
 
 **MiniCPM-OCR** 是面向高效文档解析和文字识别的系列模型。**MiniCPM-OCR 1.0** 支持中英文档与 PDF 解析，在扫描、拍照、弯曲和翻拍等复杂场景下兼顾解析质量与处理效率。**MiniCPM-OCR Jev** 对 OCR 解析结果进行区域级质量判断，识别有问题与无问题的区域，可搭配不同解析模型，帮助用户定位需要复核的内容。
 
+## 📢 最新动态
+
+- **[2026.11.02]** MiniCPM-OCR 1.0 已可在 [MiniCPM-V Demo](#mobile-demo) 中于 iOS 端完全端侧运行。
+- **[2026.11.02]** [pip SDK](https://pypi.org/project/minicpm-ocr/) 发布 1.0.4：页面 JSON 与在线文档解析 API 的返回结构保持一致，默认开启页面方向矫正，并支持 GIF 输入。
+- **[2026.10.30]** 开源可自行部署的 Web Demo，界面支持中英文切换，详见 [Web Demo 部署教程](./docs/webdemo_deploy_zh.md)。
+- **[2026.10.29]** SDK 1.0.3 发布：Markdown 保留图片块的识别文字并链接图片裁图；[Skill](#skill) 新增 Ollama 部署路线。
+- **[2026.10.27]** 发布并开源 MiniCPM-OCR 1.0 与 MiniCPM-OCR Jev，同步提供[模型权重](#model-weights)、pip SDK、[Skill](#skill) 和[免费 API](#api)。
+
 ## MiniCPM-OCR 1.0
 
 **MiniCPM-OCR 1.0** (1.3B) 是 [MiniCPM-V/o](https://github.com/openbmb/MiniCPM-V) 家族首个 OCR 专用模型，面向以文字为中心的文档理解，覆盖文本、表格、公式、图表与印章识别和结构化信息抽取。主要特点包括：

@@ -35,6 +35,14 @@
 
 **MiniCPM-OCR** is a family of models for efficient document parsing and text recognition. **MiniCPM-OCR 1.0** parses Chinese and English documents and PDFs, balancing quality and efficiency across challenging inputs such as scans, photographs, curved pages, and recaptured documents. **MiniCPM-OCR Jev** evaluates OCR results at the region level, distinguishing problematic regions from reliable ones. It works with different parsing models to help users locate content that needs review.
 
+## 📢 News
+
+- **[2026.11.02]** MiniCPM-OCR 1.0 now runs fully on-device on iOS in the [MiniCPM-V Demo](#mobile-demo).
+- **[2026.11.02]** [pip SDK](https://pypi.org/project/minicpm-ocr/) 1.0.4: page JSON follows the response shape of the online document-parse API, page orientation correction is on by default, and GIF input is supported.
+- **[2026.10.30]** Open-sourced a self-hosted Web Demo with a Chinese/English interface switch. See the [Web Demo deployment tutorial](./docs/webdemo_deploy.md).
+- **[2026.10.29]** SDK 1.0.3: Markdown keeps the recognized text of image blocks and links their crops; the [Skill](#skill) adds an Ollama route.
+- **[2026.10.27]** Released and open-sourced MiniCPM-OCR 1.0 and MiniCPM-OCR Jev, with [model weights](#model-weights), the pip SDK, the [Skill](#skill), and a [free API](#api).
+
 ## MiniCPM-OCR 1.0
 
 **MiniCPM-OCR 1.0** (1.3B) is the first OCR-specific model in the [MiniCPM-V/o](https://github.com/openbmb/MiniCPM-V) family. It focuses on text-centric document understanding, covering text, tables, formulas, charts, seals, and structured information extraction. Its key features include:
