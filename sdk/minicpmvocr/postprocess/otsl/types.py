@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 import html
+import re
 from typing import Any, Dict, List
 
 from pydantic import BaseModel, computed_field, model_validator
+
+
+# Inline formatting the VLM writes inside cells; everything else in a cell is escaped, as PaddleX does.
+CELL_TAGS_RE = re.compile(r"&lt;(/?(?:br|sup|sub|b|i|u|s|em|strong|del|ul|ol|li))\s*(/?)&gt;", re.IGNORECASE)
 
 
 class TableCell(BaseModel):
@@ -92,7 +97,7 @@ def export_to_html(table_data: TableData) -> str:
             cell: TableCell = grid[i][j]
             if cell.start_row_offset_idx != i or cell.start_col_offset_idx != j:
                 continue
-            content = html.escape(cell.text.strip())
+            content = CELL_TAGS_RE.sub(r"<\1\2>", html.escape(cell.text.strip()))
             celltag = "th" if cell.column_header else "td"
             opening = celltag
             if cell.row_span > 1:

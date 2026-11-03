@@ -89,11 +89,13 @@ class PPDocLayoutV3PaddleXDetector(BaseLayoutDetector):
         return [self._detect_one(image) for image in images]
 
     def _detect_one(self, image) -> List[Dict]:
-
-
+        # PaddleX reads ndarray input as BGR and converts it to RGB for the model, so
+        # hand it BGR like PaddleOCR-VL's cv2 reader does; an RGB array would reach the
+        # model with red and blue swapped.
+        bgr = np.ascontiguousarray(np.asarray(image.convert("RGB"))[:, :, ::-1])
         results = list(
             self._model.predict(
-                np.asarray(image.convert("RGB")),
+                bgr,
                 batch_size=1,
                 layout_shape_mode=LAYOUT_SHAPE_MODE,
                 filter_overlap_boxes=False,

@@ -123,6 +123,22 @@ prompt:
   override_mode: legacy
   prompt_map: ''
 
+# Markdown assembly (defaults: postprocess/markdown.py DEFAULT_MARKDOWN).
+markdown:
+  ignore_labels: [number, footnote, header, header_image, footer, footer_image, aside_text]
+  title_style: numbered          # numbered: heading depth from section numbering (PaddleOCR-VL); template: title_format
+  first_line_headings: true      # a leading "Abstract" / "References" line becomes a heading
+  show_formula_number: false     # true folds the formula number into the formula as \tag*{}
+  table_figures: inline          # inline: figures inside tables go into their cell; separate: own image blocks
+  image_render: reference        # reference: link the saved crop; placeholder: emit image_format
+  image_show_ocr_content: null   # null shows text recognized in an image block; false hides it
+  title_format: {doc_title: '# {content}', paragraph_title: '## {content}', figure_title: '*{content}*'}
+  formula_format: {display_formula: "$$\n{content}\n$$", inline_formula: '${content}$'}
+  table_format: '{content}'
+  image_format: '![image]()'
+  chart_format: '{content}'
+  seal_format: '{content}'
+
 
 decode:
   temperature: 0.01

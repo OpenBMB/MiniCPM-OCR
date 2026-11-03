@@ -699,8 +699,8 @@ class PPDocLayoutV3TorchDetector(BaseLayoutDetector):
             img_rgb = np.asarray(img)
             h0, w0 = img_rgb.shape[:2]
             sizes.append((w0, h0))
-            img_bgr = self._cv2.cvtColor(img_rgb, self._cv2.COLOR_RGB2BGR)
-            img_resized = self._cv2.resize(img_bgr, (800, 800), interpolation=self._cv2.INTER_CUBIC)
+            # The model takes RGB, as PaddleX's ReadImage(format="RGB") and the HF image processor feed it.
+            img_resized = self._cv2.resize(img_rgb, (800, 800), interpolation=self._cv2.INTER_CUBIC)
             sp = list(self._cv2.split(img_resized))
             for c in range(3):
                 sp[c] = sp[c].astype(np.float32) * (1.0 / 255.0)
@@ -744,9 +744,8 @@ class PPDocLayoutV3TorchDetector(BaseLayoutDetector):
         img_rgb = np.asarray(img)
         h0, w0 = img_rgb.shape[:2]
 
-
-        img_bgr = self._cv2.cvtColor(img_rgb, self._cv2.COLOR_RGB2BGR)
-        img_resized = self._cv2.resize(img_bgr, (800, 800), interpolation=self._cv2.INTER_CUBIC)
+        # The model takes RGB, as PaddleX's ReadImage(format="RGB") and the HF image processor feed it.
+        img_resized = self._cv2.resize(img_rgb, (800, 800), interpolation=self._cv2.INTER_CUBIC)
         sp = list(self._cv2.split(img_resized))
         for c in range(3):
             sp[c] = sp[c].astype(np.float32) * (1.0 / 255.0)

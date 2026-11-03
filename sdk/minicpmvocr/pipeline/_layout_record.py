@@ -7,6 +7,7 @@ from typing import Dict, List
 from PIL import Image
 
 from ._inputs import _open_page_image
+from ._table_figures import tokenize_page_tables
 from ..backends import PNG_COMPRESS_LEVEL
 from .._utils import ensure_dir, write_json
 
@@ -61,10 +62,13 @@ def _build_layout_from_blocks(
         )
 
 
+    painted_tables, table_tokens, in_table = tokenize_page_tables(blocks, detections, image.width, image.height)
+
     for order, block in enumerate(blocks):
         crop_image = block.get("image")
         if crop_image is None:
             continue
+        crop_image = painted_tables.get(order, crop_image)
         label = block["label"]
         x1, y1, x2, y2 = (int(v) for v in block["bbox"])
         crop_filename = f"{order:03d}_{label}.png"
@@ -79,8 +83,14 @@ def _build_layout_from_blocks(
 
 
         regions = [[x1, y1, x2, y2]] + folded_by_leader.get(order, [])
+        extra = {}
+        if order in table_tokens:
+            extra["figure_tokens"] = table_tokens[order]
+        if order in in_table:
+            extra["in_table"] = True
         layout_blocks.append(
             {
+                **extra,
                 "block_id": order,
                 "label": label,
                 "bbox": [x1, y1, x2, y2],

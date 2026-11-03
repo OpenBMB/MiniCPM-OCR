@@ -12,6 +12,7 @@ import yaml
 
 from .backends import normalize_backend_name, validate_engine_config
 from .layouts import normalize_layout_provider, resolve_layout_provider_class
+from .postprocess.markdown import DEFAULT_MARKDOWN, validate_markdown
 
 
 LOGGER = logging.getLogger(__name__)
@@ -146,6 +147,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "override_mode": "legacy",
         "prompt_map": "",
     },
+    "markdown": deepcopy(DEFAULT_MARKDOWN),
     "decode": {
         "temperature": 0.01,
         "top_p": 0.001,
@@ -462,6 +464,7 @@ def _validate_config(cfg: Dict[str, Any], raw: Dict[str, Any] | None = None) -> 
         raise ValueError("pipeline.page_workers must be >= 1")
 
 
+    validate_markdown(cfg["markdown"])
     _validate_tts_sampling(cfg, cfg if raw is None else raw)
 
 
@@ -473,7 +476,11 @@ def load_config(config_path: str, overrides: Dict[str, Any] | None = None) -> Di
     if overrides:
         raw = _deep_merge(raw, overrides)
 
+    # Markdown templates are not expanded: "${content}$" is an inline formula, not an environment variable.
+    markdown = raw.pop("markdown", None)
     raw = _expand_env(_expand_builtins(raw, builtin_vars(path)))
+    if markdown is not None:
+        raw["markdown"] = markdown
     ignored_engine_keys = sorted(k for k in LEGACY_LAUNCH_KEYS if k in (raw.get("engine") or {}))
     cfg = _deep_merge(DEFAULT_CONFIG, raw)
     base_dir = path.parent

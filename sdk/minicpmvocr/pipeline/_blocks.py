@@ -8,6 +8,7 @@ from typing import Dict, List, Optional
 from PIL import Image
 
 from ._response import RESPONSE_DIRNAME, page_response, public_block_status
+from ._table_figures import untokenize_table_figures
 from ._text import _normalize_and_dedupe_blocks
 from ._tts import _execute_block_adaptive, _execute_block_tts
 from ..backends import PNG_COMPRESS_LEVEL
@@ -17,6 +18,7 @@ from ..postprocess.markdown import (
     has_mixed_inline_formula_content,
     image_render_mode,
     postprocess_content,
+    table_figures_inline,
 )
 from ..prompts import get_element_cfg
 from .._utils import classify_engine_text, ensure_dir, write_json
@@ -449,7 +451,8 @@ def _attach_output_images(run_dir: Path, image_id: str, blocks: List[Dict], prom
         label = block.get("label", "")
         if label not in IMAGE_RENDITION_LABELS or label in ignore_labels:
             continue
-        if label in ("chart", "seal") and block.get("content"):
+        # A recognized chart/seal renders as text, unless a table references it as a figure.
+        if label in ("chart", "seal") and block.get("content") and not block.get("in_table"):
             continue
         crop_filename = block.get("crop_filename") or ""
         crop_array = (crop_arrays or {}).get(crop_filename)
@@ -555,7 +558,17 @@ def _finalize_page(
 
     post_t0 = time.time()
     final_blocks = _normalize_and_dedupe_blocks(result_blocks)
+    layout_by_order = {b.get("order"): b for b in blocks}
+    for block in final_blocks:
+        for key in ("figure_tokens", "in_table"):
+            if key in layout_by_order.get(block.get("order"), {}):
+                block[key] = layout_by_order[block.get("order")][key]
     _attach_output_images(run_dir, image_id, final_blocks, prompt_map, crop_arrays)
+    blocks_by_order = {b.get("order"): b for b in final_blocks}
+    inline = table_figures_inline(prompt_map.get("markdown_assembly", {}))
+    for block in final_blocks:
+        if block.get("figure_tokens") and block.get("content"):
+            block["content"] = untokenize_table_figures(block["content"], block["figure_tokens"], blocks_by_order, inline)
     markdown = assemble_markdown(final_blocks, prompt_map)
     post_process_sec = time.time() - post_t0
 
