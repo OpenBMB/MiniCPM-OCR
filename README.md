@@ -153,13 +153,13 @@ Choose how to integrate MiniCPM-OCR 1.0 and MiniCPM-OCR Jev:
 
 ### How Document Parsing Works
 
-Full-page parsing runs as a **two-stage pipeline** orchestrated by the [`minicpmvocr` SDK](https://pypi.org/project/minicpm-ocr/). The two stages use separate models, run in separate environments, and may run on different machines:
+Full-page parsing runs as a **two-stage pipeline** orchestrated by the [`minicpm-ocr` SDK](https://pypi.org/project/minicpm-ocr/). The two stages use separate models, run in separate environments, and may run on different machines:
 
 ```mermaid
 flowchart LR
     DOC["PDF / image"] --> S1
 
-    subgraph SDKENV ["minicpmvocr SDK (its own environment)"]
+    subgraph SDKENV ["minicpm-ocr SDK (its own environment)"]
         S1["Stage 1 · Layout detection<br>PP-DocLayoutV3 layout model (PaddlePaddle / PaddleX)<br>regions, reading order, cropping"]
         ASM["Assemble output<br>Markdown / JSON in reading order"]
     end

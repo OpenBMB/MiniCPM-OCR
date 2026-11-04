@@ -151,13 +151,13 @@
 
 ### 文档解析的两阶段流程
 
-整页文档解析由 [`minicpmvocr` SDK](https://pypi.org/project/minicpm-ocr/) 统一编排，采用**两阶段流水线**：两个阶段使用不同的模型，分别运行在相互独立的环境中，也可以部署在不同的机器上：
+整页文档解析由 [`minicpm-ocr` SDK](https://pypi.org/project/minicpm-ocr/) 统一编排，采用**两阶段流水线**：两个阶段使用不同的模型，分别运行在相互独立的环境中，也可以部署在不同的机器上：
 
 ```mermaid
 flowchart LR
     DOC["PDF / 图片"] --> S1
 
-    subgraph SDKENV ["minicpmvocr SDK（独立环境）"]
+    subgraph SDKENV ["minicpm-ocr SDK（独立环境）"]
         S1["阶段一 · 版面检测<br>PP-DocLayoutV3 版面模型（PaddlePaddle / PaddleX）<br>检测区域与阅读顺序并切块"]
         ASM["拼接输出<br>按阅读顺序生成 Markdown / JSON"]
     end
