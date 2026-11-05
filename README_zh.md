@@ -37,6 +37,7 @@
 
 ## 📢 最新动态
 
+- **[2026.11.05]** MiniCPM-OCR 1.0 官方 [Docker 镜像](https://hub.docker.com/repository/docker/openbmbofficial/minicpm-ocr/general) 已发布，内置模型权重、SDK 和 vLLM，支持图片与 PDF 的端到端文档解析。部署方式见 [Docker 部署](#docker-deployment)。
 - 🔥🔥🔥 **[2026.11.02] MiniCPM-OCR 1.0 现已支持 iOS 端侧运行！** 文档解析全程在设备本地完成，支持离线使用。[立即体验](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md#mobile-demo)。
 - **[2026.11.02]** [pip SDK 1.0.4](https://pypi.org/project/minicpm-ocr/1.0.4/) 发布：JSON 输出格式与在线文档解析 API 保持一致，默认自动校正页面方向，并支持 GIF 图片输入。
 - **[2026.10.30]** Web Demo 已开源，支持自行部署和中英文界面切换，详见 [Web Demo 部署教程](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/webdemo_deploy_zh.md)。
@@ -193,6 +194,14 @@ Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL_jev
 ```
 
 已克隆本仓库时，也可直接使用 `./docs/SKILL.md` 和 `./docs/SKILL_jev.md`。
+
+<a id="docker-deployment"></a>
+
+### Docker 部署
+
+使用 MiniCPM-OCR 1.0 官方 [Docker 镜像](https://hub.docker.com/repository/docker/openbmbofficial/minicpm-ocr/general) 快速部署。镜像内置模型权重、SDK、vLLM 和文档解析后端；Docker Hub 页面提供 OCR 模型接口与端到端文档解析 API 的启动步骤，支持将图片和 PDF 解析为 Markdown / JSON。
+
+需要 Linux x86-64、NVIDIA GPU、兼容 CUDA 12.9 的驱动，以及已配置 NVIDIA Container Toolkit 的 Docker。请按镜像页面中的说明选择并启动所需服务。
 
 <a id="api"></a>
 

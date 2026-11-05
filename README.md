@@ -37,6 +37,7 @@
 
 ## 📢 News
 
+- **[2026.11.05]** The official MiniCPM-OCR 1.0 [Docker image](https://hub.docker.com/repository/docker/openbmbofficial/minicpm-ocr/general) is now available, bundling model weights, the SDK, and vLLM for end-to-end image and PDF parsing. See [Docker deployment](#docker-deployment) to get started.
 - 🔥🔥🔥 **[2026.11.02] MiniCPM-OCR 1.0 now runs on iOS!** Parse documents entirely on your device, even offline. [Try it now](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#mobile-demo).
 - **[2026.11.02]** [pip SDK 1.0.4](https://pypi.org/project/minicpm-ocr/1.0.4/): JSON output now uses the same format as the online document parsing API. Page orientation is corrected automatically by default, and GIF images are now supported.
 - **[2026.10.30]** The Web Demo is now open source, with support for self-hosting and switching between Chinese and English. See the [Web Demo deployment tutorial](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/webdemo_deploy.md).
@@ -195,6 +196,14 @@ Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL_jev
 ```
 
 If you have already cloned this repository, you can use `./docs/SKILL_en.md` and `./docs/SKILL_jev_en.md` directly.
+
+<a id="docker-deployment"></a>
+
+### Docker Deployment
+
+Deploy MiniCPM-OCR 1.0 with the official [Docker image](https://hub.docker.com/repository/docker/openbmbofficial/minicpm-ocr/general), which bundles model weights, the SDK, vLLM, and the document parsing backend. The Docker Hub page provides startup instructions for both the OCR model API and the end-to-end document parsing API, supporting image and PDF parsing into Markdown / JSON.
+
+Requires Linux x86-64, an NVIDIA GPU, a driver compatible with CUDA 12.9, and Docker configured with NVIDIA Container Toolkit. Follow the image documentation to select and start the service you need.
 
 <a id="api"></a>
 
