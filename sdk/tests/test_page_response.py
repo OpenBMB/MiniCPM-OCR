@@ -107,7 +107,7 @@ def test_page_response_shape():
     page = page_response(layout=_layout(), blocks=blocks, markdown="md",
                          usage={"prompt_tokens": 1, "completion_tokens": 2, "total_tokens": 3})
     assert set(page) == {"metadata", "choices", "ocr", "usage"}
-    assert page["metadata"] == {"page_index": 0}
+    assert page["metadata"] == {"page_index": 0, "source": "", "image_id": ""}
     assert page["choices"] == [{"message": {"content": "md"}}]
     ocr = page["ocr"]
     assert (ocr["image_width"], ocr["image_height"]) == (1700, 2200)

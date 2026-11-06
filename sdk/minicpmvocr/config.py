@@ -27,6 +27,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "input": {
         "manifest": "",
         "file_path": "",
+        "file_paths": [],
         "image_dir": "",
         "files_dir": "",
         "limit": 0,
@@ -133,6 +134,8 @@ DEFAULT_CONFIG: Dict[str, Any] = {
 
 
         "merge_cross_page_tables": False,
+        #: Standalone images as one document ("collection") or one document each ("file").
+        "image_document_scope": "collection",
     },
     "mm": {
 
@@ -420,9 +423,33 @@ def _validate_config(cfg: Dict[str, Any], raw: Dict[str, Any] | None = None) -> 
     validate_engine_config(cfg["engine"])
 
     input_cfg = cfg["input"]
-    has_any_input = bool(input_cfg.get("image_dir") or input_cfg.get("files_dir") or input_cfg.get("file_path"))
+    file_paths = input_cfg.get("file_paths") or []
+    if not isinstance(file_paths, (list, tuple)):
+        raise ValueError(
+            "input.file_paths must be a list of file paths, got %r" % (file_paths,))
+    for item in file_paths:
+        if not isinstance(item, str) or not item.strip():
+            raise ValueError("input.file_paths entries must be non-empty paths, got %r" % (item,))
+        path = Path(item)
+        if not path.exists():
+            raise FileNotFoundError(f"input.file_paths entry not found: {item}")
+        if not path.is_file():
+            raise ValueError(f"input.file_paths entry is not a file: {item}")
+        if path.suffix.lower() not in ALLOWED_FILE_SUFFIXES:
+            raise ValueError(f"Unsupported input.file_paths suffix: {path.suffix}")
+
+    has_any_input = bool(
+        input_cfg.get("image_dir") or input_cfg.get("files_dir")
+        or input_cfg.get("file_path") or file_paths)
     if not has_any_input:
-        raise ValueError("At least one of input.image_dir / input.files_dir / input.file_path is required")
+        raise ValueError(
+            "At least one of input.image_dir / input.files_dir / input.file_path / "
+            "input.file_paths is required")
+
+    scope = (cfg.get("pipeline") or {}).get("image_document_scope", "collection")
+    if scope not in ("collection", "file"):
+        raise ValueError(
+            "pipeline.image_document_scope must be 'collection' or 'file', got %r" % (scope,))
 
     if input_cfg.get("image_dir") and not Path(input_cfg["image_dir"]).exists():
         raise FileNotFoundError(f"input.image_dir not found: {input_cfg['image_dir']}")
@@ -491,6 +518,9 @@ def load_config(config_path: str, overrides: Dict[str, Any] | None = None) -> Di
 
     cfg["input"]["manifest"] = _resolve_path(base_dir, cfg["input"].get("manifest", ""))
     cfg["input"]["file_path"] = _resolve_path(base_dir, cfg["input"].get("file_path", ""))
+    cfg["input"]["file_paths"] = [
+        _resolve_path(base_dir, item) for item in cfg["input"].get("file_paths") or []
+    ]
     cfg["input"]["image_dir"] = _resolve_path(base_dir, cfg["input"].get("image_dir", ""))
     cfg["input"]["files_dir"] = _resolve_path(base_dir, cfg["input"].get("files_dir", ""))
 

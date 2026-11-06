@@ -9,6 +9,7 @@ run:
 input:
   manifest: ''
   file_path: ''
+  file_paths: []
   image_dir: ''
   files_dir: ${OCR_INPUT_DIR:-}
   limit: 0
@@ -106,6 +107,12 @@ pipeline:
 
 
   merge_cross_page_tables: false
+
+
+  # Standalone images: 'collection' treats every image in the run as pages of one
+  # document (tables may merge across them); 'file' makes each image its own
+  # document. PDFs always stay one document per file.
+  image_document_scope: collection
 
 
 mm:

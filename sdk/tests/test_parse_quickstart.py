@@ -141,6 +141,61 @@ def test_pdf_quickstart_renders_and_exports_all_pages(quickstart, monkeypatch, c
     assert json.loads(capsys.readouterr().out)["pages"] == 2
 
 
+def test_several_inputs_write_one_result_each(quickstart, monkeypatch, capsys):
+    root, _, _ = quickstart
+    Image.new("RGB", (40, 30), "white").save(root / "second.png")
+    (root / "out").mkdir()
+    _set_argv(monkeypatch, [
+        "minicpmvocr", "parse", "input.png", "second.png", "-o", "out", "--json", "--device", "cpu",
+    ])
+    assert cli.main() == 0
+    summary = json.loads(capsys.readouterr().out)
+    assert summary["status"] == "Success" and summary["inputs"] == 2
+    assert [Path(o["input"]).name for o in summary["outputs"]] == ["input.png", "second.png"]
+    assert {p.name for p in (root / "out").iterdir()} == {
+        "input.md", "input.json", "second.md", "second.json"}
+    assert (root / "out/second.md").read_text() == "Recognized page."
+    document = json.loads((root / "out/second.json").read_text())
+    assert document["status"] == "Success"
+    assert document["pages_total"] == 1
+    assert document["pages"][0]["metadata"]["source"].endswith("second.png")
+
+
+def test_a_directory_input_expands_to_its_files(quickstart, monkeypatch, capsys):
+    root, _, _ = quickstart
+    Image.new("RGB", (40, 30), "white").save(root / "second.png")
+    _set_argv(monkeypatch, ["minicpmvocr", "parse", ".", "-o", "out", "--device", "cpu"])
+    assert cli.main() == 0
+    summary = json.loads(capsys.readouterr().out)
+    assert summary["inputs"] == 2
+    assert (root / "out/input.md").is_file() and (root / "out/second.md").is_file()
+
+
+def test_split_images_keeps_each_image_separate(quickstart, monkeypatch, capsys):
+    root, _, seen = quickstart
+    Image.new("RGB", (40, 30), "white").save(root / "second.png")
+    _set_argv(monkeypatch, [
+        "minicpmvocr", "parse", "input.png", "second.png", "-o", "out",
+        "--split-images", "--device", "cpu",
+    ])
+    assert cli.main() == 0
+    capsys.readouterr()
+    assert seen["configs"][-1]["pipeline"]["image_document_scope"] == "file"
+    from minicpmvocr.pipeline._sources import read_sources
+
+    run_dir = Path(seen["configs"][-1]["_meta"]["run_dir"])
+    assert read_sources(run_dir)["image_document_scope"] == "file"
+
+
+def test_several_inputs_without_output_directory_are_rejected(quickstart, monkeypatch, capsys):
+    root, _, _ = quickstart
+    Image.new("RGB", (40, 30), "white").save(root / "second.png")
+    _set_argv(monkeypatch, ["minicpmvocr", "parse", "input.png", "second.png", "--device", "cpu"])
+    with pytest.raises(SystemExit):
+        cli.main()
+    assert "need -o DIR" in capsys.readouterr().err
+
+
 def test_no_output_option_writes_only_markdown_to_stdout(quickstart, monkeypatch, capsys):
     _set_argv(monkeypatch, ["minicpmvocr", "parse", "input.png", "--device", "cpu"])
     assert cli.main() == 0
@@ -213,8 +268,7 @@ def test_layout_model_option_is_relative_to_working_directory(quickstart, monkey
 
 @pytest.mark.parametrize(("arguments", "message"), [
     (["parse"], "input PDF or image is required"),
-    (["parse", "input.png", "--input", "input.png"], "Specify INPUT or --input"),
-    (["parse", "."], "must be a PDF or image file"),
+    (["parse", "missing.png"], "Input file not found"),
     (["parse", "input.png", "--workers", "0"], "must be greater than zero"),
 ])
 def test_invalid_short_commands_report_cli_errors(quickstart, monkeypatch, capsys, arguments, message):

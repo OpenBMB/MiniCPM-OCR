@@ -19,6 +19,7 @@ from .constants import PARAMS_FILENAME, SUPPORTED_INPUT_SUFFIXES
 from .layouts import LAYOUT_ALIASES, list_layout_providers, normalize_layout_provider
 from .layouts.download import ensure_layout_model, ensure_upright_models
 from .pipeline import infer_run, parse_layout_run, pipelined_run, prepare_run
+from .pipeline._sources import read_sources
 from ._utils import read_jsonl
 
 
@@ -75,9 +76,14 @@ def _build_parser() -> argparse.ArgumentParser:
         epilog="Example:\n  minicpmvocr parse doc.pdf -o doc.md --device cuda:0 "
                "--server-url http://127.0.0.1:18499 --model minicpm-ocr",
     )
-    p_parse.add_argument("path", nargs="?", metavar="INPUT", help="PDF or image to parse")
+    p_parse.add_argument(
+        "path", nargs="*", metavar="INPUT",
+        help="PDF or image to parse; repeat for several inputs, or pass one directory",
+    )
     p_parse.add_argument("--config", default="", help="Custom YAML config; default uses the bundled quickstart settings")
-    p_parse.add_argument("--input", default="", help="Alias for the INPUT positional argument")
+    p_parse.add_argument(
+        "--input", action="append", default=[], metavar="FILE",
+        help="Alias for the INPUT positional argument; repeat for several inputs")
     p_parse.add_argument("-o", "--output", default="", help="Output Markdown path; default is stdout")
     p_parse.add_argument("--device", default="", help="Layout detection device, e.g. cuda:0 (quickstart default)")
     p_parse.add_argument("--layout-model", default="", metavar="DIR", help="Local PP-DocLayoutV3 inference model directory")
@@ -85,7 +91,15 @@ def _build_parser() -> argparse.ArgumentParser:
     p_parse.add_argument("--stdout", action="store_true", help="Print markdown to stdout")
     p_parse.add_argument("--run-tag", default="", help="Optional run tag for this one-shot run")
     p_parse.add_argument("--no-merge-pages", action="store_true", help="Do not merge pages into a single markdown")
-    p_parse.add_argument("--json", default="", metavar="FILE", help="Also write the result as JSON in the online document-parse job shape (pages[] + markdown)")
+    p_parse.add_argument(
+        "--split-images", action="store_true",
+        help="Treat each standalone image as its own document instead of pages of one collection "
+             "(sets pipeline.image_document_scope=file); PDFs are always one document per file")
+    p_parse.add_argument(
+        "--json", nargs="?", const="", default=None, metavar="PATH",
+        help="Also write JSON in the online document-parse shape (pages[] + markdown); "
+             "PATH is a file for one input, a directory for several, and omitted writes "
+             "it next to the Markdown")
     p_parse.add_argument("--page-delimiter", default="\n\n<!-- page-break -->\n\n", help="Delimiter between pages when merging")
     _add_engine_args(p_parse, require_connection=True)
 
@@ -191,15 +205,21 @@ def _build_engine_overrides(args: argparse.Namespace) -> dict:
 
 
 def _build_parse_overrides(args: argparse.Namespace) -> dict:
-    input_path = Path(args.input).resolve()
-    run_tag = args.run_tag or f"minicpmvocr_parse_{input_path.stem}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-    return {
+    inputs = args.inputs
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if len(inputs) == 1:
+        default_tag = f"minicpmvocr_parse_{inputs[0].stem}_{stamp}"
+        input_block = {"file_path": str(inputs[0]), "file_paths": []}
+    else:
+        default_tag = f"minicpmvocr_parse_{len(inputs)}files_{stamp}"
+        input_block = {"file_path": "", "file_paths": [str(p) for p in inputs]}
+    overrides = {
         "run": {
-            "run_tag": run_tag,
+            "run_tag": args.run_tag or default_tag,
             "mode": "oneshot_file",
         },
         "input": {
-            "file_path": str(input_path),
+            **input_block,
             "manifest": "",
             "image_dir": "",
             "files_dir": "",
@@ -213,6 +233,45 @@ def _build_parse_overrides(args: argparse.Namespace) -> dict:
             "progress_log_every": 10**9,
         },
     }
+    if getattr(args, "split_images", False):
+        overrides["pipeline"] = {"image_document_scope": "file"}
+    return overrides
+
+
+def _expand_directory(path: Path) -> list:
+    'Top-level supported files of a directory, in name order. Directories do not recurse.'
+    files = [
+        p for p in sorted(path.iterdir())
+        if p.is_file() and p.suffix.lower() in SUPPORTED_INPUT_SUFFIXES
+    ]
+    if not files:
+        raise ValueError(f"Directory has no PDF or image files: {path}")
+    return files
+
+
+def _resolve_parse_inputs(args: argparse.Namespace) -> list:
+    'Every input file, in the order given; directories expand to their top-level files.'
+    requested = [Path(p) for p in (args.path or [])] + [Path(p) for p in (args.input or [])]
+    if not requested:
+        raise ValueError("An input PDF or image is required")
+    resolved: list = []
+    seen = set()
+    for item in requested:
+        if item.is_dir():
+            candidates = _expand_directory(item)
+        elif not item.exists():
+            raise FileNotFoundError(f"Input file not found: {item}")
+        elif item.suffix.lower() not in SUPPORTED_INPUT_SUFFIXES:
+            raise ValueError(f"Unsupported input file type: {item.suffix}")
+        else:
+            candidates = [item]
+        for candidate in candidates:
+            key = str(candidate.resolve())
+            if key in seen:
+                continue
+            seen.add(key)
+            resolved.append(candidate.resolve())
+    return resolved
 
 
 def _quickstart_layout_model() -> str:
@@ -246,19 +305,7 @@ def _load_parse_config(args: argparse.Namespace) -> dict:
         raise ValueError("--server-url URL is required and must not be empty")
     if not args.model.strip():
         raise ValueError("--model NAME is required and must not be empty")
-    positional = args.path or ""
-    if positional and args.input:
-        raise ValueError("Specify INPUT or --input, not both")
-    args.input = positional or args.input
-    if not args.input:
-        raise ValueError("An input PDF or image is required")
-    if Path(args.input).is_dir():
-        raise ValueError("INPUT must be a PDF or image file")
-    input_path = Path(args.input)
-    if not input_path.is_file():
-        raise FileNotFoundError(f"Input file not found: {input_path}")
-    if input_path.suffix.lower() not in SUPPORTED_INPUT_SUFFIXES:
-        raise ValueError(f"Unsupported input file type: {input_path.suffix}")
+    args.inputs = _resolve_parse_inputs(args)
 
     overrides = _build_parse_overrides(args)
     explicit_overrides = _build_engine_overrides(args)
@@ -370,7 +417,7 @@ def _read_markdown_from_run(
         from .prompts import load_prompt_map
 
         markdown, pages, _ = assemble_document_markdown(
-            run_dir, load_prompt_map(cfg), merge_tables=True, delimiter=page_delimiter
+            run_dir, load_prompt_map(cfg), merge_tables=True, delimiter=page_delimiter, cfg=cfg
         )
         if pages:
             return markdown, pages
@@ -378,6 +425,87 @@ def _read_markdown_from_run(
     if merge_pages:
         return page_delimiter.join(page_texts), len(page_texts)
     return page_texts[0], 1
+
+
+def _output_names(sources: list) -> dict:
+    'source_id -> file stem; a stem shared by two inputs gets its source_id in front.'
+    stems = [Path(source.get("path") or source.get("source_id") or "input").stem for source in sources]
+    shared = {stem for stem in stems if stems.count(stem) > 1}
+    names = {}
+    for source, stem in zip(sources, stems):
+        prefix = f"{source.get('source_id', '')}_" if stem in shared else ""
+        names[source.get("source_id", "")] = f"{prefix}{stem}"
+    return names
+
+
+def _parse_many(args: argparse.Namespace, cfg: dict, run_dir: Path,
+                layout_summary: dict, infer_summary: dict) -> int:
+    """Write one Markdown (and with --json one JSON) per input file."""
+    if args.stdout:
+        raise ValueError("--stdout writes a single document; use -o DIR for several inputs")
+    if not args.output:
+        raise ValueError("Several inputs need -o DIR to hold one result per input")
+    output_dir = Path(args.output).resolve()
+    if output_dir.exists() and not output_dir.is_dir():
+        raise ValueError(f"-o must be a directory for several inputs: {output_dir}")
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    from .pipeline._response import assemble_documents_json
+    from .postprocess.crosspage import assemble_documents_markdown
+    from .prompts import load_prompt_map
+
+    document = assemble_documents_json(run_dir)
+    markdowns = assemble_documents_markdown(
+        run_dir, load_prompt_map(cfg),
+        merge_tables=bool(cfg["pipeline"].get("merge_cross_page_tables", False)),
+        delimiter=args.page_delimiter, cfg=cfg,
+    )
+    sources = (read_sources(run_dir) or {}).get("sources") or []
+    names = _output_names(sources)
+
+    outputs = []
+    for entry in document["files"]:
+        source_id = entry["source_id"]
+        name = names.get(source_id, source_id or "input")
+        if args.no_merge_pages and entry["pages_total"] > 1:
+            raise ValueError(
+                f"{entry['path']}: {entry['pages_total']} pages; remove --no-merge-pages "
+                "or parse that input on its own")
+        markdown_path = output_dir / f"{name}.md"
+        markdown = markdowns.get(source_id, {}).get("markdown", entry["markdown"])
+        _sync_markdown_images(run_dir, markdown, markdown_path)
+        markdown_path.write_text(markdown, encoding="utf-8")
+        record = {
+            "source_id": source_id,
+            "input": entry["path"],
+            "status": entry["status"],
+            "pages": f"{entry['pages_done']}/{entry['pages_total']}",
+            "output_md": str(markdown_path),
+        }
+        if args.json is not None:
+            json_path = output_dir / f"{name}.json"
+            json_path.write_text(
+                json.dumps(entry, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            record["output_json"] = str(json_path)
+        outputs.append(record)
+
+    print(
+        json.dumps(
+            {
+                "command": "parse",
+                "status": document["status"],
+                "inputs": len(args.inputs),
+                "outputs": outputs,
+                "run_dir": str(run_dir),
+                "layout_summary": layout_summary,
+                "infer_summary": infer_summary,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    failed = [o for o in outputs if o["status"] == "Failed"]
+    return 1 if len(failed) == len(outputs) else 0
 
 
 def main() -> int:
@@ -423,6 +551,12 @@ def main() -> int:
                 infer_summary = infer_run(cfg)
 
         run_dir = Path(cfg["_meta"]["run_dir"])
+        if len(args.inputs) > 1:
+            try:
+                return _parse_many(args, cfg, run_dir, layout_summary, infer_summary)
+            except (ValueError, OSError) as exc:
+                parser.error(str(exc))
+
         markdown, pages = _read_markdown_from_run(
             run_dir=run_dir,
             merge_pages=not args.no_merge_pages,
@@ -431,10 +565,17 @@ def main() -> int:
         )
 
         json_path = None
-        if args.json:
+        if args.json is not None:
             from .pipeline._response import assemble_document_json
 
-            json_path = Path(args.json).resolve()
+            if not args.json and not args.output:
+                raise ValueError("--json needs a PATH when the Markdown goes to standard output")
+            target = Path(args.json).resolve() if args.json else None
+            if target is not None and target.is_dir():
+                target = target / f"{Path(args.output).stem}.json"
+            elif target is None:
+                target = Path(args.output).with_suffix(".json").resolve()
+            json_path = target
             json_path.parent.mkdir(parents=True, exist_ok=True)
             json_path.write_text(
                 json.dumps(assemble_document_json(run_dir), ensure_ascii=False, indent=2) + "\n",
@@ -454,7 +595,7 @@ def main() -> int:
             json.dumps(
                 {
                     "command": "parse",
-                    "input": str(Path(args.input).resolve()),
+                    "input": str(args.inputs[0]),
                     "output_md": str(output_path),
                     **({"output_json": str(json_path)} if json_path else {}),
                     "pages": pages,

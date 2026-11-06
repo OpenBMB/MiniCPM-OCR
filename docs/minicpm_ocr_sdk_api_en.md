@@ -13,11 +13,21 @@ minicpmvocr parse doc.pdf -o doc.md --device cuda:0 \
   --server-url http://127.0.0.1:18499 --model minicpm-ocr
 ```
 
+Parsing several files writes one result per file:
+
+```bash
+minicpmvocr parse a.png b.png doc.pdf -o out/ --json \
+  --device cuda:0 --server-url http://127.0.0.1:18499 --model minicpm-ocr
+```
+
+This writes `a.md`, `a.json`, `b.md`, `b.json`, `doc.md`, and `doc.json` under `out/`. A directory may be given instead; only its top-level PDFs and images are read, without recursion.
+
 | Option | Description |
 |---|---|
-| `INPUT` / `--input FILE` | Input file: PDF, PNG, JPG, JPEG, GIF, BMP, WebP, TIF, or TIFF; use either form |
-| `-o FILE` / `--output FILE` | Output Markdown path; writes to standard output when omitted |
-| `--json FILE` | Also write JSON shaped like an online document-parse job: `status`, `pages_done`, `pages_total`, `pages[]`, and `markdown` |
+| `INPUT` / `--input FILE` | Input file: PDF, PNG, JPG, JPEG, GIF, BMP, WebP, TIF, or TIFF; either form repeats, and a directory is accepted |
+| `-o PATH` / `--output PATH` | Markdown path for one input; must be a directory for several, which writes one `<name>.md` per input; standard output when omitted |
+| `--json [PATH]` | Also write JSON shaped like an online document-parse job. For one input `PATH` is a file and is written next to the Markdown when omitted; several inputs write `<name>.json` |
+| `--split-images` | Treat each standalone image as its own document instead of pages of one collection. PDFs always stay one document per file |
 | `--server-url URL` | Required recognition service URL; repeat to connect to multiple service instances |
 | `--model NAME` | Required model name exposed by the service, matching vLLM's `--served-model-name` |
 | `--device DEVICE` | Layout detection device, such as `cuda:0`; does not change the device used by the recognition service |
@@ -93,5 +103,9 @@ if __name__ == "__main__":
 ```
 
 `ensure_layout_model()` reuses or downloads the official layout model; `load_config()` merges the configuration and validates the input; `pipelined_run()` runs layout detection and recognition; `assemble_document_markdown()` returns the combined Markdown, page count, and number of cross-page table merges.
+
+With several inputs, `runtime/sources.json` records which pages each input file produced and the image document scope. `pages_json/<image_id>.json` matches the online page response, with `metadata` also carrying `source` (the input path) and `image_id`. `assemble_documents_json(run_dir)` returns the same per-file grouping as `--json`, with a batch status of `Success`, `Partial`, or `Failed`.
+
+`pipeline.image_document_scope` sets how standalone images are grouped: `collection` (default) treats every image in the run as pages of one document, so cross-page table merging can span them; `file` makes each image its own document and matches `--split-images`. PDFs always merge per file. Images may also be listed in `input.file_paths`, processed in the given order.
 
 Run artifacts are written to `runs/<run_tag>/` under the working directory by default, including per-page Markdown, structured results, and run records. `pages_json/<image_id>.json` has the same shape as one page of the online [Document Parsing API](https://platform.modelbest.cn/console/docs/api/document-parse): `metadata.page_index` (zero-based), `choices[0].message.content` (page Markdown), and `ocr` (`image_width`, `image_height`, `blocks[]`, `rotation`). Block `status` is `ok`, `failed`, `skipped_no_vlm`, or `skipped_seal`; `rotation.total_angle` is positive counterclockwise, and coordinates refer to the corrected page when `applied=true`. `assemble_document_json(run_dir)` returns the same document as `--json`, joining page Markdown with a blank line. Change the output root with `run.run_root` in the configuration or the `OCR_RUN_ROOT` environment variable.
