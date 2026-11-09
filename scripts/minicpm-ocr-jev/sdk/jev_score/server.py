@@ -144,13 +144,12 @@ def create_app() -> FastAPI:
             )
             for i, it in enumerate(req.items)
         ]
-        # One bad item must not take the batch down with it: a caller that sent
-        # twenty candidates and one unreadable PNG wants the nineteen scores.
-        import asyncio
-
-        settled = await asyncio.gather(
-            *(scorer.score(i) for i in inputs), return_exceptions=True
-        )
+        # One bad item must not take the whole request down with it: a caller
+        # that sent twenty candidates and one unreadable PNG wants the nineteen
+        # scores. Which unit "one" means depends on whether the backend is
+        # scoring candidates singly or several to a forward pass -- see
+        # `Scorer.score_many_settled`.
+        settled = await scorer.score_many_settled(inputs)
         results = []
         for outcome in settled:
             if isinstance(outcome, BaseException):

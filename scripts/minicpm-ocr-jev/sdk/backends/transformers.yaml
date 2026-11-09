@@ -1,0 +1,75 @@
+# Which engine runs the forward pass, and -- for this one alone -- where the
+# weights are.
+#
+# This is the only backend with no engine to start. The other four configs point
+# at a server that was launched separately and holds the model; this one names a
+# checkpoint directory, and the service process loads it at startup and keeps it
+# in its own memory. There is no second process and no port to reach it on.
+#
+# What that buys: nothing to install beyond torch and transformers, no CUDA-only
+# engine, and the service runs anywhere the weights fit -- including a laptop.
+# What it costs: no continuous batching -- requests queue in the service and are
+# served in turn -- and an out-of-memory error takes the service down with it
+# rather than just the engine. So this is the reference and small-batch route,
+# not the throughput one.
+
+engine: transformers
+
+# ⭐ Required here, and required *instead of* base_url: the local checkpoint
+# directory. Replace the placeholder -- it is checked for existence before the
+# model loads, so an unedited config fails naming this file rather than failing
+# somewhere inside the loader. Starting with a base_url set is an error rather
+# than an ignored key, because the two describe incompatible deployments.
+model_path: /path/to/weights
+
+# Where to run it. "auto" tries cuda:0, then Apple's mps, then cpu. Pin it
+# (cuda:1, mps, cpu, …) when the host has more than one GPU and this service
+# should not take the first.
+#
+# mps is a real option, not a fallback: measured on an M-series machine, this
+# checkpoint runs on Metal with no unimplemented operators and lands within
+# 4.1e-3 of the reference scores -- marginally closer than the CUDA leg's 4.2e-3.
+device: auto
+
+# "auto" means bfloat16 on any accelerator (cuda or mps) and float32 only on cpu.
+#
+# ⚠ Do not widen this to float32 on mps "to be safe". One forward pass there
+# takes 0.3 s in bfloat16 and 38 s in float32 -- a factor of ~100 -- and float32
+# also lands *further* from the reference scores (4.9e-3 against 4.1e-3). The
+# published numbers were measured in bfloat16; float16 is a different thing again,
+# same width and a much smaller exponent range.
+dtype: auto
+
+# ⚠ Leave this at sdpa. Measured against the reference scores on 12 samples,
+# sdpa lands within 4.4e-3 and flash_attention_2 within 7.6e-3. Both rank
+# candidates identically and neither looks wrong; only sdpa stays inside the
+# 5e-3 band the published numbers were measured in. "auto" also resolves to sdpa
+# rather than to whatever is installed, for that reason.
+attn_implementation: sdpa
+
+# Concurrent forward passes. ⚠ Not the same quantity as the other configs'
+# max_in_flight: there it bounds sockets toward an engine that queues, here it
+# would bound passes competing for one GPU's memory, which does not queue. Values
+# above 1 are lowered to 1 with a note.
+max_in_flight: 1
+
+# How many candidates share one forward pass. A different axis from the line
+# above: that one is how many passes run at once (one), this one is how wide a
+# single pass is.
+#
+# 1 is the default so that an unedited config scores exactly what it scored
+# before this option existed. Raise it to get throughput out of this backend --
+# it is the only way to, since there is no engine doing continuous batching
+# underneath. A scoring prompt measures 304-590 tokens on the shipped examples,
+# which does not fill a modern GPU, so a wider pass is mostly free compute.
+#
+# What it costs is memory, and the cost is not linear in the number you write
+# here: rows are padded to the longest in the pass, and a batch mixing a short
+# text block with a wide table pays for the table on every row. Raise it in
+# steps and watch peak memory; an out-of-memory here takes the service with it.
+# Candidates beyond this number are not dropped, they go in the next pass.
+max_batch_size: 1
+
+# Optional, for logs only: what to call this model in /healthz. The default is
+# the checkpoint directory, which is what actually identifies the weights.
+# model: minicpm-ocr-jev

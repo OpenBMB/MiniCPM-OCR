@@ -1,6 +1,6 @@
 ---
 name: minicpm-ocr-jev-deploy
-description: Install, deploy and verify the MiniCPM-OCR Jev scoring service by either of two paths — the Docker image, or the SDK local deployment (four inference backends: vLLM / SGLang / llama.cpp / Ollama). Use when the user wants to start a Jev scoring service, deploy the Jev image or SDK, score OCR output for consistency or pick the best of several candidates, or troubleshoot startup and scoring errors.
+description: Install, deploy and verify the MiniCPM-OCR Jev scoring service by either of two paths — the Docker image, or the SDK local deployment (five inference backends: vLLM / SGLang / llama.cpp / Ollama / PyTorch Transformers). Use when the user wants to start a Jev scoring service, deploy the Jev image or SDK, score OCR output for consistency or pick the best of several candidates, or troubleshoot startup and scoring errors.
 ---
 
 # MiniCPM-OCR Jev local deployment
@@ -9,7 +9,7 @@ Jev judges whether a piece of OCR text matches the original image: send the orig
 
 There are two deployment paths, using the same model and the same scoring logic: the **Docker image** carries the engine, the scoring service and the render environment in one container; the **SDK** installs the renderer and the model service separately on the host — the engine does the forward pass, the service layer does the scoring, and the two must live in different virtual environments.
 
-The commands here come from the same source as `docs/minicpm_ocr_jev_tutorial_en.md`, `docs/minicpm_ocr_jev_docker_api_en.md` and `docs/{vllm,sglang,llamacpp,ollama}_deploy_jev_en.md`, and every section names the section of those documents it mirrors; change one side and the other must follow.
+The commands here come from the same source as `docs/minicpm_ocr_jev_tutorial_en.md`, `docs/minicpm_ocr_jev_docker_api_en.md` and `docs/{vllm,sglang,llamacpp,ollama,transformers}_deploy_jev_en.md`, and every section names the section of those documents it mirrors; change one side and the other must follow.
 
 ## 1. Determine the plan
 
@@ -20,7 +20,7 @@ The commands here come from the same source as `docs/minicpm_ocr_jev_tutorial_en
 | Render environment | Pinned Chromium and CJK fonts, built into the image | Installed by you (6.2), or the caller provides the render image (6.1) |
 | What the scores mean | Same render environment as the cloud API, so they can be compared against the published numbers directly | Ranking is stable; absolute values may differ in the third decimal |
 | What to install | Docker + NVIDIA Container Toolkit | Two virtual environments: engine + service layer |
-| Inference backend | vLLM, fixed inside the image | One of vLLM / SGLang / llama.cpp / Ollama |
+| Inference backend | vLLM, fixed inside the image | One of vLLM / SGLang / llama.cpp / Ollama / PyTorch Transformers |
 | Platforms | Linux + NVIDIA only | Linux + NVIDIA / macOS (see 1.3) |
 | Suited to | Comparing against the published numbers, not installing a render environment yourself | No Docker, macOS, render images already in hand, or a specific backend wanted |
 
@@ -81,7 +81,7 @@ There are two service shapes, split by where the render image comes from; both u
 | Features | Scoring only | Scoring, best-of-N within a block, batched best-of-N, with precheck |
 | Start script | `sdk/start_score.sh` | `sdk/start_render_score.sh` |
 
-The four backends differ a lot in what they cost to set up; pick by the user's constraints:
+The five backends differ a lot in what they cost to set up; pick by the user's constraints:
 
 | Backend | System CUDA toolkit | Compiles | Engine environment size | Platforms | Suited to |
 |---|---|---|---|---|---|
@@ -89,10 +89,12 @@ The four backends differ a lot in what they cost to set up; pick by the user's c
 | SGLang | **Needed** | No | 9.5 GB | Linux + NVIDIA only | An existing SGLang stack |
 | llama.cpp | **Needed** (Linux only) | **Yes** | 214 MB (build) | Linux + NVIDIA / macOS | Small VRAM, no torch wanted |
 | Ollama | Not needed | No | None (the engine ships with Ollama) | Linux + NVIDIA / macOS | Lightest requirements, an existing Ollama |
+| PyTorch Transformers | Not needed | No | None (no engine; the weights live in the service process) | Linux + NVIDIA / macOS | No engine wanted, original weights on a mac, small batches |
 
 - llama.cpp and Ollama use GGUF weights, which are **published officially and downloaded directly by default** (see 5.3) — no HF weights and no conversion environment. Convert them yourself only when the user wants different conversion settings or the weights are their own fine-tune; that needs a 4.8 GB conversion environment (CPU torch), which can be deleted afterwards.
 - Ollama runs llama.cpp's own runner, so their scores share one source — **do not use one to verify the other**.
-- ⭐ **On macOS (Apple Silicon) only llama.cpp and Ollama are available**: vLLM and SGLang depend on the CUDA stack and will not start on a mac, so do not suggest them. Both macOS paths go through Metal; where the commands differ from Linux is covered in 5.3 / 5.4.
+- ⭐ **PyTorch Transformers starts no engine of its own**: the weights load into the service process, section 5 is only a config file for it (see 5.5), and the service layer's virtual environment is the one that needs torch. It runs one forward pass at a time by default and has no cross-request continuous batching; for throughput, widen the pass with `max_batch_size` (2.3x measured at batch 4), **but the ceiling is still below an engine's** — pick vLLM or SGLang for single-host throughput. Pick this one to avoid installing an engine, or to use the original weights on macOS.
+- ⭐ **On macOS (Apple Silicon) there are three paths**: llama.cpp, Ollama and PyTorch Transformers. The first two use GGUF weights over Metal (where the commands differ from Linux is covered in 5.3 / 5.4); Transformers reads the original bfloat16 weights directly, and `device: auto` selects Metal (MPS). vLLM and SGLang depend on the CUDA stack and will not start on a mac, so do not suggest them.
 - ⭐ **On macOS only run the score service**: the render+score service needs a pinned font environment, and that step depends on apt, which is not available on a mac (see 6.2).
 
 ## 2. Pre-installation checks
@@ -202,6 +204,8 @@ grep -rq COMMON_DECISION_TYPE_MINICPM_OCR_JEV tools/server/ && echo supported ||
 ## 5. Install and start the engine
 
 All four engines use port 18499 (the documents' default). When several backends run on one machine, stagger the ports and change the engine address in the service layer to match.
+
+**With PyTorch Transformers this section is only the config in 5.5**: it starts no engine and has no port, and the weights are loaded by the service process in section 6.
 
 ### 5.1 vLLM (mirrors `vllm_deploy_jev_en.md` §1)
 
@@ -336,9 +340,33 @@ The model name `minicpm-ocr-jev` has to match `model` in `sdk/backends/ollama.ya
 
 Pass criteria: **only the startup self-check can confirm this backend works** (see [section 7](#7-verification)). `ollama show` reporting `decision, vision` only says the GGUF conversion was right; it says nothing about whether the runner knows the model. Same criteria on both platforms — Ollama on macOS also runs llama.cpp plus Metal.
 
+### 5.5 PyTorch Transformers (mirrors `transformers_deploy_jev_en.md` §1)
+
+This backend installs no engine, starts no process and has no port; this section is only a config file. The weights are loaded by the service process in section 6, so **that virtual environment is the one that needs torch** (see 6.1). Use the HF weights from section 3, not GGUF.
+
+`sdk/backends/transformers.yaml` points at the weights directory:
+
+```yaml
+engine: transformers
+model_path: <WEIGHTS>
+device: auto
+dtype: auto
+attn_implementation: sdpa
+max_in_flight: 1
+max_batch_size: 1
+```
+
+- `model_path` is required and mutually exclusive with `base_url`: supplying both fails at startup.
+- `device: auto` tries `cuda:0`, then `mps`, then `cpu`; on a mac it selects Metal.
+- Leave `dtype` and `attn_implementation` as they are. Measured: on a mac one forward pass takes 0.3 s in bfloat16 and 38 s in float32, with float32 also landing further from the reference scores; `sdpa` lands within 4.4e-3 of the reference scores and `flash_attention_2` within 7.6e-3.
+- `max_in_flight` means concurrent forward passes; leave it at 1. A larger value is lowered back to 1 at startup with a note in `/healthz`.
+- `max_batch_size` is **how many candidates share one forward pass** — a different axis from the line above (that one is how many passes, this one is how wide a pass is). Default 1; raise it for throughput. Measured on 24 candidates (RTX 5090, bf16): batch 1 → 2.17 s, batch 4 → 0.94 s (2.3x), batch 8 → 0.89 s and flattening; peak memory 4347 → 4962 MiB. ⚠ Above 1 the scores are no longer bit-reproducible (the same candidate's probability varies by ≤3.3e-4 across batch sizes, well inside the 4.4e-3 band) — the cause is the GPU's reduction order changing with batch shape, not padding (an equal-length batch with no padding moves too). Keep it at 1 where bit-reproducibility matters.
+
+Pass criteria: **only the startup self-check plus a real score can confirm this backend works** (see [section 7](#7-verification)).
+
 ## 6. Install and start the service layer
 
-Pick one of the two shapes; do not start both. Fill in the engine address with the port actually used in section 5.
+Pick one of the two shapes; do not start both. Fill in the engine address with the port actually used in section 5; **PyTorch Transformers takes no such argument** (it has no engine) — see 6.3.
 
 ### 6.1 Score service (mirrors §2 of each document)
 
@@ -349,6 +377,18 @@ pip install "fastapi>=0.110" "uvicorn>=0.27" "httpx>=0.27" "pydantic>=2.6" "PyYA
 
 ```bash
 PATH=/opt/venv-score/bin:$PATH bash sdk/start_score.sh 18501 http://127.0.0.1:18499
+```
+
+With the PyTorch Transformers backend the service process loads the weights, so its dependencies are a separate install and it starts without an engine address:
+
+```bash
+python3 -m venv /opt/venv-transformers && source /opt/venv-transformers/bin/activate
+pip install -r sdk/requirements-transformers.txt
+```
+
+```bash
+JEV_BACKEND_CONFIG=sdk/backends/transformers.yaml \
+PATH=/opt/venv-transformers/bin:$PATH bash sdk/start_score.sh 18501
 ```
 
 ### 6.2 Render+score service (mirrors §3 of each document)
@@ -379,7 +419,16 @@ JEV_BACKEND_CONFIG=sdk/backends/sglang.yaml \
 PATH=/opt/venv-score/bin:$PATH bash sdk/start_score.sh 18501 http://127.0.0.1:18499
 ```
 
-Replace `sglang.yaml` with `llamacpp.yaml` / `ollama.yaml`. **Without that variable the service speaks the vLLM protocol**: SGLang will connect but the scores are unusable, while llama.cpp and Ollama expose different endpoints and the service fails to start.
+Replace `sglang.yaml` with `llamacpp.yaml` / `ollama.yaml` / `transformers.yaml`. **Without that variable the service speaks the vLLM protocol**: SGLang will connect but the scores are unusable, while llama.cpp and Ollama expose different endpoints and the service fails to start.
+
+`transformers.yaml` differs in one more way: **drop the engine-address argument from both start scripts entirely**, since the config's `model_path` supplies the weights. Passing an engine address as well fails at startup rather than being ignored.
+
+```bash
+JEV_BACKEND_CONFIG=sdk/backends/transformers.yaml \
+PATH=/opt/venv-transformers/bin:$PATH bash sdk/start_render_score.sh 18500
+```
+
+For the render+score service on this backend, the renderer and the weights share one process, so 6.2's render dependencies go into that same `/opt/venv-transformers` environment (`pip install "playwright==1.62.0" "Markdown==3.10.3"` plus `playwright install chromium`); afterwards confirm `Pillow` is still 12.3.0.
 
 ## 7. Verification
 
@@ -398,8 +447,9 @@ Look at `status` only; `ok` means it passed. The other fields are details, and w
 | vLLM | `engine` | `2 logits` | The prompt the engine assembled was checked field by field |
 | SGLang | `client` | `2 logits` | The SDK assembles the prompt; what is checked is the string about to be sent |
 | llama.cpp / Ollama | `server_template` | `2 probabilities` | The template is baked into the GGUF and cannot be read back, so the prompt is not checked |
+| PyTorch Transformers | `client` | `2 logits` | As SGLang, plus the token-for-token comparison (next paragraph) |
 
-`token_equality` being `skipped` means skipped, not failed. When `status` is not `ok`, read `prompt.notes` or `error` — it carries the engine's own words.
+`token_equality` being `skipped` means skipped, not failed. **On the PyTorch Transformers backend it reads `equal`**: the token-for-token comparison needs a local tokenizer, and that backend's environment necessarily has transformers installed, so the check actually runs. `served_model` on that backend is the weights directory rather than a model name. When `status` is not `ok`, read `prompt.notes` or `error` — it carries the engine's own words.
 
 ### 7.2 Score the bundled cases
 
@@ -548,6 +598,7 @@ ln -sfn $L/libggml-cuda.so $O/cuda_v13/libggml-cuda.so
 | SGLang | Stable 0.5.22 has **no support for this model**; the PR #45829 source tree works, venv 9.5 GB |
 | llama.cpp | Release **v0.8.0** (includes PR #30980, merged into master on 2026-10-27), build 214 MB |
 | Ollama | Stock v0.40.11 has **no support for this model**; works after the runner swap |
+| PyTorch Transformers | Linux: torch 2.13.0+cu130 + transformers 5.19.0 + torchvision 0.29.2; macOS: torch 2.15.0 + transformers 5.22.2 + torchvision 0.29.2 (both measured on 2026-11-09). ⚠ transformers 4.57.6 does **not** have the `Qwen3_5ForSequenceClassification` class |
 | Docker image | Built from `serve/Dockerfile`, with the engine, the scoring service and the render environment all inside it; for the versions actually in the image, read the `scorer` and `render` fields of `/healthz` |
 | Service layer | Python 3.12.3, fastapi 0.162.0, uvicorn 0.54.0, httpx 0.28.1, pydantic 2.14.1, Pillow 12.3.0, venv 59 MB |
 | Render environment | playwright 1.62.0, KaTeX 0.16.47, render pipeline v8.5, venv 205 MB |

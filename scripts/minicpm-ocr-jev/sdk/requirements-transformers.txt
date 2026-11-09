@@ -1,0 +1,89 @@
+# The transformers backend: the forward pass runs in the service process.
+#
+# This file exists because that one sentence breaks an assumption the other
+# requirements files are built on. There, the engine lives in its own virtual
+# environment and the warning in requirements.txt holds: vLLM asks only for
+# "pillow>=12.3.0" while the renderer pins it exactly, so a shared environment
+# lets `pip install -U vllm` move Pillow forward and change every score, silently.
+# The answer there is separation -- two environments, two resolvers, no contact.
+#
+# That answer is unavailable here. There is no second process to separate into:
+# this backend loads the weights into the process that is also rendering. So the
+# pin has to be defended inside one environment instead, which is what the
+# `Pillow==12.3.0` below is doing. It is listed before the model stack on purpose:
+# whatever torch and transformers would accept, this is the version the model was
+# calibrated against, and it is not negotiable by a later `pip install -U`.
+#
+# Install into a virtual environment of its own and run the service with that
+# interpreter:
+#
+#   python3 -m venv /opt/venv-transformers
+#   /opt/venv-transformers/bin/pip install -r sdk/requirements-transformers.txt
+#   PATH=/opt/venv-transformers/bin:$PATH \
+#   JEV_BACKEND_CONFIG=sdk/backends/transformers.yaml bash sdk/start_score.sh 18501
+
+# ── pinned: these decide what the model sees ─────────────────────────────────
+# Exactly the renderer's pin, for exactly the renderer's reason -- see above, and
+# the same line in requirements.txt. Pillow runs on the scoring path for images
+# past 199:1, which are padded and re-encoded.
+Pillow==12.3.0
+
+# ── the model stack ──────────────────────────────────────────────────────────
+# transformers must be new enough to register Qwen3_5ForSequenceClassification.
+# The checkpoint's config.json reports transformers_version 5.10.4; verified
+# with 5.19.0 (Linux/CUDA) and 5.22.2 (macOS/mps). 4.57.6 does *not* have the
+# class -- it imports fine and then cannot build the model.
+transformers>=5.19
+torch>=2.13
+
+# Required, and not for anything this service does with video. AutoProcessor
+# builds a Qwen3VLVideoProcessor because processor_config.json carries a
+# video_processor section, and that class imports torchvision at construction
+# time. Without it the service fails at startup with an ImportError naming
+# Torchvision, which reads like a missing feature rather than a missing
+# dependency of a feature nobody asked for.
+torchvision
+
+# ── the HTTP shell ───────────────────────────────────────────────────────────
+# Same lower bounds as requirements-score.txt. Nothing here touches a prompt.
+fastapi>=0.110
+uvicorn>=0.27
+httpx>=0.27
+pydantic>=2.6
+PyYAML>=6.0
+
+# ── deliberately absent ──────────────────────────────────────────────────────
+#
+# accelerate     Only `device_map=` needs it, and this backend places the model
+#                with `.to(device)` instead. It never shards across devices, so
+#                the dependency would buy nothing.
+#
+# causal_conv1d  Both are optional kernels for this architecture. Without them
+# flash-linear-  transformers prints that it is "falling back to its reference
+# attention      PyTorch implementation ... correct but much slower", on every
+#                start, for each one. Correct is the operative word: the
+#                reference scores below are what this environment produces
+#                without either of them. Install them for speed, not for
+#                agreement.
+#
+# flash-attn     The adapter pins attn_implementation to sdpa. Measured against
+#                the reference scores on 12 samples, sdpa lands within 4.4e-3 and
+#                flash_attention_2 within 7.6e-3 -- the second one is outside the
+#                5e-3 band the published numbers were measured in. Installing it
+#                does not change the default, but do not then switch to it.
+#
+# vllm           It is a different backend, with its own config and its own
+#                environment (serve/setup_backend.sh). Installing both here is
+#                how Pillow moves.
+#
+# ── if this service should also render ───────────────────────────────────────
+# sdk/start_render_score.sh renders in-process, so that deployment needs the
+# renderer's dependencies in this same environment as well:
+#
+#   playwright==1.62.0
+#   Markdown==3.10.3
+#
+# They are not listed above because the score-only deployment must not install
+# them -- it needs no browser, no Node and no fonts. Add them (and
+# `playwright install chromium`) only for the render+score entry point; the pins
+# are the renderer's and are not independent of the scores either.

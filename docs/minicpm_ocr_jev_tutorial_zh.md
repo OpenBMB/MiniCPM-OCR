@@ -96,7 +96,7 @@ curl -s http://127.0.0.1:8030/v1/rm/score -H 'Content-Type: application/json' -d
 
 #### 推理打分
 
-支持多种推理引擎进行打分：[vLLM](./vllm_deploy_jev_zh.md)，[SGLang](./sglang_deploy_jev_zh.md)，[llama.cpp](./llamacpp_deploy_jev_zh.md)，[Ollama](./ollama_deploy_jev_zh.md)
+支持多种推理引擎进行打分：[vLLM](./vllm_deploy_jev_zh.md)，[SGLang](./sglang_deploy_jev_zh.md)，[llama.cpp](./llamacpp_deploy_jev_zh.md)，[Ollama](./ollama_deploy_jev_zh.md)，[PyTorch Transformers](./transformers_deploy_jev_zh.md)
 
 #### 环境要求
 

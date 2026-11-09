@@ -96,7 +96,7 @@ Both shapes use the same model and the same scoring code; they differ only in th
 
 #### Inference scoring
 
-Scoring can use several inference engines: [vLLM](./vllm_deploy_jev_en.md), [SGLang](./sglang_deploy_jev_en.md), [llama.cpp](./llamacpp_deploy_jev_en.md), [Ollama](./ollama_deploy_jev_en.md)
+Scoring can use several inference engines: [vLLM](./vllm_deploy_jev_en.md), [SGLang](./sglang_deploy_jev_en.md), [llama.cpp](./llamacpp_deploy_jev_en.md), [Ollama](./ollama_deploy_jev_en.md), [PyTorch Transformers](./transformers_deploy_jev_en.md)
 
 #### Requirements
 
