@@ -1,6 +1,6 @@
 ---
 name: minicpm-ocr-jev-deploy
-description: 安装、部署和验证 MiniCPM-OCR Jev 打分服务，两条路径——Docker 镜像，或 SDK 本地部署（vLLM / SGLang / llama.cpp / Ollama 四个推理后端）。在用户要起 Jev 打分服务、部署 Jev 镜像或 SDK、给 OCR 结果打一致性分数或在多个候选里选优、排查起服与打分报错时使用。
+description: 安装、部署和验证 MiniCPM-OCR Jev 打分服务，两条路径——Docker 镜像，或 SDK 本地部署（vLLM / SGLang / llama.cpp / Ollama / PyTorch Transformers 五个推理后端）。在用户要起 Jev 打分服务、部署 Jev 镜像或 SDK、给 OCR 结果打一致性分数或在多个候选里选优、排查起服与打分报错时使用。
 ---
 
 # MiniCPM-OCR Jev 本地部署
@@ -9,7 +9,7 @@ Jev 判断一段 OCR 文本与原图是否一致：送原图与候选文本，�
 
 部署有两条路径，用同一个模型、同一套打分逻辑：**Docker 镜像**一个容器里装齐引擎、打分服务与渲染环境；**SDK** 把渲染器与模型服务分开装在主机上——引擎做前向，服务层做打分，两者必须在不同的虚拟环境里。
 
-本文的命令与 `docs/minicpm_ocr_jev_tutorial_zh.md`、`docs/minicpm_ocr_jev_docker_api_zh.md`、`docs/{vllm,sglang,llamacpp,ollama}_deploy_jev_zh.md` 同源，每节都标了对应文档的小节；改任一方需同步。
+本文的命令与 `docs/minicpm_ocr_jev_tutorial_zh.md`、`docs/minicpm_ocr_jev_docker_api_zh.md`、`docs/{vllm,sglang,llamacpp,ollama,transformers}_deploy_jev_zh.md` 同源，每节都标了对应文档的小节；改任一方需同步。
 
 ## 1. 确定方案
 
@@ -20,7 +20,7 @@ Jev 判断一段 OCR 文本与原图是否一致：送原图与候选文本，�
 | 渲染环境 | 镜像内置固定版本的 Chromium 与 CJK 字体 | 自己装（6.2），或由调用方提供渲染图（6.1） |
 | 分数口径 | 与云端 API 同一套渲染环境，可直接与发布数字对照 | 排序稳定，绝对值可能差在小数点后第三位 |
 | 要装什么 | Docker ＋ NVIDIA Container Toolkit | 两个虚拟环境：引擎 ＋ 服务层 |
-| 推理后端 | 镜像内固定 vLLM | vLLM / SGLang / llama.cpp / Ollama 四选一 |
+| 推理后端 | 镜像内固定 vLLM | vLLM / SGLang / llama.cpp / Ollama / PyTorch Transformers 五选一 |
 | 平台 | 仅 Linux ＋ NVIDIA | Linux ＋ NVIDIA／macOS（见 1.3） |
 | 适合 | 要与发布数字对照、不想自己装渲染环境 | 没有 Docker、在 macOS 上、已有渲染图、或要指定后端 |
 
@@ -81,7 +81,7 @@ curl -s http://127.0.0.1:8030/v1/rm/score -H 'Content-Type: application/json' -d
 | 功能 | 逐条打分 | 逐条打分、块内选优、批量选优，带 precheck |
 | 启动脚本 | `sdk/start_score.sh` | `sdk/start_render_score.sh` |
 
-四个后端的环境成本相差很大，按用户的约束选：
+五个后端的环境成本相差很大，按用户的约束选：
 
 | 后端 | 系统 CUDA toolkit | 要编译 | 引擎环境体积 | 可用平台 | 适合 |
 |---|---|---|---|---|---|
@@ -89,10 +89,12 @@ curl -s http://127.0.0.1:8030/v1/rm/score -H 'Content-Type: application/json' -d
 | SGLang | **需要** | 否 | 9.5 GB | 仅 Linux ＋ NVIDIA | 已有 SGLang 技术栈 |
 | llama.cpp | **需要**（仅 Linux） | **是** | 214 MB（build） | Linux ＋ NVIDIA／macOS | 显存小、不想装 torch |
 | Ollama | 不需要 | 否 | 无（引擎在安装包里） | Linux ＋ NVIDIA／macOS | 要求最轻，已有 Ollama |
+| PyTorch Transformers | 不需要 | 否 | 无（不起引擎，权重在服务进程里） | Linux ＋ NVIDIA／macOS | 不想起引擎、要在 mac 上用原始权重、小批量 |
 
 - llama.cpp 与 Ollama 用 GGUF 权重，**官方已发布，默认直接下**（见 5.3），不必下 HF 原始权重、也不必装转换环境。只在要换转换参数、或权重是用户自己微调的时候才自己转，那时需要一个 4.8 GB 的转换环境（CPU 版 torch），转完可删。
 - Ollama 跑的就是 llama.cpp 的 runner，两者分数同源，**不要拿它们互相验证**。
-- ⭐ **用户在 macOS（Apple Silicon）上时只有 llama.cpp 与 Ollama 两条路**：vLLM 与 SGLang 依赖 CUDA 栈，mac 上起不来，不要建议。两者在 mac 上都走 Metal，命令与 Linux 的差别见 5.3／5.4。
+- ⭐ **PyTorch Transformers 不单独起引擎**：权重加载进服务进程，第 5 节对它只是填一份配置（见 5.5），服务层那个虚拟环境要装 torch。它默认一次只做一次前向，没有跨请求的连续批处理；要吞吐靠调 `max_batch_size` 加宽单次前向（实测批 4 有 2.3×），**但天花板仍低于引擎**，单机高吞吐选 vLLM 或 SGLang。用它的理由是不想装引擎、或要在 macOS 上直接用原始权重。
+- ⭐ **用户在 macOS（Apple Silicon）上时有三条路**：llama.cpp、Ollama 与 PyTorch Transformers。前两者用 GGUF 权重、走 Metal（命令与 Linux 的差别见 5.3／5.4）；Transformers 直接读原始 bfloat16 权重，`device: auto` 自动选 Metal（MPS）。vLLM 与 SGLang 依赖 CUDA 栈，mac 上起不来，不要建议。
 - ⭐ **macOS 上只做不带渲染器服务**：内置渲染器服务要固定字体环境，那一步依赖 apt，mac 上做不到（见 6.2）。
 
 ## 2. 安装前检查
@@ -201,6 +203,8 @@ grep -rq COMMON_DECISION_TYPE_MINICPM_OCR_JEV tools/server/ && echo supported ||
 ## 5. 装引擎并启动
 
 四个引擎的端口都用 18499（文档默认值）。一台机器上同时起多个后端时错开端口，并把服务层的引擎地址跟着改。
+
+**选 PyTorch Transformers 时本节只做 5.5 那一份配置**：它不起引擎，没有端口，权重由第 6 节的服务进程加载。
 
 ### 5.1 vLLM（对应 `vllm_deploy_jev_zh.md` 一）
 
@@ -335,9 +339,33 @@ ollama show minicpm-ocr-jev
 
 通过标准：**只有起服自检能确认这个后端可用**（见[第 7 节](#7-验证)）。`ollama show` 报 `decision, vision` 只说明 GGUF 转对了，runner 认不认它不负责。两个平台同此标准，macOS 上的 Ollama 也走 llama.cpp ＋ Metal。
 
+### 5.5 PyTorch Transformers（对应 `transformers_deploy_jev_zh.md` 一）
+
+本后端不装引擎、不起进程、没有端口，本节只写一份配置；权重由第 6 节的服务进程加载，**那个虚拟环境要装 torch**（见 6.1）。用第 3 节取的 HF 原始权重，不要 GGUF。
+
+`sdk/backends/transformers.yaml` 指向权重目录：
+
+```yaml
+engine: transformers
+model_path: <WEIGHTS>
+device: auto
+dtype: auto
+attn_implementation: sdpa
+max_in_flight: 1
+max_batch_size: 1
+```
+
+- `model_path` 必填，与 `base_url` 互斥：同时给出会在启动时报错。
+- `device: auto` 依次尝试 `cuda:0`、`mps`、`cpu`；mac 上自动走 Metal。
+- `dtype` 与 `attn_implementation` 保持原值。实测：mac 上一次前向 bfloat16 耗时 0.3 秒、float32 耗时 38 秒且与参考分数偏差更大；`sdpa` 与参考分数相差 4.4e-3、`flash_attention_2` 为 7.6e-3。
+- `max_in_flight` 是同时进行的前向次数，保持 1；填大于 1 会在启动时降回 1 并在 `/healthz` 留一条 note。
+- `max_batch_size` 是**一次前向里的候选数**，与上一项不同轴（上一项是跑几次，这一项是一次多宽）。默认 1；要吞吐就调它。实测 24 候选（RTX 5090，bf16）：批 1→2.17 秒，批 4→0.94 秒（2.3×），批 8→0.89 秒已趋平；峰值显存 4347→4962 MiB。⚠ 调大后分数不再逐位可复现（同候选跨批大小概率差 ≤3.3e-4，远在 4.4e-3 内）——根因是 GPU 归约次序随批形状变，与补齐无关（等长不补齐的批同样会动）。要逐位复现就保持 1。
+
+通过标准：**只有起服自检加打分能确认这个后端可用**（见[第 7 节](#7-验证)）。
+
 ## 6. 装服务层并启动
 
-两种形态二选一，不要都起。引擎地址按第 5 节实际用的端口填。
+两种形态二选一，不要都起。引擎地址按第 5 节实际用的端口填；**PyTorch Transformers 不填这个参数**（它没有引擎），见 6.3。
 
 ### 6.1 不带渲染器服务（对应各文档 二）
 
@@ -348,6 +376,18 @@ pip install "fastapi>=0.110" "uvicorn>=0.27" "httpx>=0.27" "pydantic>=2.6" "PyYA
 
 ```bash
 PATH=/opt/venv-score/bin:$PATH bash sdk/start_score.sh 18501 http://127.0.0.1:18499
+```
+
+PyTorch Transformers 后端的服务进程要加载权重，依赖另装一份，启动时不带引擎地址：
+
+```bash
+python3 -m venv /opt/venv-transformers && source /opt/venv-transformers/bin/activate
+pip install -r sdk/requirements-transformers.txt
+```
+
+```bash
+JEV_BACKEND_CONFIG=sdk/backends/transformers.yaml \
+PATH=/opt/venv-transformers/bin:$PATH bash sdk/start_score.sh 18501
 ```
 
 ### 6.2 内置渲染器服务（对应各文档 三）
@@ -375,7 +415,16 @@ JEV_BACKEND_CONFIG=sdk/backends/sglang.yaml \
 PATH=/opt/venv-score/bin:$PATH bash sdk/start_score.sh 18501 http://127.0.0.1:18499
 ```
 
-把 `sglang.yaml` 换成 `llamacpp.yaml` / `ollama.yaml`。**不设这个变量时服务按 vLLM 协议发请求**：SGLang 那边连得上但分数不可用，llama.cpp 与 Ollama 那边端点对不上、起服即失败。
+把 `sglang.yaml` 换成 `llamacpp.yaml` / `ollama.yaml` / `transformers.yaml`。**不设这个变量时服务按 vLLM 协议发请求**：SGLang 那边连得上但分数不可用，llama.cpp 与 Ollama 那边端点对不上、起服即失败。
+
+`transformers.yaml` 还有一处不同：**两个启动脚本的引擎地址参数要整个省掉**，权重路径由配置里的 `model_path` 给。多给一个引擎地址会在启动时报错，而不是被忽略。
+
+```bash
+JEV_BACKEND_CONFIG=sdk/backends/transformers.yaml \
+PATH=/opt/venv-transformers/bin:$PATH bash sdk/start_render_score.sh 18500
+```
+
+内置渲染器服务用这个后端时，渲染器与权重在同一个进程里，所以 6.2 的渲染依赖要装进 `/opt/venv-transformers` 这同一个环境（`pip install "playwright==1.62.0" "Markdown==3.10.3"` ＋ `playwright install chromium`），装完核对 `Pillow` 仍是 12.3.0。
 
 ## 7. 验证
 
@@ -394,8 +443,9 @@ curl -s http://127.0.0.1:18501/healthz
 | vLLM | `engine` | `2 logits` | 引擎拼的 prompt 被逐项校过 |
 | SGLang | `client` | `2 logits` | prompt 由 SDK 拼，校的是即将发出的字符串 |
 | llama.cpp / Ollama | `server_template` | `2 probabilities` | 模板内置在 GGUF 里，读不回来，prompt 不校 |
+| PyTorch Transformers | `client` | `2 logits` | 同 SGLang，另加逐 token 比对（下行） |
 
-`token_equality` 为 `skipped` 是跳过不是失败。`status` 不是 `ok` 时读 `prompt.notes` 或 `error`——它会带上引擎的原话。
+`token_equality` 为 `skipped` 是跳过不是失败。**PyTorch Transformers 后端这一项是 `equal`**：逐 token 比对要本机有 tokenizer，而这个后端的环境必然装了 transformers，所以这一项真的跑了。`served_model` 在这个后端上是权重目录而不是模型名。`status` 不是 `ok` 时读 `prompt.notes` 或 `error`——它会带上引擎的原话。
 
 ### 7.2 用自带用例打分
 
@@ -544,6 +594,7 @@ ln -sfn $L/libggml-cuda.so $O/cuda_v13/libggml-cuda.so
 | SGLang | 稳定版 0.5.22 **无本模型支持**；PR #45829 源码树可用，venv 9.5 GB |
 | llama.cpp | release **v0.8.0**（含 PR #30980，2026-10-27 合入 master），build 214 MB |
 | Ollama | v0.40.11 原装 **无本模型支持**，换 runner 后可用 |
+| PyTorch Transformers | Linux：torch 2.13.0+cu130 ＋ transformers 5.19.0 ＋ torchvision 0.29.2；macOS：torch 2.15.0 ＋ transformers 5.22.2 ＋ torchvision 0.29.2（2026-11-09 两端各实测一遍）。⚠ transformers 4.57.6 **没有** `Qwen3_5ForSequenceClassification` 这个类 |
 | Docker 镜像 | 由 `serve/Dockerfile` 自建，引擎、打分服务与渲染环境都在镜像里；镜像内各件的实际版本以 `/healthz` 的 `scorer` 与 `render` 字段为准 |
 | 服务层 | Python 3.12.3，fastapi 0.162.0，uvicorn 0.54.0，httpx 0.28.1，pydantic 2.14.1，Pillow 12.3.0，venv 59 MB |
 | 渲染环境 | playwright 1.62.0，KaTeX 0.16.47，渲染流水线 v8.5，venv 205 MB |

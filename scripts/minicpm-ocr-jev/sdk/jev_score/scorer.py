@@ -135,18 +135,93 @@ class Scorer:
             return prob_1_from_probabilities(scores)
         return softmax_prob_1(scores)
 
-    async def score_many(self, items: Sequence[ScoreInput]) -> list[float]:
-        """`score` over a batch, concurrently, results in input order.
+    def _batch_size(self) -> int:
+        """How many candidates this backend wants in one forward pass.
 
-        Concurrency is bounded by the backend adapter, not here: the engine's own
-        queue is what actually sets throughput, and a second limit above it would
-        only make the real one harder to find.
+        Asked of the adapter rather than configured here, and absent on the four
+        HTTP adapters: their batching happens inside the engine, where requests
+        from every client meet. Reading it with a default of 1 is what keeps this
+        method unchanged for them.
+        """
+        if not hasattr(self.backend, "forward_batch"):
+            return 1
+        return max(1, int(getattr(self.backend, "max_batch_size", 1) or 1))
+
+    async def score_many(self, items: Sequence[ScoreInput]) -> list[float]:
+        """`score` over a batch, results in input order.
+
+        Two paths. For an engine-backed adapter, and for any adapter at batch
+        size 1, the candidates go out concurrently and the engine's own queue
+        sets throughput -- a second limit above it would only make the real one
+        harder to find. For an in-process adapter configured to batch, they are
+        split into passes of `max_batch_size` instead: there is no engine queue
+        to feed, so the width of the pass is the only throughput there is.
         """
         import asyncio
 
         if not items:
             return []
-        return list(await asyncio.gather(*(self.score(i) for i in items)))
+        size = self._batch_size()
+        if size <= 1:
+            return list(await asyncio.gather(*(self.score(i) for i in items)))
+
+        out: list[float] = []
+        for start in range(0, len(items), size):
+            chunk = items[start : start + size]
+            raw = await self.backend.forward_batch(
+                [
+                    (build_parts(i.ocr_text), to_data_url(i.original), to_data_url(i.render))
+                    for i in chunk
+                ]
+            )
+            if len(raw) != len(chunk):
+                raise BackendError(
+                    f"asked for {len(chunk)} scores in one pass and got {len(raw)}."
+                )
+            # The same two families as `score`, applied per row. Chunks run one
+            # after another rather than concurrently on purpose: the adapter
+            # admits one pass at a time, so gathering them here would queue on
+            # its semaphore and only make the ordering harder to read.
+            probabilities = getattr(self.backend, "output_kind", "logits") == "probabilities"
+            out.extend(
+                prob_1_from_probabilities(row) if probabilities else softmax_prob_1(row)
+                for row in raw
+            )
+        return out
+
+    async def score_many_settled(
+        self, items: Sequence[ScoreInput]
+    ) -> list[float | BaseException]:
+        """`score_many`, but a failure is a value in the list rather than a raise.
+
+        This is the shape a server wants: one bad candidate out of twenty should
+        cost its own cell, not the other nineteen.
+
+        What a failure costs differs by path, and the difference is honest rather
+        than papered over. One candidate at a time, only that candidate fails.
+        In a batched pass, the pass is what succeeded or failed -- so every
+        candidate in it carries the error. Re-running the chunk one by one to
+        narrow it down would turn a configuration chosen for throughput into its
+        worst case exactly when things are already going wrong.
+        """
+        import asyncio
+
+        if not items:
+            return []
+        size = self._batch_size()
+        if size <= 1:
+            return list(
+                await asyncio.gather(*(self.score(i) for i in items), return_exceptions=True)
+            )
+
+        out: list[float | BaseException] = []
+        for start in range(0, len(items), size):
+            chunk = items[start : start + size]
+            try:
+                out.extend(await self.score_many(chunk))
+            except (BackendError, ValueError, OSError) as exc:
+                out.extend([exc] * len(chunk))
+        return out
 
     async def aclose(self) -> None:
         await self.backend.aclose()

@@ -29,7 +29,15 @@ DEFAULT_CONFIG = CONFIG_DIR / "vllm.yaml"
 #: already activated. Each adapter declares which via `output_kind`, and
 #: `scorer.py` branches on that -- see `base.py` for why that distinction is
 #: worth a field rather than a convention.
-KNOWN_ENGINES = {"vllm", "sglang", "llamacpp", "ollama"}
+KNOWN_ENGINES = {"vllm", "sglang", "llamacpp", "ollama", "transformers"}
+
+#: Engines that are not a separate process. There is one, and it is the reason
+#: this set exists rather than an `if engine == "transformers"`: the distinction
+#: it draws is "is there a server to point at", and that question decides which
+#: key the config must carry. An HTTP engine needs `base_url` and a local one
+#: needs `model_path`; requiring both, or neither, would let a config that names
+#: no weights start a service that cannot score.
+LOCAL_ENGINES = {"transformers"}
 
 
 def load_config(path: str | Path | None = None) -> dict[str, Any]:
@@ -78,6 +86,9 @@ def load_backend(path: str | Path | None = None, **overrides: Any) -> Backend:
             f"Known: {', '.join(sorted(KNOWN_ENGINES))}."
         )
 
+    if engine in LOCAL_ENGINES:
+        return _load_local_backend(engine, config)
+
     base_url = config.get("base_url")
     if not base_url:
         raise ValueError(f"{config.get('_source')}: 'base_url' is required")
@@ -108,3 +119,54 @@ def load_backend(path: str | Path | None = None, **overrides: Any) -> Backend:
     from .vllm_backend import VLLMBackend
 
     return VLLMBackend(str(base_url), **kwargs)
+
+
+def _load_local_backend(engine: str, config: dict[str, Any]) -> Backend:
+    """Build a backend that runs the forward pass in this process.
+
+    Split out rather than folded into the chain above because the four arguments
+    the HTTP adapters share -- a URL, a timeout, a socket budget -- are the wrong
+    four here. What this one needs instead is where the weights are and what to
+    run them as.
+    """
+    source = config.get("_source")
+
+    if config.get("base_url"):
+        raise ValueError(
+            f"{source}: engine {engine!r} runs in this process, so 'base_url' "
+            f"({config['base_url']!r}) has nothing to point at.\n"
+            "  If this came from start_score.sh, that script's second argument is "
+            "an engine URL and does not apply to a local engine -- start the "
+            "service without it (see the deployment guide for this engine)."
+        )
+
+    model_path = config.get("model_path")
+    if not model_path:
+        raise ValueError(
+            f"{source}: 'model_path' is required for engine {engine!r} -- the "
+            "local checkpoint directory to load. There is no engine to ask."
+        )
+    if not Path(str(model_path)).is_dir():
+        raise ValueError(
+            f"{source}: model_path {str(model_path)!r} is not a directory. "
+            "This is checked before loading so the failure names the config "
+            "rather than surfacing from inside the model loader."
+        )
+
+    from .transformers_backend import TransformersBackend
+
+    return TransformersBackend(
+        str(model_path),
+        device=str(config.get("device", "auto")),
+        dtype=str(config.get("dtype", "auto")),
+        attn_implementation=str(config.get("attn_implementation", "sdpa")),
+        # Default 1, not 32: the HTTP default bounds sockets, this one bounds
+        # concurrent forward passes on one GPU. See transformers_backend.py.
+        max_in_flight=int(config.get("max_in_flight", 1)),
+        # Also 1, for a different reason. This one is how many candidates share a
+        # pass, and raising it is the supported way to get throughput out of this
+        # backend -- but the default stays at 1 so an unchanged config scores
+        # exactly what it scored before this option existed.
+        max_batch_size=int(config.get("max_batch_size", 1)),
+        model=config.get("model") or None,
+    )
