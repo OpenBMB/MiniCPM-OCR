@@ -39,6 +39,7 @@
 
 - **[2026.11.05]** The official MiniCPM-OCR 1.0 [Docker image](https://hub.docker.com/repository/docker/openbmbofficial/minicpm-ocr/general) is now available, bundling model weights, the SDK, and vLLM for end-to-end image and PDF parsing. See [Docker deployment](#docker-deployment) to get started.
 - 🔥🔥🔥 **[2026.11.02] MiniCPM-OCR 1.0 now runs on iOS!** Parse documents entirely on your device, even offline. [Try it now](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#mobile-demo).
+- **[2026.11.09]** [pip SDK 1.0.5](https://pypi.org/project/minicpm-ocr/1.0.5/): Parse several inputs in one run, with one result per file. `--split-images` makes each standalone image its own document.
 - **[2026.11.02]** [pip SDK 1.0.4](https://pypi.org/project/minicpm-ocr/1.0.4/): JSON output now uses the same format as the online document parsing API. Page orientation is corrected automatically by default, and GIF images are now supported.
 - **[2026.10.30]** The Web Demo is now open source, with support for self-hosting and switching between Chinese and English. See the [Web Demo deployment tutorial](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/webdemo_deploy.md).
 - **[2026.10.29]** [SDK 1.0.3](https://pypi.org/project/minicpm-ocr/1.0.3/): Markdown output preserves text recognized in image regions and includes links to the corresponding cropped images. The [Skill](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#skill) now includes an Ollama deployment guide.
