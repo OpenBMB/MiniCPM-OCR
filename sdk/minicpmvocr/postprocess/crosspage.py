@@ -214,34 +214,53 @@ def merge_cross_page_tables(pages: List[List[Dict]]) -> tuple[List[List[Dict]], 
     return merged, count
 
 
-def load_document_pages(run_dir) -> List[Dict]:
+def _source_document(path: str, is_pdf: bool, scope: str) -> str:
+    """The document a page belongs to, for cross-page grouping.
+
+    A PDF is always one document. A standalone image joins the run's single
+    image document under ``collection`` and is its own document under ``file``.
+    """
+    if is_pdf:
+        return path
+    return "" if scope == "collection" else path
+
+
+def load_document_pages(run_dir, cfg: Dict | None = None) -> List[Dict]:
     "Read a run's per-page results back in document order."
     from pathlib import Path
 
     from .._utils import read_json
+    from ..pipeline._sources import image_document_scope, page_lookup, read_sources
 
-    results_dir = Path(run_dir) / "results_json"
+    run_dir = Path(run_dir)
+    results_dir = run_dir / "results_json"
     if not results_dir.is_dir():
         return []
+    manifest = read_sources(run_dir)
+    lookup = page_lookup(manifest)
+    scope = image_document_scope(manifest, cfg)
     pages: List[Dict] = []
     for path in sorted(results_dir.glob("*.json")):
         data = read_json(path, default=None)
         if not data:
             continue
         source = data.get("source") or {}
+        image_id = data.get("image_id", path.stem)
         page_index = source.get("page_index")
         is_pdf = str(source.get("type") or "") == "pdf" or page_index is not None
+        info = lookup.get(image_id) or {}
         pages.append(
             {
-                "image_id": data.get("image_id", path.stem),
-                "document": str(source.get("path") or "") if is_pdf else "",
-
+                "image_id": image_id,
+                "document": _source_document(str(source.get("path") or ""), is_pdf, scope),
+                "source_id": info.get("source_id", ""),
                 "page_index": int(page_index) if page_index is not None else -1,
+                "order": (info.get("source_index", len(pages)), info.get("order", 0)),
                 "markdown": data.get("markdown", ""),
                 "blocks": data.get("crop_blocks") or [],
             }
         )
-    pages.sort(key=lambda p: (p["document"], p["page_index"], p["image_id"]))
+    pages.sort(key=lambda p: (p["document"], p["page_index"], p["order"], p["image_id"]))
     return pages
 
 
@@ -282,11 +301,51 @@ def apply_cross_page_merge(pages: List[Dict], prompt_map: Dict) -> Dict[str, Dic
     return changes
 
 
+def assemble_documents_markdown(
+    run_dir, prompt_map: Dict, *, merge_tables: bool, delimiter: str, cfg: Dict | None = None
+) -> Dict[str, Dict]:
+    """One markdown per input file, each joined with ``delimiter``.
+
+    Keys are image_id lists from the source manifest; a run without one yields a
+    single entry holding every page.
+    """
+    from ..pipeline._sources import read_sources
+
+    pages = load_document_pages(run_dir, cfg)
+    if not pages:
+        return {}
+    changes = apply_cross_page_merge(pages, prompt_map) if merge_tables else {}
+    by_id = {p["image_id"]: p for p in pages}
+    manifest = read_sources(run_dir)
+    out: Dict[str, Dict] = {}
+    if manifest is None:
+        out[""] = {
+            "source_id": "",
+            "path": "",
+            "markdown": delimiter.join(p["markdown"] for p in pages),
+            "missing": [],
+        }
+        return out
+    for source in manifest.get("sources") or []:
+        image_ids = list(source.get("image_ids") or [])
+        missing = [i for i in image_ids if i not in by_id]
+        out[source.get("source_id", "")] = {
+            "source_id": source.get("source_id", ""),
+            "path": source.get("path", ""),
+            "markdown": delimiter.join(
+                changes.get(i, by_id.get(i, {"markdown": ""}))["markdown"]
+                for i in image_ids if i in by_id
+            ),
+            "missing": missing,
+        }
+    return out
+
+
 def assemble_document_markdown(
-    run_dir, prompt_map: Dict, *, merge_tables: bool, delimiter: str
+    run_dir, prompt_map: Dict, *, merge_tables: bool, delimiter: str, cfg: Dict | None = None
 ) -> tuple[str, int, int]:
     "Join a run's pages into one markdown document."
-    pages = load_document_pages(run_dir)
+    pages = load_document_pages(run_dir, cfg)
     if not pages:
         return "", 0, 0
     changes = apply_cross_page_merge(pages, prompt_map) if merge_tables else {}

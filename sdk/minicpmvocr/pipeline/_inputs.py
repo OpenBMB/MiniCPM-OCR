@@ -6,6 +6,7 @@ from typing import Dict, List
 
 from PIL import Image
 
+from ._sources import image_document_scope, write_sources
 from ..constants import (
     PDF_RENDER_PAGES_PER_JOB,
     PDF_RENDER_ZOOM,
@@ -51,6 +52,17 @@ def _collect_raw_inputs(cfg: Dict) -> List[Path]:
     selected = _load_manifest_filter(cfg["input"].get("manifest", ""))
     paths: List[Path] = []
     seen = set()
+
+    # An explicit list keeps the caller's order; single files and directories follow.
+    for item in cfg["input"].get("file_paths") or []:
+        p = Path(item)
+        if not p.is_file() or p.suffix.lower() not in SUPPORTED_INPUT_SUFFIXES:
+            continue
+        rp = str(p.resolve())
+        if rp in seen:
+            continue
+        seen.add(rp)
+        paths.append(p)
 
     file_path = cfg["input"].get("file_path", "")
     if file_path:
@@ -163,6 +175,8 @@ def _iter_source_pages(cfg: Dict, runtime_intermediate: Path) -> List[Dict]:
 
     source_files = _collect_raw_inputs(cfg)
     page_entries: List[Dict] = []
+    # Which input file each page entry came from, parallel to page_entries.
+    page_sources: List[int] = []
 
     pdf_files = [p for p in source_files if p.suffix.lower() == ".pdf"]
     if pdf_files and fitz is None:
@@ -178,7 +192,7 @@ def _iter_source_pages(cfg: Dict, runtime_intermediate: Path) -> List[Dict]:
         _render_sec = 0.0
         _render_workers = 1
 
-    for path in source_files:
+    for index, path in enumerate(source_files):
         suffix = path.suffix.lower()
         if suffix in SUPPORTED_IMAGE_SUFFIXES:
             page_entries.append(
@@ -190,6 +204,7 @@ def _iter_source_pages(cfg: Dict, runtime_intermediate: Path) -> List[Dict]:
                     "image_path": str(path),
                 }
             )
+            page_sources.append(index)
             continue
 
         if suffix == ".pdf":
@@ -215,6 +230,7 @@ def _iter_source_pages(cfg: Dict, runtime_intermediate: Path) -> List[Dict]:
                             "image_bytes": samples,
                         }
                     )
+                    page_sources.append(index)
                     continue
 
 
@@ -237,6 +253,7 @@ def _iter_source_pages(cfg: Dict, runtime_intermediate: Path) -> List[Dict]:
                         "image_bytes": pix.samples,
                     }
                 )
+                page_sources.append(index)
             continue
 
     meta = cfg.setdefault("_meta", {})
@@ -246,6 +263,7 @@ def _iter_source_pages(cfg: Dict, runtime_intermediate: Path) -> List[Dict]:
     limit = _mode_limit(cfg)
     if limit > 0:
         page_entries = page_entries[:limit]
+        page_sources = page_sources[:limit]
 
     used = set()
     for item in page_entries:
@@ -257,6 +275,20 @@ def _iter_source_pages(cfg: Dict, runtime_intermediate: Path) -> List[Dict]:
             seq += 1
         used.add(name)
         item["image_id"] = name
+
+    by_source: Dict[int, List[str]] = {}
+    for item, index in zip(page_entries, page_sources):
+        by_source.setdefault(index, []).append(item["image_id"])
+    manifest = [
+        {
+            "source_type": "pdf" if source_files[index].suffix.lower() == ".pdf" else "image",
+            "source_path": str(source_files[index]),
+            "page_count": len(image_ids),
+            "image_ids": image_ids,
+        }
+        for index, image_ids in sorted(by_source.items())
+    ]
+    write_sources(runtime_intermediate.parent, manifest, image_document_scope(None, cfg))
 
     return page_entries
 

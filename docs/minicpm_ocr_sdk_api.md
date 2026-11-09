@@ -13,11 +13,21 @@ minicpmvocr parse doc.pdf -o doc.md --device cuda:0 \
   --server-url http://127.0.0.1:18499 --model minicpm-ocr
 ```
 
+一次解析多个文件时，每个文件各写一份结果：
+
+```bash
+minicpmvocr parse a.png b.png doc.pdf -o out/ --json \
+  --device cuda:0 --server-url http://127.0.0.1:18499 --model minicpm-ocr
+```
+
+`out/` 下得到 `a.md`、`a.json`、`b.md`、`b.json`、`doc.md`、`doc.json`。也可以直接传一个目录，只取该目录顶层的图片和 PDF，不递归。
+
 | 参数 | 说明 |
 |---|---|
-| `INPUT` / `--input FILE` | 输入文件，支持 PDF、PNG、JPG、JPEG、GIF、BMP、WebP、TIF、TIFF；两种写法任选其一 |
-| `-o FILE` / `--output FILE` | 输出 Markdown 路径；省略时输出到标准输出 |
-| `--json FILE` | 另外输出 JSON，结构与线上文档解析异步任务一致：`status`、`pages_done`、`pages_total`、`pages[]` 和 `markdown` |
+| `INPUT` / `--input FILE` | 输入文件，支持 PDF、PNG、JPG、JPEG、GIF、BMP、WebP、TIF、TIFF；两种写法都可以重复，也可以传一个目录 |
+| `-o PATH` / `--output PATH` | 单个输入时为 Markdown 路径；多个输入时必须是目录，每个输入写一份 `<文件名>.md`；省略时输出到标准输出 |
+| `--json [PATH]` | 另外输出 JSON，结构与线上文档解析异步任务一致。单个输入时 `PATH` 是文件，省略时写在 Markdown 旁边；多个输入时写 `<文件名>.json` |
+| `--split-images` | 把每张单图当作独立文档，而不是同一份文档的各页。PDF 始终按文件合并 |
 | `--server-url URL` | 必填，识别服务地址；可重复传入以连接多个服务实例 |
 | `--model NAME` | 必填，服务暴露的模型名称，对应 vLLM 的 `--served-model-name` |
 | `--device DEVICE` | 版面检测设备，例如 `cuda:0`；不改变识别服务使用的设备 |
@@ -93,5 +103,9 @@ if __name__ == "__main__":
 ```
 
 `ensure_layout_model()` 复用或下载官方版面模型；`load_config()` 合并配置并校验输入；`pipelined_run()` 执行版面检测和识别；`assemble_document_markdown()` 返回合并后的 Markdown、页数和跨页表格合并次数。
+
+多个输入时，`runtime/sources.json` 记录每个输入文件对应哪些页以及单图的文档范围；`pages_json/<image_id>.json` 与线上单页响应同构，`metadata` 里额外带 `source`（原文件路径）和 `image_id`。`assemble_documents_json(run_dir)` 返回与 `--json` 相同的按文件分组结果，整批状态为 `Success`、`Partial` 或 `Failed`。
+
+单图的文档范围由 `pipeline.image_document_scope` 控制：默认 `collection` 把一次运行里的所有单图视作同一份文档的各页，跨页表格合并可以在图片之间生效；`file` 让每张单图各自成文档，等价于命令行 `--split-images`。PDF 始终按文件合并。单图输入也可以写在 `input.file_paths` 中，按给定顺序处理。
 
 运行产物默认写入当前目录下的 `runs/<run_tag>/`，包括逐页 Markdown、结构化结果和运行记录。其中 `pages_json/<image_id>.json` 与线上 [文档解析 API](https://platform.modelbest.cn/console/docs/api/document-parse) 的单页响应同构：`metadata.page_index`（从 0 起）、`choices[0].message.content`（整页 Markdown）和 `ocr`（`image_width`、`image_height`、`blocks[]`、`rotation`）。块的 `status` 取值为 `ok`、`failed`、`skipped_no_vlm`、`skipped_seal`；`rotation.total_angle` 以逆时针为正，`applied=true` 时坐标基于摆正后的页面。`assemble_document_json(run_dir)` 返回与 `--json` 相同的整份结果，页间 Markdown 以空行连接。可通过配置项 `run.run_root` 或环境变量 `OCR_RUN_ROOT` 更改输出根目录。

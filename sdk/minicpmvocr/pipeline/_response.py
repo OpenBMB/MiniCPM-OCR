@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from ._sources import read_sources
 from .._utils import read_json, read_jsonl
 
 #: Block statuses of the online contract. Anything else is an internal failure
@@ -79,7 +80,13 @@ def page_response(*, layout: Dict, blocks: List[Dict], markdown: str,
             "inline_formula_mixed": bool(block.get("inline_formula_mixed", False)),
         })
     response = {
-        "metadata": {"page_index": source.get("page_index") or 0},
+        "metadata": {
+            "page_index": source.get("page_index") or 0,
+            # Which input file this page came from. The online API has one file
+            # per request; a local run can hold several, so the page says which.
+            "source": source.get("path") or "",
+            "image_id": layout.get("image_id", ""),
+        },
         "choices": [{"message": {"content": markdown}}],
         "ocr": {
             "coordinate_space": "processed_image",
@@ -96,9 +103,11 @@ def page_response(*, layout: Dict, blocks: List[Dict], markdown: str,
 
 
 def assemble_document_json(run_dir: Path) -> Dict:
-    """Collect a run's pages into the online job shape: pages[] plus job markdown.
+    """Collect a single-source run's pages into the online job shape.
 
     ``status`` is ``Success`` only when every planned page produced a response.
+    A run with several inputs is a batch of documents; use
+    ``assemble_documents_json`` for it.
     """
     run_dir = Path(run_dir)
     tasks = read_jsonl(run_dir / "runtime" / "page_tasks.jsonl")
@@ -117,4 +126,73 @@ def assemble_document_json(run_dir: Path) -> Dict:
         "markdown": DOCUMENT_PAGE_DELIMITER.join(
             p["choices"][0]["message"]["content"] for p in pages
         ),
+    }
+
+
+def _file_entry(source: Dict, pages: List[Dict]) -> Dict:
+    planned = int(source.get("pages") or len(source.get("image_ids") or []))
+    done = len(pages)
+    if done and done == planned:
+        status = "Success"
+    elif done:
+        status = "Partial"
+    else:
+        status = "Failed"
+    return {
+        "source_id": source.get("source_id", ""),
+        "path": source.get("path", ""),
+        "type": source.get("type", ""),
+        "status": status,
+        "pages_done": done,
+        "pages_total": planned,
+        "pages": pages,
+        "markdown": DOCUMENT_PAGE_DELIMITER.join(
+            p["choices"][0]["message"]["content"] for p in pages),
+    }
+
+
+def assemble_documents_json(run_dir: Path) -> Dict:
+    """One entry per input file: the online job shape, plus which file it was.
+
+    A run without a source manifest (written before it existed) is reported as
+    one entry, which is what such a run was.
+    """
+    run_dir = Path(run_dir)
+    manifest = read_sources(run_dir)
+    if manifest is None:
+        document = assemble_document_json(run_dir)
+        document["files"] = [{
+            "source_id": "",
+            "path": "",
+            "type": "",
+            "status": document["status"],
+            "pages_done": document["pages_done"],
+            "pages_total": document["pages_total"],
+            "pages": document["pages"],
+            "markdown": document["markdown"],
+        }]
+        document["status"] = "Success" if document["pages_done"] else "Failed"
+        return document
+
+    files = []
+    for source in manifest.get("sources") or []:
+        pages = []
+        for image_id in source.get("image_ids") or []:
+            page = read_json(run_dir / RESPONSE_DIRNAME / f"{image_id}.json", default=None)
+            if page is not None:
+                pages.append(page)
+        files.append(_file_entry(source, pages))
+
+    statuses = [f["status"] for f in files]
+    if statuses and all(s == "Success" for s in statuses):
+        status = "Success"
+    elif any(s != "Failed" for s in statuses):
+        status = "Partial"
+    else:
+        status = "Failed"
+    return {
+        "status": status,
+        "files_done": sum(1 for s in statuses if s == "Success"),
+        "files_total": len(files),
+        "files": files,
     }
