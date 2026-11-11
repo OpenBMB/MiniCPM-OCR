@@ -8,6 +8,8 @@ from PIL import Image
 
 from ._sources import image_document_scope, write_sources
 from ..constants import (
+    PDF_RENDER_EARLY_WORKERS,
+    PDF_RENDER_PAGES_PER_EARLY_JOB,
     PDF_RENDER_PAGES_PER_JOB,
     PDF_RENDER_ZOOM,
     SUPPORTED_IMAGE_SUFFIXES,
@@ -120,10 +122,18 @@ def _render_pdf_chunk(args):
     return out
 
 
-def _render_pdf_pages(pdf_paths: List[Path], workers: int) -> Dict[tuple, tuple]:
+def _render_pdf_pages(pdf_paths: List[Path], workers: int, front_first: bool = False) -> Dict[tuple, tuple]:
+    """Render every page of ``pdf_paths``: {(path, page): (width, height, samples)}.
 
+    ``front_first`` returns at once with {(path, page): (future, position in its
+    result)} instead: the jobs run in page order in the background, so the first
+    pages can be used while the later ones are still rendering. The very first
+    job is left out, for the caller to render on the spot: those pages are then
+    ready before any background process has started.
+    """
     import fitz
 
+    pages_per_job = PDF_RENDER_PAGES_PER_EARLY_JOB if front_first else PDF_RENDER_PAGES_PER_JOB
     jobs = []
     for path in pdf_paths:
         doc = fitz.open(str(path))
@@ -131,8 +141,8 @@ def _render_pdf_pages(pdf_paths: List[Path], workers: int) -> Dict[tuple, tuple]
             page_count = doc.page_count
         finally:
             doc.close()
-        for first in range(0, page_count, PDF_RENDER_PAGES_PER_JOB):
-            jobs.append((str(path), first, min(first + PDF_RENDER_PAGES_PER_JOB, page_count)))
+        for first in range(0, page_count, pages_per_job):
+            jobs.append((str(path), first, min(first + pages_per_job, page_count)))
 
     if not jobs:
         return {}
@@ -142,6 +152,25 @@ def _render_pdf_pages(pdf_paths: List[Path], workers: int) -> Dict[tuple, tuple]
     import multiprocessing
     import os
 
+
+    if front_first:
+        jobs = jobs[1:]
+        if not jobs:
+            return {}
+        if workers <= 0:
+            workers = PDF_RENDER_EARLY_WORKERS
+        pool = cf.ProcessPoolExecutor(
+            max_workers=max(1, min(workers, len(jobs))),
+            mp_context=multiprocessing.get_context("spawn"),
+        )
+        futures = [pool.submit(_render_pdf_chunk, job) for job in jobs]
+        # Not waited for: the jobs already submitted still run, in the order submitted.
+        pool.shutdown(wait=False)
+        return {
+            (source, index): (future, index - first)
+            for (source, first, last), future in zip(jobs, futures)
+            for index in range(first, last)
+        }
 
     if workers <= 0:
         workers = min(16, os.cpu_count() or 1)
@@ -164,7 +193,14 @@ def _render_pdf_pages(pdf_paths: List[Path], workers: int) -> Dict[tuple, tuple]
     return rendered
 
 
-def _iter_source_pages(cfg: Dict, runtime_intermediate: Path) -> List[Dict]:
+def _iter_source_pages(cfg: Dict, runtime_intermediate: Path, front_first: bool = False) -> List[Dict]:
+    """Every page of the run, in input order.
+
+    A rendered PDF page carries ``image_bytes``. With ``front_first`` this
+    returns before PDF rendering is over and such a page carries
+    ``image_future`` instead; ``_open_page_image`` waits for it, and a rendering
+    error is raised there, for that page, rather than here.
+    """
     try:
         import fitz
     except Exception:
@@ -184,7 +220,7 @@ def _iter_source_pages(cfg: Dict, runtime_intermediate: Path) -> List[Dict]:
 
     if pdf_files and render_workers_cfg != 1:
         _t0 = time.time()
-        rendered = _render_pdf_pages(pdf_files, render_workers_cfg)
+        rendered = _render_pdf_pages(pdf_files, render_workers_cfg, front_first)
         _render_sec = time.time() - _t0
         _render_workers = render_workers_cfg
     else:
@@ -217,6 +253,19 @@ def _iter_source_pages(cfg: Dict, runtime_intermediate: Path) -> List[Dict]:
             for idx in range(page_count):
                 image_id = f"{path.stem}_page_{idx + 1:03d}"
                 hit = rendered.get((str(path), idx))
+                if hit is not None and len(hit) == 2:
+                    page_entries.append(
+                        {
+                            "image_id": image_id,
+                            "source_type": "pdf",
+                            "source_path": str(path),
+                            "page_index": idx,
+                            "image_path": "",
+                            "image_future": hit,
+                        }
+                    )
+                    page_sources.append(index)
+                    continue
                 if hit is not None:
                     width, height, samples = hit
                     page_entries.append(
@@ -259,6 +308,13 @@ def _iter_source_pages(cfg: Dict, runtime_intermediate: Path) -> List[Dict]:
     meta = cfg.setdefault("_meta", {})
     meta["render_sec"] = round(_render_sec, 6)
     meta["render_workers"] = _render_workers
+    if pdf_files and render_workers_cfg != 1:
+        # Rendering still under way: the last job to finish leaves the time the whole took.
+        def _note_render_sec(_future, started=_t0):
+            meta["render_sec"] = round(time.time() - started, 6)
+
+        for future in {hit[0] for hit in rendered.values() if len(hit) == 2}:
+            future.add_done_callback(_note_render_sec)
 
     limit = _mode_limit(cfg)
     if limit > 0:
@@ -295,6 +351,11 @@ def _iter_source_pages(cfg: Dict, runtime_intermediate: Path) -> List[Dict]:
 
 def _open_page_image(entry: Dict) -> Image.Image:
 
+    pending = entry.get("image_future")
+    if pending is not None:
+        future, position = pending
+        _index, width, height, samples = future.result()[position]
+        return Image.frombytes("RGB", [width, height], samples)
     buf = entry.get("image_bytes")
     if buf:
         width, height = entry["image_size"]

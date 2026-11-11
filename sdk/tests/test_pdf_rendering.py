@@ -90,3 +90,40 @@ def test_render_pool_agrees_with_the_serial_fallback(tmp_path, many_page_pdf, re
     assert pooled_cfg["_meta"]["render_workers"] == render_workers
     assert [e["image_size"] for e in serial] == [e["image_size"] for e in pooled]
     assert [e["image_bytes"] for e in serial] == [e["image_bytes"] for e in pooled]
+
+
+def test_front_first_rendering_hands_over_the_same_pages(tmp_path, many_page_pdf):
+
+    serial = _iter_source_pages(_cfg(many_page_pdf, render_workers=1), tmp_path)
+    cfg = _cfg(many_page_pdf, render_workers=3)
+    early = _iter_source_pages(cfg, tmp_path, front_first=True)
+
+    assert [e["image_id"] for e in early] == [e["image_id"] for e in serial]
+    # The first job's pages are rendered on the spot; the rest come back as a promise,
+    # because they are still rendering.
+    from minicpmvocr.constants import PDF_RENDER_PAGES_PER_EARLY_JOB as on_the_spot
+
+    assert all("image_bytes" in e for e in early[:on_the_spot])
+    assert all("image_future" in e and "image_bytes" not in e for e in early[on_the_spot:])
+    for eager, lazy in zip(serial, early):
+        assert _open_page_image(lazy).tobytes() == eager["image_bytes"]
+    assert cfg["_meta"]["render_workers"] == 3
+    assert cfg["_meta"]["render_sec"] > 0
+
+
+def test_front_first_rendering_reports_a_broken_page_when_it_is_opened(tmp_path, many_page_pdf, monkeypatch):
+    from concurrent.futures import Future
+
+    from minicpmvocr.pipeline import _inputs
+
+    broken = Future()
+    broken.set_exception(RuntimeError("cannot render"))
+    monkeypatch.setattr(
+        _inputs, "_render_pdf_pages",
+        lambda paths, workers, front_first=False: {(str(many_page_pdf), 5): (broken, 0)})
+
+    entries = _iter_source_pages(_cfg(many_page_pdf, render_workers=3), tmp_path, front_first=True)
+    with pytest.raises(RuntimeError, match="cannot render"):
+        _open_page_image(entries[5])
+    # Pages the pool did not cover are rendered in this process.
+    assert "image_bytes" in entries[0]

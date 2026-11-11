@@ -38,6 +38,7 @@ This writes `a.md`, `a.json`, `b.md`, `b.json`, `doc.md`, and `doc.json` under `
 | `--config FILE` | Custom YAML configuration file; uses the built-in quickstart configuration when omitted |
 | `--set KEY=VALUE` | Override a configuration value using a dotted path; repeat as needed, for example `--set input.limit=1` |
 | `--stdout` | Print Markdown to standard output even when `-o` is supplied |
+| `--stream` / `--stream-ordered` | Write one JSON line to standard output as soon as each page is parsed, without waiting for the whole run, then a last line with the run summary. `--stream` writes pages in the order they finish, `--stream-ordered` in reading order. `--stream-detail LEVEL` sets how fine the lines are: `page` (default) one line per page, `block` also the layout and each block, `token` also the text of each block while it is decoded. Files requested with `-o` and `--json` are still written at the end; with several inputs `-o` may be omitted, which writes no files. Cannot be combined with `--stdout`; see [Page-by-Page Results](#page-by-page-results) |
 | `--run-tag NAME` | Name of the intermediate output directory; generated from the input filename and time when omitted |
 
 Pass `--server-url` and `--model` explicitly on every `parse` invocation, even when using `--config` or environment variables.
@@ -103,6 +104,92 @@ if __name__ == "__main__":
 ```
 
 `ensure_layout_model()` reuses or downloads the official layout model; `load_config()` merges the configuration and validates the input; `pipelined_run()` runs layout detection and recognition; `assemble_document_markdown()` returns the combined Markdown, page count, and number of cross-page table merges.
+
+### Page-by-Page Results
+
+A PDF or a batch of images does not have to finish before you see results: `stream_pages(cfg)` is a generator that yields each page as soon as it is parsed, while the remaining pages keep going in the background. `cfg` is the same as in the example above:
+
+```python
+from minicpmvocr import stream_pages
+
+for page in stream_pages(cfg):
+    print(f"[{page['pages_done']}/{page['pages_total']}] {page['source']} page {page['page_index'] + 1} {page['status']}")
+    print(page["markdown"])
+```
+
+Pages are yielded in the order they finish, which is not necessarily page order; `stream_pages(cfg, ordered=True)` yields them in input order, so a page that finishes early waits for the ones before it. Each page event has these fields:
+
+| Field | Description |
+|---|---|
+| `index` | Position of the page in the input order of the whole run, zero-based |
+| `pages_done` / `pages_total` | Pages yielded so far and the total |
+| `source` / `source_id` | The input file the page came from, and its id in `runtime/sources.json` |
+| `page_index` | Page number inside its own file, zero-based; always 0 for a standalone image |
+| `image_id` | Page id, matching `pages_json/<image_id>.json` |
+| `status` / `error` | `ok`, `partial_failed` (some blocks failed), or `failed`; `error` gives the reason for a failure |
+| `markdown` | Markdown of the page |
+| `output_md` | Path of the page's Markdown file; `imgs/` links in the Markdown are relative to its directory |
+| `page` | The full result in the shape of the online page response (including `ocr.blocks[]`); `None` when the page failed |
+
+A page that fails only shows in the `status` of its own event, and the other pages still arrive; an error that stops the whole run is raised after the pages finished before it have been yielded. Ending the iteration early does not cancel the run: the remaining pages are still parsed in the background and written to the run directory. The generator's return value is the run summary. Instead of the generator you can pass a callback to `pipelined_run(cfg, on_page=...)` or `infer_run(cfg, on_page=...)`; it receives the same events.
+
+Pages are yielded before cross-page table merging; with `pipeline.merge_cross_page_tables` enabled, `assemble_document_markdown()` after the run is the authoritative result.
+
+When pages are streamed, earlier pages go first: the PDF renders in page order in the background and layout detection starts on the first pages as soon as they are rendered, without waiting for the whole PDF; recognition requests are also sent page by page, so earlier pages finish first. A page that fails to render is reported as `failed` on its own. Otherwise the run still sends its longest blocks first across all pages, which gives the shortest total time but makes most pages finish close to the end. Streaming therefore takes slightly longer in total: about 5% to 13% on 18- to 45-page PDFs measured on a single A100. With the shared worker pool (`OCR_SHARED_CROP_POOL=1`) the sending order is unchanged.
+
+#### Blocks and Text as It Is Decoded
+
+`detail` sets how fine the events are. The default `"page"` yields only the page events above (`"event": "page"`). `detail="block"` adds two kinds of event before each page event, and `detail="token"` one more:
+
+| Event | When | Fields |
+|---|---|---|
+| `layout` | A page has been laid out, before recognition starts | `image_width`, `image_height`, `blocks[]` (in reading order, each with `order`, `label`, `bbox`) |
+| `block` | One block has been recognized | `order`, `label`, `bbox`, `status`, `content` |
+| `delta` | While a block is being decoded (`detail="token"` only) | `order`, `text` (the new piece of text) |
+
+All three carry `index` and `image_id`; `layout` and `block` also carry `source`, `source_id`, and `page_index`. `image_id` plus `order` identifies a block:
+
+```python
+for event in stream_pages(cfg, ordered=True, detail="token"):
+    if event["event"] == "delta":
+        print(event["text"], end="", flush=True)      # text as it is decoded
+    elif event["event"] == "block":
+        replace_block(event["image_id"], event["order"], event["content"])
+```
+
+- A `delta` carries the model's raw output; the `content` of a `block` is the tidied result (inline formulas rewritten as `$...$`, tables converted to HTML, and so on) and should replace the `delta` text collected for that block. A `delta` with `"restart": true` means the request for that block was sent again: drop the text collected so far.
+- The content of a `block` matches the final page; only a table that references figures of its page is settled when the whole page is assembled, so the page event is authoritative.
+- Blocks that are not recognized (images and the like) still get a `block` event, with empty `content` and no `delta`. With `tts` (candidate reranking) enabled the result is only known after the candidates are compared, so there are no `delta` events; `block` events come as usual.
+- By default pages and blocks are recognized in parallel and their events interleave. With `ordered=True` everything is strictly in reading order: a page's `layout`, then block after block its `delta` events and its `block`, then the `page`, then the next page. The block whose turn it is passes through live; whatever is ahead of its turn is held. Concatenating the `delta` text then reads as the document does.
+- Text as it is decoded needs a recognition service that streams; the `vllm`, `openai`, `llamacpp`, and `ollama` backends are each asked through their own streaming interface.
+
+On the command line, `--stream` writes one JSON line to standard output as soon as each page is parsed (the fields above), and a last line with `"event": "done"` carrying the run summary; add `--stream-detail block` or `--stream-detail token` for the block-level or text-level lines:
+
+```bash
+minicpmvocr parse doc.pdf --stream \
+  --device cuda:0 --server-url http://127.0.0.1:18499 --model minicpm-ocr
+```
+
+### Loading the Models Once
+
+By default every run loads the layout model (and the upright models when rotation is enabled) for itself and unloads it at the end. To parse several batches in one process, load once with `load_models(cfg)` and pass the result to each run as `resources`; later runs no longer wait for the models:
+
+```python
+from minicpmvocr import load_models, pipelined_run, stream_pages
+
+def make_cfg(path):
+    return load_config(str(config_path), overrides={**overrides, "input": {"file_path": path}})
+
+with load_models(make_cfg("a.pdf")) as models:
+    for path in ["a.pdf", "b.pdf", "c.pdf"]:
+        for page in stream_pages(make_cfg(path), resources=models):   # page by page
+            print(page["markdown"])
+    pipelined_run(make_cfg("d.pdf"), resources=models)                # not streamed, reused all the same
+```
+
+`load_models()` reads `layout`, `upright`, and `pipeline.layout_workers`; the runs that reuse it should keep those settings, because the loaded models win. One loaded set serves one run at a time. Leaving the `with` block or calling `models.close()` unloads them.
+
+Each command-line invocation is a new process, so the models cannot stay in memory between invocations; several inputs in one invocation load them once.
 
 With several inputs, `runtime/sources.json` records which pages each input file produced and the image document scope. `pages_json/<image_id>.json` matches the online page response, with `metadata` also carrying `source` (the input path) and `image_id`. `assemble_documents_json(run_dir)` returns the same per-file grouping as `--json`, with a batch status of `Success`, `Partial`, or `Failed`.
 

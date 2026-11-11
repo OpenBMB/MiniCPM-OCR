@@ -53,3 +53,9 @@ PDF_RENDER_ZOOM = 2.0
 
 
 PDF_RENDER_PAGES_PER_JOB = 16
+
+# Front-first rendering hands pages over while later ones still render, so its
+# jobs are small. It also keeps to few processes: each one takes about a second
+# to start, and two already render far faster than pages are recognized.
+PDF_RENDER_PAGES_PER_EARLY_JOB = 2
+PDF_RENDER_EARLY_WORKERS = 2

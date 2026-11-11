@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, Iterable, List, Optional
 
 
 class DialectError(RuntimeError):
@@ -34,6 +35,9 @@ class Dialect:
     check_health: Callable[[Dict, object], Optional[str]] = lambda cfg, body: None
     context_overflow_codes: tuple = (400,)
     context_overflow_markers: tuple = ("maximum context length",)
+    #: How the backend sends text while it is still decoding: "sse" (OpenAI
+    #: chunks), "ndjson" (Ollama's native API), or None when it cannot.
+    stream_format: Optional[str] = None
 
 
 def _data_uri(image_b64: str) -> str:
@@ -96,6 +100,67 @@ def parse_openai_response(data: Dict) -> Dict:
         data=data,
         texts=texts,
     )
+
+
+def stream_payload(payload: Dict, stream_format: str) -> Dict:
+    'The same request, asking for the text as it is decoded.'
+    payload = dict(payload, stream=True)
+    if stream_format == "sse":
+        # Without this the chunks carry no token counts.
+        payload.setdefault("stream_options", {"include_usage": True})
+    return payload
+
+
+def collect_stream(stream_format: str, lines: Iterable[bytes], on_text: Callable[[str], None]) -> Dict:
+    """Read a streamed reply, passing each piece of text to ``on_text``.
+
+    Returns the body the backend would have sent without streaming, so the
+    dialect's ``parse_response`` reads both the same way.
+    """
+    pieces: List[str] = []
+    if stream_format == "ndjson":
+        final: Dict = {}
+        for line in lines:
+            if not line.strip():
+                continue
+            chunk = json.loads(line)
+            if chunk.get("error"):
+                raise DialectError(str(chunk["error"]))
+            text = (chunk.get("message") or {}).get("content") or ""
+            if text:
+                pieces.append(text)
+                on_text(text)
+            if chunk.get("done"):
+                final = chunk
+        final = dict(final)
+        final["message"] = dict(final.get("message") or {}, content="".join(pieces))
+        return final
+
+    finish_reason = None
+    usage: Dict = {}
+    for line in lines:
+        if not line.startswith(b"data:"):
+            continue
+        data = line[len(b"data:"):].strip()
+        if data == b"[DONE]":
+            break
+        chunk = json.loads(data)
+        if chunk.get("error"):
+            raise DialectError(str(chunk["error"]))
+        if chunk.get("usage"):
+            usage = chunk["usage"]
+        for choice in chunk.get("choices") or []:
+            if choice.get("index", 0) != 0:
+                continue
+            text = (choice.get("delta") or {}).get("content") or ""
+            if text:
+                pieces.append(text)
+                on_text(text)
+            finish_reason = choice.get("finish_reason") or finish_reason
+    return {
+        "choices": [{"message": {"content": "".join(pieces)}, "finish_reason": finish_reason}],
+        "usage": usage,
+    }
 
 
 def check_models_endpoint(engine_cfg: Dict, body) -> Optional[str]:
@@ -249,6 +314,7 @@ DIALECTS: Dict[str, Dialect] = {
         build_payload=build_openai_payload,
         parse_response=parse_openai_response,
         check_health=check_models_endpoint,
+        stream_format="sse",
     ),
     "vllm": Dialect(
         name="vllm",
@@ -258,6 +324,7 @@ DIALECTS: Dict[str, Dialect] = {
         build_payload=build_vllm_payload,
         parse_response=parse_openai_response,
         check_health=check_models_endpoint,
+        stream_format="sse",
     ),
     "llamacpp": Dialect(
         name="llamacpp",
@@ -274,6 +341,7 @@ DIALECTS: Dict[str, Dialect] = {
             "exceeds the available context size",
             "context size",
         ),
+        stream_format="sse",
     ),
     "ollama": Dialect(
         name="ollama",
@@ -283,6 +351,7 @@ DIALECTS: Dict[str, Dialect] = {
         build_payload=build_ollama_payload,
         parse_response=parse_ollama_response,
         check_health=check_ollama_health,
+        stream_format="ndjson",
     ),
 
     "ollama_openai": Dialect(
@@ -293,5 +362,6 @@ DIALECTS: Dict[str, Dialect] = {
         build_payload=build_llamacpp_payload,
         parse_response=parse_openai_response,
         check_health=check_ollama_health,
+        stream_format="sse",
     ),
 }

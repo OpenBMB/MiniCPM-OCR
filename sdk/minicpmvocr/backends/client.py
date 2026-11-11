@@ -9,7 +9,7 @@ from typing import Dict, Optional
 
 import requests
 
-from .dialects import CropRequest, Dialect, DialectError
+from .dialects import CropRequest, Dialect, DialectError, collect_stream, stream_payload
 
 
 class EngineError(RuntimeError):
@@ -140,8 +140,22 @@ class VLMClient:
         return any(marker in lowered for marker in self.dialect.context_overflow_markers)
 
     def recognize(self, image, prompt: str, max_new_tokens: int, slice_nums: Optional[int] = None,
-                  n: int = 1, decode_overrides: Optional[Dict] = None) -> Dict:
+                  n: int = 1, decode_overrides: Optional[Dict] = None, on_delta=None) -> Dict:
+        """Recognize one crop.
 
+        ``on_delta(text, restart)`` receives the text piece by piece while the
+        backend decodes it. ``restart`` is true on the first piece of a request
+        that had to be sent again after pieces were already handed over: what
+        came before it is to be dropped. The result is the same either way.
+        """
+        stream_format = self.dialect.stream_format if on_delta is not None and n == 1 else None
+        handed_over = False
+        restart = False
+
+        def _on_text(text: str) -> None:
+            nonlocal handed_over, restart
+            on_delta(text, restart)
+            handed_over, restart = True, False
 
         encode_t0 = time.time()
         image_b64 = encode_image_b64(image)
@@ -174,6 +188,9 @@ class VLMClient:
                 )
                 build_t0 = time.time()
                 payload = self.dialect.build_payload(req, self.engine_cfg, self.mm_cfg, self.decode_cfg)
+                if stream_format:
+                    payload = stream_payload(payload, stream_format)
+                    restart = handed_over
                 build_sec = time.time() - build_t0
                 try:
                     started = time.time()
@@ -182,6 +199,7 @@ class VLMClient:
                         json=payload,
                         headers=headers,
                         timeout=request_timeout_sec,
+                        stream=bool(stream_format),
                     )
                     latency = time.time() - started
 
@@ -196,8 +214,17 @@ class VLMClient:
                             break
                         resp.raise_for_status()
 
+                    if stream_format:
+                        try:
+                            body = collect_stream(stream_format, resp.iter_lines(), _on_text)
+                        finally:
+                            resp.close()
+                        # The reply was still arriving when post() returned.
+                        latency = time.time() - started
+                    else:
+                        body = resp.json()
                     parse_t0 = time.time()
-                    result = self.dialect.parse_response(resp.json())
+                    result = self.dialect.parse_response(body)
                     parse_sec = time.time() - parse_t0
                     metrics = result.setdefault("request_metrics", {})
                     metrics["latency_sec"] = latency

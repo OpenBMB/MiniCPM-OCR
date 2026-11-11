@@ -43,7 +43,13 @@ def _block_priority(prompt_map: Dict, block: Dict) -> tuple:
 def _execute_block(engine, prompt_map: Dict, image_id: str, crop_dir: Path, block: Dict,
                    crop_array=None, rm_client=None, tts_cfg: Optional[Dict] = None,
                    submitted_at: Optional[float] = None,
-                   prior_candidate: Optional[Dict] = None) -> Dict:
+                   prior_candidate: Optional[Dict] = None, on_delta=None) -> Dict:
+    """Recognize one block.
+
+    ``on_delta(text, restart)`` hears the raw text while it is decoded. Only a
+    plain single request can be heard: with test-time sampling the answer is
+    chosen among candidates afterwards, so nothing is passed on meanwhile.
+    """
 
     label = block.get("label", "")
     elem_cfg = get_element_cfg(prompt_map, label)
@@ -157,6 +163,8 @@ def _execute_block(engine, prompt_map: Dict, image_id: str, crop_dir: Path, bloc
                 prompt=elem_cfg["prompt"],
                 max_new_tokens=elem_cfg["max_new_tokens"],
                 slice_nums=elem_cfg["slice_nums"],
+                # Engines that cannot stream are never asked to.
+                **({"on_delta": on_delta} if on_delta is not None else {}),
             )
             infer_sec = time.time() - infer_t0
             raw_text = pred["text"]

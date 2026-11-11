@@ -22,6 +22,7 @@ from ._blocks import (
 from ._inputs import _iter_source_pages, _open_page_image
 from ._layout_record import _parse_one_page
 from ._metrics import build_summary, write_per_page_metrics, write_summary
+from ._stream import PageReporter
 from .upright import build_upright_corrector, upright_enabled
 from .._utils import append_jsonl, ensure_dir, now_iso, read_json, write_json
 from ..backends import create_backend
@@ -90,8 +91,14 @@ def _failed_layout_row(entry: Dict, error: str, started: float) -> Dict:
     }
 
 
-def pipelined_run(cfg: Dict, resources: Dict | None = None, on_layout_idle=None) -> Dict:
-    'Run layout detection and VLM inference concurrently when pipeline.overlap_layout is enabled.'
+def pipelined_run(cfg: Dict, resources: Dict | None = None, on_layout_idle=None,
+                  on_page=None, stream_detail: str = "page") -> Dict:
+    """Run layout detection and VLM inference concurrently when pipeline.overlap_layout is enabled.
+
+    ``on_page`` is called with one event per page as soon as that page is done,
+    in the order pages finish. ``stream_detail`` "block" or "token" makes it
+    hear about layouts, blocks and decoded text as well; see ``stream_pages``.
+    """
     run_dir = Path(cfg["_meta"]["run_dir"])
     runtime_dir = run_dir / "runtime"
     runtime_intermediate = Path(cfg["_meta"]["runtime_intermediate_dir"])
@@ -125,6 +132,13 @@ def pipelined_run(cfg: Dict, resources: Dict | None = None, on_layout_idle=None)
     owns_detectors = not resources.get("detectors")
     owns_engine = resources.get("engine") is None
 
+    # Pages are listed before the models load. For a stream the PDF then renders front
+    # pages first in the background, and the first page is ready as soon as the models are.
+    _enum_t0 = time.time()
+    page_entries = _iter_source_pages(cfg, runtime_intermediate, front_first=on_page is not None)
+    enumerate_sec = time.time() - _enum_t0
+    if not page_entries:
+        raise ValueError("No input pages found. Provide input.file_path or input.image_dir or input.files_dir with png/jpg/pdf files.")
 
     layout_workers = max(1, int(cfg["pipeline"].get("layout_workers", 1) or 1))
     _ld_t0 = time.time()
@@ -163,12 +177,12 @@ def pipelined_run(cfg: Dict, resources: Dict | None = None, on_layout_idle=None)
                     tts_cfg.get("n"), tts_cfg.get("rm_url"), tts_cfg.get("rm_batch") or "off")
 
 
-    _enum_t0 = time.time()
-    page_entries = _iter_source_pages(cfg, runtime_intermediate)
-    enumerate_sec = time.time() - _enum_t0
     boot_sec = time.time() - _boot_t0
-    if not page_entries:
-        raise ValueError("No input pages found. Provide input.file_path or input.image_dir or input.files_dir with png/jpg/pdf files.")
+    reporter = None
+    if on_page is not None:
+        reporter = PageReporter(
+            run_dir, [entry["image_id"] for entry in page_entries], on_page, stream_detail)
+    page_rank = {entry["image_id"]: rank for rank, entry in enumerate(page_entries)}
 
     events: Queue = Queue()
 
@@ -275,6 +289,8 @@ def pipelined_run(cfg: Dict, resources: Dict | None = None, on_layout_idle=None)
         for dump in state_result.get("tts_dumps", []):
             append_jsonl(tts_dump_path, dump)
         append_jsonl(page_timing_path, state_result["page_timing"])
+        if reporter is not None:
+            reporter.report(state_result)
         pages_done += 1
         if pages_done % progress_every == 0:
             print(f"[pipelined] pages done {pages_done}", flush=True)
@@ -283,6 +299,10 @@ def pipelined_run(cfg: Dict, resources: Dict | None = None, on_layout_idle=None)
     work_queue: PriorityQueue = PriorityQueue()
     tie = count()
     crop_pool = shared_crop_pool()
+    # Longest blocks of the whole run first is the fastest order, but it leaves every page
+    # waiting on its short blocks until the end. Someone reading pages as they finish is
+    # better served page by page. The shared pool keeps one order for all its runs.
+    page_first = reporter is not None and crop_pool is None
     pending_cv = threading.Condition()
     pending = [0]
 
@@ -371,6 +391,8 @@ def pipelined_run(cfg: Dict, resources: Dict | None = None, on_layout_idle=None)
                     if md_path.exists() and json_path.exists():
                         _finish(_skipped_page_result(image_id, page_started, layout_stage_sec, len(blocks), md_path))
                         continue
+                    if reporter is not None:
+                        reporter.layout(image_id, layout)
                     if not blocks:
                         _finish(_finalize_page(
                             run_dir=run_dir, image_id=image_id, layout=layout, blocks=blocks,
@@ -385,23 +407,28 @@ def pipelined_run(cfg: Dict, resources: Dict | None = None, on_layout_idle=None)
 
 
                         submitted_at = time.time()
+                        on_delta = reporter.delta_listener(image_id, block) if reporter is not None else None
 
                         def _work():
                             try:
-                                return _execute_block(engine, prompt_map, image_id, crop_dir, block,
-                                                      crop_array, rm_client=rm_caller, tts_cfg=tts_cfg,
-                                                      submitted_at=submitted_at)
+                                output = _execute_block(engine, prompt_map, image_id, crop_dir, block,
+                                                        crop_array, rm_client=rm_caller, tts_cfg=tts_cfg,
+                                                        submitted_at=submitted_at, on_delta=on_delta)
                             except Exception as e:
-                                return _failed_block_output(image_id, block, str(e))
+                                output = _failed_block_output(image_id, block, str(e))
+                            if reporter is not None:
+                                reporter.block(image_id, output["result_block"])
+                            return output
 
                         return _work
 
 
-                    items = [
-                        _block_priority(prompt_map, block)
-                        + (next(tie), pos, bpos, _make_work(block))
-                        for bpos, block in enumerate(blocks)
-                    ]
+                    items = []
+                    for bpos, block in enumerate(blocks):
+                        priority = _block_priority(prompt_map, block)
+                        if page_first:
+                            priority = (page_rank.get(image_id, pos), priority[0])
+                        items.append(priority + (next(tie), pos, bpos, _make_work(block)))
                     page_states.append({
                         "image_id": image_id, "layout": layout, "blocks": blocks,
                         "crop_dir": crop_dir, "crops": crops, "page_started": page_started,
