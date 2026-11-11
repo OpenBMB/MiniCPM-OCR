@@ -18,8 +18,9 @@ from .config import _deep_merge, load_config
 from .constants import PARAMS_FILENAME, SUPPORTED_INPUT_SUFFIXES
 from .layouts import LAYOUT_ALIASES, list_layout_providers, normalize_layout_provider
 from .layouts.download import ensure_layout_model, ensure_upright_models
-from .pipeline import infer_run, parse_layout_run, pipelined_run, prepare_run
+from .pipeline import infer_run, parse_layout_run, prepare_run
 from .pipeline._sources import read_sources
+from .pipeline._stream import InputOrder, run_pages
 from ._utils import read_jsonl
 
 
@@ -101,6 +102,19 @@ def _build_parser() -> argparse.ArgumentParser:
              "PATH is a file for one input, a directory for several, and omitted writes "
              "it next to the Markdown")
     p_parse.add_argument("--page-delimiter", default="\n\n<!-- page-break -->\n\n", help="Delimiter between pages when merging")
+    p_parse.add_argument(
+        "--stream", action="store_const", const="completed", default="", dest="stream",
+        help="Write each page to standard output as one JSON line as soon as it is parsed, in "
+             "the order pages finish, then one closing line with the run summary. Files asked "
+             "for with -o / --json are still written at the end")
+    p_parse.add_argument(
+        "--stream-ordered", action="store_const", const="ordered", default="", dest="stream",
+        help="Like --stream, but in reading order: whatever is ahead of its turn waits")
+    p_parse.add_argument(
+        "--stream-detail", choices=["page", "block", "token"], default="page", metavar="LEVEL",
+        help="How fine the --stream lines are. page (default): one line per finished page. "
+             "block: also one line when a page is laid out and one per recognized block. "
+             "token: also the text of each block while it is being decoded")
     _add_engine_args(p_parse, require_connection=True)
 
     sub.add_parser("list-backends", help="List pluggable inference backends and layout providers")
@@ -440,15 +454,20 @@ def _output_names(sources: list) -> dict:
 
 def _parse_many(args: argparse.Namespace, cfg: dict, run_dir: Path,
                 layout_summary: dict, infer_summary: dict) -> int:
-    """Write one Markdown (and with --json one JSON) per input file."""
+    """Write one Markdown (and with --json one JSON) per input file.
+
+    With --stream the pages have already been written to standard output, so
+    -o is optional and leaving it out writes no files.
+    """
     if args.stdout:
         raise ValueError("--stdout writes a single document; use -o DIR for several inputs")
-    if not args.output:
+    if not args.output and not args.stream:
         raise ValueError("Several inputs need -o DIR to hold one result per input")
-    output_dir = Path(args.output).resolve()
-    if output_dir.exists() and not output_dir.is_dir():
-        raise ValueError(f"-o must be a directory for several inputs: {output_dir}")
-    output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir = Path(args.output).resolve() if args.output else None
+    if output_dir is not None:
+        if output_dir.exists() and not output_dir.is_dir():
+            raise ValueError(f"-o must be a directory for several inputs: {output_dir}")
+        output_dir.mkdir(parents=True, exist_ok=True)
 
     from .pipeline._response import assemble_documents_json
     from .postprocess.crosspage import assemble_documents_markdown
@@ -467,6 +486,15 @@ def _parse_many(args: argparse.Namespace, cfg: dict, run_dir: Path,
     for entry in document["files"]:
         source_id = entry["source_id"]
         name = names.get(source_id, source_id or "input")
+        record = {
+            "source_id": source_id,
+            "input": entry["path"],
+            "status": entry["status"],
+            "pages": f"{entry['pages_done']}/{entry['pages_total']}",
+        }
+        if output_dir is None:
+            outputs.append(record)
+            continue
         if args.no_merge_pages and entry["pages_total"] > 1:
             raise ValueError(
                 f"{entry['path']}: {entry['pages_total']} pages; remove --no-merge-pages "
@@ -475,13 +503,7 @@ def _parse_many(args: argparse.Namespace, cfg: dict, run_dir: Path,
         markdown = markdowns.get(source_id, {}).get("markdown", entry["markdown"])
         _sync_markdown_images(run_dir, markdown, markdown_path)
         markdown_path.write_text(markdown, encoding="utf-8")
-        record = {
-            "source_id": source_id,
-            "input": entry["path"],
-            "status": entry["status"],
-            "pages": f"{entry['pages_done']}/{entry['pages_total']}",
-            "output_md": str(markdown_path),
-        }
+        record["output_md"] = str(markdown_path)
         if args.json is not None:
             json_path = output_dir / f"{name}.json"
             json_path.write_text(
@@ -489,23 +511,39 @@ def _parse_many(args: argparse.Namespace, cfg: dict, run_dir: Path,
             record["output_json"] = str(json_path)
         outputs.append(record)
 
-    print(
-        json.dumps(
-            {
-                "command": "parse",
-                "status": document["status"],
-                "inputs": len(args.inputs),
-                "outputs": outputs,
-                "run_dir": str(run_dir),
-                "layout_summary": layout_summary,
-                "infer_summary": infer_summary,
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-    )
+    _print_parse_summary(args, {
+        "command": "parse",
+        "status": document["status"],
+        "inputs": len(args.inputs),
+        "outputs": outputs,
+        "run_dir": str(run_dir),
+        "layout_summary": layout_summary,
+        "infer_summary": infer_summary,
+    })
     failed = [o for o in outputs if o["status"] == "Failed"]
     return 1 if len(failed) == len(outputs) else 0
+
+
+def _page_stream(args: argparse.Namespace):
+    'The on_page callback for --stream, or None; it has a flush() when it holds pages back.'
+    if not args.stream:
+        return None
+    # Captured now: the run itself has standard output pointed at standard error.
+    out = sys.stdout
+
+    def _write(event: dict) -> None:
+        out.write(json.dumps(event, ensure_ascii=False) + "\n")
+        out.flush()
+
+    return InputOrder(_write) if args.stream == "ordered" else _write
+
+
+def _print_parse_summary(args: argparse.Namespace, summary: dict) -> None:
+    'The closing report: pretty JSON, or with --stream one more line of the stream.'
+    if args.stream:
+        print(json.dumps({"event": "done", **summary}, ensure_ascii=False), flush=True)
+    else:
+        print(json.dumps(summary, ensure_ascii=False, indent=2))
 
 
 def main() -> int:
@@ -536,19 +574,20 @@ def main() -> int:
         return 0
 
     if args.command == "parse":
+        if args.stream and args.stdout:
+            parser.error("--stream already writes to standard output; drop --stdout")
+        if args.stream_detail != "page" and not args.stream:
+            parser.error("--stream-detail needs --stream or --stream-ordered")
         try:
             cfg = _load_parse_config(args)
         except (ValueError, OSError) as exc:
             parser.error(str(exc))
 
+        on_page = _page_stream(args)
         with redirect_stdout(sys.stderr):
-            if bool(cfg["pipeline"].get("overlap_layout", False)):
-                infer_summary = pipelined_run(cfg)
-                layout_summary = {"overlapped": True, **infer_summary.get("pipelined", {})}
-            else:
-                layout_summary = parse_layout_run(cfg)
-                prepare_run(cfg)
-                infer_summary = infer_run(cfg)
+            layout_summary, infer_summary = run_pages(cfg, on_page, detail=args.stream_detail)
+        if isinstance(on_page, InputOrder):
+            on_page.flush()
 
         run_dir = Path(cfg["_meta"]["run_dir"])
         if len(args.inputs) > 1:
@@ -556,6 +595,18 @@ def main() -> int:
                 return _parse_many(args, cfg, run_dir, layout_summary, infer_summary)
             except (ValueError, OSError) as exc:
                 parser.error(str(exc))
+
+        if args.stream and not args.output and args.json is None:
+            # Every page is already on standard output; there is no file to assemble.
+            _print_parse_summary(args, {
+                "command": "parse",
+                "input": str(args.inputs[0]),
+                "pages": int((infer_summary.get("counts") or {}).get("planned", 0)),
+                "run_dir": str(run_dir),
+                "layout_summary": layout_summary,
+                "infer_summary": infer_summary,
+            })
+            return 0
 
         markdown, pages = _read_markdown_from_run(
             run_dir=run_dir,
@@ -582,31 +633,27 @@ def main() -> int:
                 encoding="utf-8",
             )
 
-        if args.stdout or not args.output:
+        if not args.stream and (args.stdout or not args.output):
             print(_absolute_image_links(markdown, run_dir))
             return 0
 
-        output_path = Path(args.output).resolve()
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        _sync_markdown_images(run_dir, markdown, output_path)
-        output_path.write_text(markdown, encoding="utf-8")
+        output_path = None
+        if args.output:
+            output_path = Path(args.output).resolve()
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            _sync_markdown_images(run_dir, markdown, output_path)
+            output_path.write_text(markdown, encoding="utf-8")
 
-        print(
-            json.dumps(
-                {
-                    "command": "parse",
-                    "input": str(args.inputs[0]),
-                    "output_md": str(output_path),
-                    **({"output_json": str(json_path)} if json_path else {}),
-                    "pages": pages,
-                    "run_dir": str(run_dir),
-                    "layout_summary": layout_summary,
-                    "infer_summary": infer_summary,
-                },
-                ensure_ascii=False,
-                indent=2,
-            )
-        )
+        _print_parse_summary(args, {
+            "command": "parse",
+            "input": str(args.inputs[0]),
+            **({"output_md": str(output_path)} if output_path else {}),
+            **({"output_json": str(json_path)} if json_path else {}),
+            "pages": pages,
+            "run_dir": str(run_dir),
+            "layout_summary": layout_summary,
+            "infer_summary": infer_summary,
+        })
         return 0
 
     cfg = load_config(args.config, overrides=_build_engine_overrides(args))
@@ -631,13 +678,7 @@ def main() -> int:
         return 0
 
     if args.command == "run":
-        if bool(cfg["pipeline"].get("overlap_layout", False)):
-            infer_summary = pipelined_run(cfg)
-            layout_summary = {"overlapped": True, **infer_summary.get("pipelined", {})}
-        else:
-            layout_summary = parse_layout_run(cfg)
-            prepare_run(cfg)
-            infer_summary = infer_run(cfg)
+        layout_summary, infer_summary = run_pages(cfg)
         print(
             json.dumps(
                 {

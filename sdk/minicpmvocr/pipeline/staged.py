@@ -22,6 +22,7 @@ from ..prompts import load_prompt_map
 from ..backends import create_backend
 from ..layouts import create_layout_detector
 from ._metrics import build_summary, write_per_page_metrics, write_summary
+from ._stream import PageReporter
 from .upright import build_upright_corrector
 from .rm_client import RMClient, build_rm_caller
 from .._utils import (
@@ -43,8 +44,14 @@ def _update_run_meta(run_meta_path: Path, updates: Dict) -> None:
     write_json(run_meta_path, meta)
 
 
-def parse_layout_run(cfg: Dict) -> Dict:
+def parse_layout_run(cfg: Dict, resources: Dict | None = None) -> Dict:
+    """Detect the layout of every input page.
+
+    ``resources`` from ``load_models`` supplies a detector and an upright
+    corrector that are already loaded; they are used as they are and left loaded.
+    """
     _stage_t0 = time.time()
+    resources = resources or {}
     run_dir = Path(cfg["_meta"]["run_dir"])
     runtime_dir = run_dir / "runtime"
     runtime_intermediate = Path(cfg["_meta"]["runtime_intermediate_dir"])
@@ -57,11 +64,17 @@ def parse_layout_run(cfg: Dict) -> Dict:
     ensure_dir(crops_root)
     ensure_dir(run_dir / "logs")
 
-    layout_detector = create_layout_detector(cfg["layout"])
-    layout_detector.start()
+    shared_detectors = list(resources.get("detectors") or [])
+    if shared_detectors:
+        layout_detector = shared_detectors[0]
+    else:
+        layout_detector = create_layout_detector(cfg["layout"])
+        layout_detector.start()
     provider = layout_detector.name
 
-    upright_corrector = build_upright_corrector(cfg)
+    upright_corrector = resources.get("upright")
+    if upright_corrector is None:
+        upright_corrector = build_upright_corrector(cfg)
 
     page_entries = _iter_source_pages(cfg, runtime_intermediate)
     if not page_entries:
@@ -80,7 +93,8 @@ def parse_layout_run(cfg: Dict) -> Dict:
         parse_rows.append(row)
     layout_loop_sec = time.time() - layout_loop_t0
 
-    layout_detector.stop()
+    if not shared_detectors:
+        layout_detector.stop()
 
     layout_timing_path = runtime_dir / "layout_timing.jsonl"
     with layout_timing_path.open("w", encoding="utf-8") as f:
@@ -217,6 +231,17 @@ def prepare_run(cfg: Dict) -> Dict:
     return run_meta
 
 
+def _recognize_block(reporter, engine, prompt_map: Dict, image_id: str, crop_dir: Path, block: Dict,
+                     **kwargs) -> Dict:
+    '``_execute_block``, telling ``reporter`` about the text as it is decoded and the finished block.'
+    if reporter is None:
+        return _execute_block(engine, prompt_map, image_id, crop_dir, block, **kwargs)
+    output = _execute_block(engine, prompt_map, image_id, crop_dir, block,
+                            on_delta=reporter.delta_listener(image_id, block), **kwargs)
+    reporter.block(image_id, output["result_block"])
+    return output
+
+
 def _infer_concurrent(
     *,
     run_dir: Path,
@@ -227,10 +252,16 @@ def _infer_concurrent(
     progress_every: int,
     rm_client=None,
     tts_cfg: Optional[Dict] = None,
+    reporter=None,
 ) -> Dict[int, Dict]:
 
     page_states: List[Dict] = []
     flat: List[tuple] = []
+
+    def _settle(state: Dict, result: Dict) -> None:
+        state["result"] = result
+        if reporter is not None:
+            reporter.report(result)
 
     for pos, task in enumerate(tasks):
         image_id = task["image_id"]
@@ -246,9 +277,11 @@ def _infer_concurrent(
             md_path = run_dir / "output" / f"{image_id}.md"
             json_path = run_dir / "results_json" / f"{image_id}.json"
             if md_path.exists() and json_path.exists():
-                state["result"] = _skipped_page_result(image_id, page_started, layout_stage_sec, len(blocks), md_path)
+                _settle(state, _skipped_page_result(image_id, page_started, layout_stage_sec, len(blocks), md_path))
             elif not blocks:
-                state["result"] = _finalize_page(
+                if reporter is not None:
+                    reporter.layout(image_id, layout)
+                _settle(state, _finalize_page(
                     run_dir=run_dir,
                     image_id=image_id,
                     layout=layout,
@@ -257,8 +290,10 @@ def _infer_concurrent(
                     prompt_map=prompt_map,
                     page_started=page_started,
                     layout_stage_sec=layout_stage_sec,
-                )
+                ))
             else:
+                if reporter is not None:
+                    reporter.layout(image_id, layout)
                 state.update(
                     {
                         "layout": layout,
@@ -273,11 +308,16 @@ def _infer_concurrent(
                 for bpos, block in enumerate(blocks):
                     flat.append((pos, bpos, block))
         except Exception as e:
-            state["result"] = _failed_page_result(image_id, page_started, layout_stage_sec, str(e))
+            if state["result"] is None:
+                _settle(state, _failed_page_result(image_id, page_started, layout_stage_sec, str(e)))
         page_states.append(state)
 
 
-    flat.sort(key=lambda item: _block_priority(prompt_map, item[2]))
+    if reporter is None:
+        flat.sort(key=lambda item: _block_priority(prompt_map, item[2]))
+    else:
+        # Page by page, so that pages finish one after another instead of all at the end.
+        flat.sort(key=lambda item: (item[0],) + _block_priority(prompt_map, item[2]))
 
     total_pages = len(tasks)
     completed_pages = sum(1 for s in page_states if s["result"] is not None)
@@ -285,11 +325,14 @@ def _infer_concurrent(
     def _run_one(pos: int, block: Dict, submitted_at: float = 0.0) -> Dict:
         state = page_states[pos]
         try:
-            return _execute_block(engine, prompt_map, state["image_id"], state["crop_dir"], block,
-                                  rm_client=rm_client, tts_cfg=tts_cfg,
-                                  submitted_at=submitted_at or None)
+            return _recognize_block(reporter, engine, prompt_map, state["image_id"], state["crop_dir"],
+                                    block, rm_client=rm_client, tts_cfg=tts_cfg,
+                                    submitted_at=submitted_at or None)
         except Exception as e:
-            return _failed_block_output(state["image_id"], block, str(e))
+            output = _failed_block_output(state["image_id"], block, str(e))
+            if reporter is not None:
+                reporter.block(state["image_id"], output["result_block"])
+            return output
 
     if flat:
         with ThreadPoolExecutor(max_workers=min(request_workers, len(flat))) as executor:
@@ -303,7 +346,7 @@ def _infer_concurrent(
                 if state["remaining"] > 0:
                     continue
                 try:
-                    state["result"] = _finalize_page(
+                    result = _finalize_page(
                         run_dir=run_dir,
                         image_id=state["image_id"],
                         layout=state["layout"],
@@ -314,9 +357,10 @@ def _infer_concurrent(
                         layout_stage_sec=state["layout_stage_sec"],
                     )
                 except Exception as e:
-                    state["result"] = _failed_page_result(
+                    result = _failed_page_result(
                         state["image_id"], state["page_started"], state["layout_stage_sec"], str(e)
                     )
+                _settle(state, result)
                 completed_pages += 1
                 if completed_pages % progress_every == 0 or completed_pages == total_pages:
                     print(f"[infer] progress {completed_pages}/{total_pages}")
@@ -324,7 +368,13 @@ def _infer_concurrent(
     return {pos: state["result"] for pos, state in enumerate(page_states)}
 
 
-def infer_run(cfg: Dict) -> Dict:
+def infer_run(cfg: Dict, on_page=None, stream_detail: str = "page") -> Dict:
+    """Recognize the pages a run has laid out.
+
+    ``on_page`` is called with one event per page as soon as that page is done,
+    in the order pages finish. ``stream_detail`` "block" or "token" makes it
+    hear about layouts, blocks and decoded text as well; see ``stream_pages``.
+    """
     run_dir = Path(cfg["_meta"]["run_dir"])
     run_meta_path = run_dir / "run_meta.json"
     if not run_meta_path.exists():
@@ -332,6 +382,10 @@ def infer_run(cfg: Dict) -> Dict:
 
     prompt_map = load_prompt_map(cfg)
     tasks = read_jsonl(run_dir / "runtime" / "page_tasks.jsonl")
+    reporter = None
+    if on_page is not None:
+        reporter = PageReporter(run_dir, [task["image_id"] for task in tasks], on_page, stream_detail)
+    on_result = reporter.report if reporter is not None else None
     engine = create_backend(cfg)
     engine.start()
 
@@ -374,11 +428,13 @@ def infer_run(cfg: Dict) -> Dict:
                 json_path = run_dir / "results_json" / f"{image_id}.json"
                 if md_path.exists() and json_path.exists():
                     return _skipped_page_result(image_id, page_started, layout_stage_sec, len(blocks), md_path)
+                if reporter is not None:
+                    reporter.layout(image_id, layout)
 
                 if block_workers == 1 or len(blocks) <= 1:
                     block_outputs = [
-                        _execute_block(engine, prompt_map, image_id, crop_dir, block,
-                                       rm_client=rm_caller, tts_cfg=tts_cfg)
+                        _recognize_block(reporter, engine, prompt_map, image_id, crop_dir, block,
+                                         rm_client=rm_caller, tts_cfg=tts_cfg)
                         for block in blocks
                     ]
                 else:
@@ -386,8 +442,8 @@ def infer_run(cfg: Dict) -> Dict:
                     with ThreadPoolExecutor(max_workers=min(block_workers, len(blocks))) as executor:
                         _now = time.time()
                         futures = {
-                            executor.submit(_execute_block, engine, prompt_map, image_id, crop_dir, block,
-                                            rm_client=rm_caller, tts_cfg=tts_cfg,
+                            executor.submit(_recognize_block, reporter, engine, prompt_map, image_id,
+                                            crop_dir, block, rm_client=rm_caller, tts_cfg=tts_cfg,
                                             submitted_at=_now): i
                             for i, block in enumerate(blocks)
                         }
@@ -419,10 +475,13 @@ def infer_run(cfg: Dict) -> Dict:
                 progress_every=progress_every,
                 rm_client=rm_caller,
                 tts_cfg=tts_cfg,
+                reporter=reporter,
             )
         elif page_workers == 1 or len(tasks) <= 1:
             for idx, task in enumerate(tasks, start=1):
                 page_results_by_idx[idx - 1] = _process_page(task)
+                if on_result is not None:
+                    on_result(page_results_by_idx[idx - 1])
                 if idx % progress_every == 0:
                     print(f"[infer] progress {idx}/{len(tasks)}")
         else:
@@ -454,6 +513,8 @@ def infer_run(cfg: Dict) -> Dict:
                             "page_timing": {"image_id": image_id, "status": "failed", "duration_sec": 0.0, "error": str(e)},
                             "crop_rows": [],
                         }
+                    if on_result is not None:
+                        on_result(page_results_by_idx[task_idx])
                     completed += 1
                     if completed % progress_every == 0 or completed == len(tasks):
                         print(f"[infer] progress {completed}/{len(tasks)}")

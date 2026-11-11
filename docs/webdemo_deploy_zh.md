@@ -78,6 +78,8 @@ VITE_OCR_TARGET=http://127.0.0.1:8966 corepack pnpm dev --host --port 5173 --str
 
 打开 **`http://localhost:5173/playground/document-parse`**，即可开始体验本地的 WebDemo！
 
+解析过程中页面会实时显示正在识别的页：识别完的块直接出现，正在解码的块逐字增长，PDF 的前面几页最先开始。要得到这个顺序，后端需以 `OCR_SHARED_CROP_POOL=0` 启动（`start_local_worker.sh` 默认为 `1`，多个任务共用一个识别队列时不按页排序）。
+
 ## 5. 接口
 
 后端同样也提供了 API 服务，以下是相关的 API 接口。
@@ -85,7 +87,7 @@ VITE_OCR_TARGET=http://127.0.0.1:8966 corepack pnpm dev --host --port 5173 --str
 | 接口 | 用途 |
 |---|---|
 | `POST /api/document-parse/jobs` | 异步图片或 PDF，HTTP 200 返回任务 |
-| `GET /api/document-parse/jobs/{id}` | HTTP 200 返回进度与结果 |
+| `GET /api/document-parse/jobs/{id}` | HTTP 200 返回进度与结果；任务运行中，`pages` 在已完成的页之后还带有正在识别的页（`"partial": true`），内容是已识别完的块和正在解码的块的当前文本 |
 | `DELETE /api/document-parse/jobs/{id}` | 取消任务，HTTP 200 返回任务状态 |
 | `POST /api/kie` | 同步单图，HTTP 200 返回单页响应 |
 

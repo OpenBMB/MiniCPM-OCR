@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { QueryClient } from '@tanstack/react-query';
 import { BizError } from '@map/types';
 
-import { runImageParseJob } from '../imageParseJobs';
+import { IMAGE_PARSE_JOB_POLL_MS, runImageParseJob } from '../imageParseJobs';
 
 const mocks = vi.hoisted(() => ({ request: vi.fn() }));
 vi.mock('../request', () => ({ mapRequest: mocks.request }));
@@ -56,14 +56,14 @@ describe('MAP OCR jobs', () => {
       recognize_chart: true,
     });
     expect(init.signal).toBeUndefined();
-    await vi.advanceTimersByTimeAsync(999);
+    await vi.advanceTimersByTimeAsync(IMAGE_PARSE_JOB_POLL_MS - 1);
     expect(mocks.request).toHaveBeenCalledTimes(1);
     await vi.advanceTimersByTimeAsync(1);
     expect(mocks.request).toHaveBeenLastCalledWith('/image-parse/jobs/job%2Fone', {
       signal: expect.any(AbortSignal),
     });
     expect(progress.mock.calls.map(([job]) => job.pages_done)).toEqual([0, 1]);
-    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(IMAGE_PARSE_JOB_POLL_MS);
     await expect(promise).resolves.toEqual(success);
     await vi.advanceTimersByTimeAsync(5000);
     expect(mocks.request).toHaveBeenCalledTimes(3);
@@ -137,7 +137,7 @@ describe('MAP OCR jobs', () => {
       onProgress: progress,
     });
     const rejected = expect(promise).rejects.toMatchObject({ name: 'AbortError' });
-    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(IMAGE_PARSE_JOB_POLL_MS);
     expect(getSignal?.aborted).toBe(false);
     controller.abort();
     await rejected;
@@ -192,7 +192,7 @@ describe('MAP OCR jobs', () => {
       signal: new AbortController().signal,
     });
     const rejected = expect(promise).rejects.toThrow('imageParseRequestFailed');
-    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(IMAGE_PARSE_JOB_POLL_MS);
     await rejected;
     expect(mocks.request).toHaveBeenLastCalledWith('/image-parse/jobs/job%2Fone', {
       method: 'DELETE',
@@ -239,7 +239,7 @@ describe('MAP OCR jobs', () => {
       queryClient,
       signal: new AbortController().signal,
     });
-    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(IMAGE_PARSE_JOB_POLL_MS);
     await expect(promise).resolves.toMatchObject({ id: 'ocr_1234-abcd' });
     expect(mocks.request).toHaveBeenLastCalledWith('/image-parse/jobs/ocr_1234-abcd', {
       signal: expect.any(AbortSignal),

@@ -1,7 +1,10 @@
 """Hand an uploaded image or PDF to the local page worker.
 
-The frontend polls page by page. A detector is held only while that page is
-being cut. Rotation adaptation and recognition each have their own queue.
+The frontend polls the job. Besides the pages that are finished, a running job
+reports the pages still being recognized: the blocks done so far and the text
+of the blocks that are being decoded right now, so the page fills in as it is
+read. A detector is borrowed for the job and returned loaded, so the next job
+does not wait for the layout model.
 """
 from __future__ import annotations
 
@@ -60,6 +63,12 @@ def _layout_page_index(layout: Dict, stem: str) -> int:
     return 0
 
 
+def _page_index(state: Dict, layout: Dict, stem: str) -> int:
+    if state.get("only_page") is not None:
+        return int(state["only_page"])
+    return _layout_page_index(layout, stem)
+
+
 def _collect_pages(state: Dict) -> list:
     import server
 
@@ -67,20 +76,111 @@ def _collect_pages(state: Dict) -> list:
     layouts = job_dir / "runtime" / "intermediate" / "layouts"
     if not layouts.is_dir():
         return []
+    # While the job runs it is polled several times a second: a finished page is read once.
+    running = state["status"] == "Running"
+    done: Dict = state.setdefault("finished_pages", {}) if running else {}
     pages = []
     for path in sorted(layouts.glob("*.json")):
-        layout = server._read_json(path)
-        result = server._read_json(job_dir / "results_json" / f"{path.stem}.json")
-        if not layout or not result:
-            continue
-        page_index = _layout_page_index(layout, path.stem)
-        if state.get("only_page") is not None:
-            page_index = int(state["only_page"])
-        pages.append(server._build_page_response(
-            path.stem, layout, result, state["id"], "standard",
-            bool(state["upright"]), int(state["created_at"]), state["id"], page_index,
-        ))
+        page = done.get(path.stem)
+        if page is None:
+            layout = server._read_json(path)
+            result = server._read_json(job_dir / "results_json" / f"{path.stem}.json")
+            if not layout or not result:
+                continue
+            page = server._build_page_response(
+                path.stem, layout, result, state["id"], "standard",
+                bool(state["upright"]), int(state["created_at"]), state["id"],
+                _page_index(state, layout, path.stem),
+            )
+            page["image_id"] = path.stem
+            done[path.stem] = page
+        pages.append(page)
     pages.sort(key=lambda item: int(item.get("metadata", {}).get("page_index") or 0))
+    return pages
+
+
+def _hear(state: Dict, event: Dict) -> None:
+    """Keep what the run says about pages that are not finished yet.
+
+    Called by the run for every layout, piece of decoded text, block and page.
+    """
+    kind = event["event"]
+    with state["live_lock"]:
+        live = state["live"]
+        if kind == "layout":
+            live[event["image_id"]] = {}
+        elif kind == "page":
+            live.pop(event["image_id"], None)
+        elif kind == "block":
+            live.setdefault(event["image_id"], {})[event["order"]] = {
+                "text": event["content"], "done": True}
+        elif kind == "delta":
+            block = live.setdefault(event["image_id"], {}).setdefault(
+                event["order"], {"text": "", "done": False})
+            # A request that was sent again starts its text over.
+            block["text"] = event["text"] if event.get("restart") else block["text"] + event["text"]
+
+
+def _preview(label: str, raw: str) -> str:
+    'The text of a block that is still being decoded, tidied the way its final content will be.'
+    from minicpmvocr.pipeline._text import _normalize_and_dedupe_blocks
+    from minicpmvocr.postprocess.markdown import postprocess_content
+    from minicpmvocr.prompts import DEFAULT_PROMPT_MAP, get_element_cfg
+
+    try:
+        elem = get_element_cfg(DEFAULT_PROMPT_MAP, label)
+        content = postprocess_content(raw, elem["output_format"], label=label) if elem else raw
+        tidy = _normalize_and_dedupe_blocks([{"label": label, "order": 0, "content": content}])
+        return tidy[0]["content"] or raw
+    except Exception:
+        return raw
+
+
+def _partial_pages(state: Dict, finished: set) -> list:
+    """Pages still being recognized, in the shape of a finished page.
+
+    Only blocks that have text so far are listed, and the page body is left
+    empty: the frontend then builds the preview from the blocks.
+    """
+    import server
+
+    with state["live_lock"]:
+        live = {image_id: {order: dict(block) for order, block in blocks.items()}
+                for image_id, blocks in state["live"].items()}
+    layouts = Path(state["job_dir"]) / "runtime" / "intermediate" / "layouts"
+    cache = state.setdefault("layouts", {})
+    pages = []
+    for image_id, heard in live.items():
+        if image_id in finished or not heard:
+            continue
+        layout = cache.get(image_id)
+        if layout is None:
+            layout = server._read_json(layouts / f"{image_id}.json")
+            if not layout:
+                continue
+            cache[image_id] = layout
+        blocks = []
+        for layout_block in layout.get("blocks", []):
+            block = heard.get(layout_block.get("order", 0))
+            if not block or not block["text"].strip():
+                continue
+            content = block["text"] if block["done"] else _preview(layout_block.get("label", ""), block["text"])
+            blocks.append(server._block_to_api(layout_block, {"content": content, "status": "ok"}))
+        if not blocks:
+            continue
+        pages.append({
+            "metadata": {"page_index": _page_index(state, layout, image_id)},
+            "partial": True,
+            "image_id": image_id,
+            "choices": [{"message": {"content": ""}}],
+            "minicpm_ocr": {
+                "request_id": state["id"],
+                "mode": "ocr_only",
+                "image_width": layout.get("image_width", 0),
+                "image_height": layout.get("image_height", 0),
+                "blocks": blocks,
+            },
+        })
     return pages
 
 
@@ -95,13 +195,16 @@ def _public(state: Dict) -> Dict:
     }
     if state["status"] == "Running":
         body["pages_done"] = len(pages)
+        # After the finished pages, so a client that only wants those can stop at pages_done.
+        partial = _partial_pages(state, {page.get("image_id") for page in pages})
+        partial.sort(key=lambda item: item["metadata"]["page_index"])
+        body["pages"] = pages + partial
     if state.get("error"):
         body["error"] = state["error"]
     return body
 
 
 def _run(job_id: str) -> None:
-    import page_fleet
     import server
 
     with _LOCK:
@@ -109,7 +212,13 @@ def _run(job_id: str) -> None:
     try:
         cfg = server.RUNNER.build_cfg(job_id, upright=bool(state["upright"]), mode="ocr", save_crops=False)
         cfg["input"]["file_path"] = state["path"]
-        page_fleet.run_releasing_layout(server.RUNNER, cfg)
+        from minicpmvocr import pipelined_run
+
+        # Streamed: earlier pages are rendered, laid out and recognized first, and the
+        # job hears each block and its text as it is decoded.
+        with server.RUNNER.acquire(cfg) as resources:
+            pipelined_run(cfg, resources=resources,
+                          on_page=lambda event: _hear(state, event), stream_detail="token")
         pages = _collect_pages(state)
         with _LOCK:
             if state["status"] == "Running":
@@ -172,6 +281,9 @@ async def create_document_job(
         "only_page": only_page,
         "created_at": int(time.time()),
         "error": "",
+        # image_id -> block order -> {"text", "done"}, for pages not finished yet.
+        "live": {},
+        "live_lock": threading.Lock(),
     }
     with _LOCK:
         _JOBS[job_id] = state

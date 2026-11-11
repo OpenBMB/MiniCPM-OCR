@@ -15,7 +15,9 @@ _EXPORTS = {
     "assemble_document_json": "minicpmvocr.pipeline",
     "prepare_run": "minicpmvocr.pipeline",
     "infer_run": "minicpmvocr.pipeline",
+    "load_models": "minicpmvocr.pipeline",
     "pipelined_run": "minicpmvocr.pipeline",
+    "stream_pages": "minicpmvocr.pipeline",
 
     "DEFAULT_PROMPT_MAP": "minicpmvocr.prompts",
     "load_prompt_map": "minicpmvocr.prompts",
@@ -63,9 +65,11 @@ if TYPE_CHECKING:
     from .pipeline import (
         assemble_document_json,
         infer_run,
+        load_models,
         parse_layout_run,
         pipelined_run,
         prepare_run,
+        stream_pages,
     )
     from .prompts import DEFAULT_PROMPT_MAP, get_element_cfg, load_prompt_map
     from .pipeline.upright import UprightCorrector

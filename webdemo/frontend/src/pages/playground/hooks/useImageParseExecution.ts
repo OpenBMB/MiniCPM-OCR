@@ -139,6 +139,12 @@ export function useImageParseExecution(options: ImageParseExecutionOptions) {
         signal,
         fileId,
         ...(queryClient ? { queryClient } : {}),
+        // While the page is being recognized, show its blocks and the text decoded so far.
+        onPartial: (partial) => {
+          if (!isCurrent()) return;
+          setters.setMarkdown(partial.markdown);
+          setters.setLayout(partial.blocks);
+        },
       });
     };
     setters.setLoading(true);

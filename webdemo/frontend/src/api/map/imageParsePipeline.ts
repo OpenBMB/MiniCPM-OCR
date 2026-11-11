@@ -8,7 +8,7 @@
 import { BizError } from '@map/types';
 import type { QueryClient } from '@tanstack/react-query';
 import { adaptImageParseV2 } from './imageParseV2';
-import { runImageParseJob } from './imageParseJobs';
+import { runImageParseJob, type ImageParseJob } from './imageParseJobs';
 import { validateImageParseSdkResult, type ImageParseSdkResult } from './imageParseSdk';
 import { mapRequest } from './request';
 import {
@@ -85,6 +85,8 @@ interface ImageParsePipelineBaseInput {
   recognizeChart?: boolean;
   signal: AbortSignal;
   queryClient?: QueryClient;
+  /** Called while the job runs with the blocks and text decoded so far; the returned result replaces them. */
+  onPartial?: (result: ImageParseSdkResult) => void;
 }
 
 /**
@@ -97,6 +99,19 @@ export type ImageParsePipelineInput = ImageParsePipelineBaseInput &
     | { fileUrl: string; fileId?: never; image?: never }
     | { image: string; fileId?: never; fileUrl?: never }
   );
+
+/** Hand over the page of a running job that is still being recognized; a frame that cannot be shown is skipped. */
+function publishPartial(job: ImageParseJob, onPartial: (result: ImageParseSdkResult) => void) {
+  const page = job.pages?.find((item) => (item as { partial?: boolean }).partial === true);
+  if (!page) return;
+  try {
+    const result = adaptImageParseV2(page);
+    delete result.source;
+    onPartial(validateImageParseSdkResult(result, { allowEmptyMarkdown: true }));
+  } catch {
+    // The next frame or the finished page replaces it.
+  }
+}
 
 /** A single-image fileId goes through an async job; older URL and inline calls keep the sync contract. L3 validates both. */
 export async function parseImagePipeline(
@@ -130,6 +145,7 @@ export async function parseImagePipeline(
         ...(fields ? { fields } : {}),
         ...(input.pageIndex !== undefined ? { pageIndex: input.pageIndex } : {}),
         ...(input.queryClient ? { queryClient: input.queryClient } : {}),
+        ...(input.onPartial ? { onProgress: (running) => publishPartial(running, input.onPartial!) } : {}),
       });
       if (job.pages?.length !== 1) throw new Error('imageParseInvalidResult');
       raw = job.pages[0];
