@@ -18,6 +18,8 @@ export interface PdfPageResult {
   result?: ImageParseSdkResult;
   crops?: readonly string[];
   error?: string;
+  /** The page is still being recognized: result holds the blocks and text decoded so far, and will be replaced. */
+  partial?: boolean;
 }
 
 /** PDF execution context; queries reuse the portal QueryClient, and KIE fields are handed to the task client for validation as-is. */
@@ -79,6 +81,8 @@ export async function parsePdfPages(
   signal.throwIfAborted();
   let total = 0;
   const published = new Set<number>();
+  // What was last shown of each page still being recognized, so an unchanged poll does not re-render it.
+  const streamed = new Map<number, string>();
   const publish = (job: ImageParseJob) => {
     signal.throwIfAborted();
     if (job.pages_total > MAX_PDF_PAGES) throw new Error('imageParsePdfTooManyPages');
@@ -99,6 +103,23 @@ export async function parsePdfPages(
       const number = index + 1;
       if (skipPages?.has(number) || published.has(number)) continue;
       signal.throwIfAborted();
+      if ((page as { partial?: boolean }).partial === true) {
+        // Still being recognized: show what there is so far and wait for the finished page.
+        try {
+          const result = adaptImageParseV2(page);
+          delete result.source;
+          const shown = result.blocks.map((block) => `${block.order}:${block.text}`).join('\u0000');
+          if (streamed.get(number) === shown) continue;
+          streamed.set(number, shown);
+          onPage(number, {
+            result: validateImageParseSdkResult(result, { allowEmptyMarkdown: true }),
+            partial: true,
+          });
+        } catch {
+          // A frame that cannot be shown is skipped; the next one or the finished page replaces it.
+        }
+        continue;
+      }
       let value: PdfPageResult;
       try {
         const result = adaptImageParseV2(page);
@@ -108,6 +129,7 @@ export async function parsePdfPages(
         value = { error: pdfParseErrorKey(failure) };
       }
       published.add(number);
+      streamed.delete(number);
       onPage(number, value);
     }
   };

@@ -64,13 +64,18 @@ export function usePdfImageParsePresentation({
     },
     [setResults],
   );
-  usePdfImageParseCrops(valid ? source : '', page, valid ? results[page] : undefined, onCrops);
+  // A page still streaming changes several times a second; its crops are cut once it is finished.
+  const cropTarget = valid && !results[page]?.partial ? results[page] : undefined;
+  usePdfImageParseCrops(valid ? source : '', page, cropTarget, onCrops);
   const snapshot = useMemo<PdfImageParseSnapshot | null>(() => {
     if (!valid) return null;
     if (finished) return { page, pages, results };
     const partial: Record<number, PdfPageResult> = {};
-    for (const [key, value] of Object.entries(results))
+    for (const [key, value] of Object.entries(results)) {
+      // A page still streaming is not a result to restore.
+      if (value.partial) continue;
       partial[Number(key)] = value.result ? { result: value.result, error: value.error } : value;
+    }
     return { page, pages, results: partial };
   }, [valid, finished, page, pages, results]);
   return { visibleResults, current: valid ? visibleResults[page] : undefined, snapshot };

@@ -78,6 +78,8 @@ VITE_OCR_TARGET=http://127.0.0.1:8966 corepack pnpm dev --host --port 5173 --str
 
 Open **`http://localhost:5173/playground/document-parse`** to try the local Web Demo.
 
+While a document is being parsed the page shows the pages still being recognized: finished blocks appear at once, blocks being decoded grow as their text arrives, and the first pages of a PDF start first. For that order, start the backend with `OCR_SHARED_CROP_POOL=0` (`start_local_worker.sh` defaults to `1`; with one recognition queue shared by all jobs, blocks are not ordered by page).
+
 ## 5. API
 
 The backend also provides an API. The endpoints are listed below.
@@ -85,7 +87,7 @@ The backend also provides an API. The endpoints are listed below.
 | Endpoint | Purpose |
 |---|---|
 | `POST /api/document-parse/jobs` | Async image or PDF. HTTP 200 returns a job |
-| `GET /api/document-parse/jobs/{id}` | HTTP 200 returns progress and results |
+| `GET /api/document-parse/jobs/{id}` | HTTP 200 returns progress and results; while the job runs, `pages` also lists, after the finished pages, the pages still being recognized (`"partial": true`) with the blocks done so far and the current text of the blocks being decoded |
 | `DELETE /api/document-parse/jobs/{id}` | Cancel the job. HTTP 200 returns the job status |
 | `POST /api/kie` | Sync single image. HTTP 200 returns one page |
 

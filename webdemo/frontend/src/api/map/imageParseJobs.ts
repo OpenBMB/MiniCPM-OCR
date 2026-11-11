@@ -12,7 +12,13 @@ export type ImageParseJobTask = 'standard' | 'seal' | 'kie';
 export type ImageParseJobStatus = 'Running' | 'Success' | 'Failed' | 'Cancelled';
 export type ImageParseJobPage = Parameters<typeof adaptImageParseV2>[0];
 
-/** Async OCR job owned by MAP; while running, pages is the prefix of pages already finished. */
+/** How often a running job is polled; short enough that text still being decoded reads as a stream. */
+export const IMAGE_PARSE_JOB_POLL_MS = 200;
+
+/**
+ * Async OCR job owned by MAP. While running, pages holds the pages already finished and, after them,
+ * the pages still being recognized (`partial: true`): their blocks so far, with the text decoded so far.
+ */
 export interface ImageParseJob {
   id: string;
   status: ImageParseJobStatus;
@@ -128,7 +134,7 @@ async function observeJob(
     refetchOnReconnect: false,
     refetchIntervalInBackground: true,
     refetchInterval: (query) =>
-      query.state.error || query.state.data?.status !== 'Running' ? false : 1000,
+      query.state.error || query.state.data?.status !== 'Running' ? false : IMAGE_PARSE_JOB_POLL_MS,
     retry: false,
     gcTime: 0,
   });
@@ -171,7 +177,7 @@ async function observeJob(
 }
 
 /**
- * Create a MAP OCR job and watch progress once a second with TanStack Query; stop and clear the query at a terminal state.
+ * Create a MAP OCR job and watch progress with TanStack Query (every IMAGE_PARSE_JOB_POLL_MS); stop and clear the query at a terminal state.
  * @param input Original-file fileId, execution options, QueryClient, and cancel/progress callbacks
  * @returns The successful job; failure uses a stable copy key, and cancel DELETEs the job that was created
  */

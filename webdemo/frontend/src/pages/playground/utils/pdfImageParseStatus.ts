@@ -11,10 +11,11 @@ export function pdfParseErrorKey(failure: unknown): string {
   return 'imageParseRequestFailed';
 }
 
-/** Count pages that already have a result or an error; a waiting placeholder does not count toward completion. */
+/** Count pages that already have a result or an error; a waiting placeholder or a page still streaming does not count toward completion. */
 export function countCompletedPdfPages(results: Readonly<Record<number, PdfPageResult>>) {
-  return Object.values(results).filter((page) => Boolean(page.result) || Boolean(page.error))
-    .length;
+  return Object.values(results).filter(
+    (page) => !page.partial && (Boolean(page.result) || Boolean(page.error)),
+  ).length;
 }
 
 /** On restore, skip only pages that already have a successful result; failed pages can still be shown again. */
@@ -23,7 +24,7 @@ export function completedPdfPageIndexes(
 ): Set<number> {
   return new Set(
     Object.entries(results)
-      .filter(([, value]) => value.result)
+      .filter(([, value]) => value.result && !value.partial)
       .map(([key]) => Number(key)),
   );
 }
