@@ -37,8 +37,9 @@
 
 ## 📢 News
 
+- 🔥🔥🔥 **[2026.11.12] MiniCPM-OCR 1.0 now runs on iOS, Android and HarmonyOS!** Parse documents entirely on your own device — no network needed. [Try it now](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#mobile-demo).
 - **[2026.11.05]** The official MiniCPM-OCR 1.0 [Docker image](https://hub.docker.com/repository/docker/openbmbofficial/minicpm-ocr/general) is now available, bundling model weights, the SDK, and vLLM for end-to-end image and PDF parsing. See [Docker deployment](#docker-deployment) to get started.
-- 🔥🔥🔥 **[2026.11.02] MiniCPM-OCR 1.0 now runs on iOS!** Parse documents entirely on your device, even offline. [Try it now](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#mobile-demo).
+- **[2026.11.02] MiniCPM-OCR 1.0 now runs on iOS!** Parse documents entirely on your device, even offline. [Try it now](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README.md#mobile-demo).
 - **[2026.11.09]** [pip SDK 1.0.5](https://pypi.org/project/minicpm-ocr/1.0.5/): Parse several inputs in one run, with one result per file. `--split-images` makes each standalone image its own document.
 - **[2026.11.02]** [pip SDK 1.0.4](https://pypi.org/project/minicpm-ocr/1.0.4/): JSON output now uses the same format as the online document parsing API. Page orientation is corrected automatically by default, and GIF images are now supported.
 - **[2026.10.30]** The Web Demo is now open source, with support for self-hosting and switching between Chinese and English. See the [Web Demo deployment tutorial](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/webdemo_deploy.md).
@@ -218,9 +219,9 @@ Use the Free API to access MiniCPM-OCR 1.0 recognition and MiniCPM-OCR Jev quali
 
 ### MiniCPM-V Demo — iOS, Android & HarmonyOS
 
-MiniCPM-OCR 1.0 parses documents entirely on your device, even offline. This document recognition feature is currently available on iOS only.
+MiniCPM-OCR 1.0 parses documents entirely on your device, even offline. Document recognition is available in the demo app on **iOS, Android and HarmonyOS**.
 
-[On-device demo tutorial](https://github.com/OpenBMB/MiniCPM-V-Apps/blob/main/README.md)
+[On-device demo guide](https://github.com/OpenBMB/MiniCPM-V-Apps/blob/main/README.md) &emsp;·&emsp; [Install for iOS](https://testflight.apple.com/join/yNKyFZwW) / [Install for Android and HarmonyOS](https://github.com/OpenBMB/MiniCPM-V-Apps/releases/latest)
 
 <a id="手动部署"></a>
 
