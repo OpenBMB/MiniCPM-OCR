@@ -37,8 +37,9 @@
 
 ## 📢 最新动态
 
+- 🔥🔥🔥 **[2026.11.12] MiniCPM-OCR 1.0 现已支持 iOS、Android 与 HarmonyOS 端侧运行！** 文档解析全程在你的设备上完成，无需联网。[立即体验](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md#mobile-demo)。
 - **[2026.11.05]** MiniCPM-OCR 1.0 官方 [Docker 镜像](https://hub.docker.com/repository/docker/openbmbofficial/minicpm-ocr/general) 已发布，内置模型权重、SDK 和 vLLM，支持图片与 PDF 的端到端文档解析。部署方式见 [Docker 部署](#docker-deployment)。
-- 🔥🔥🔥 **[2026.11.02] MiniCPM-OCR 1.0 现已支持 iOS 端侧运行！** 文档解析全程在设备本地完成，支持离线使用。[立即体验](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md#mobile-demo)。
+- **[2026.11.02] MiniCPM-OCR 1.0 现已支持 iOS 端侧运行！** 文档解析全程在设备本地完成，支持离线使用。[立即体验](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md#mobile-demo)。
 - **[2026.11.09]** [pip SDK 1.0.5](https://pypi.org/project/minicpm-ocr/1.0.5/) 发布：支持一次解析多个文件，每个文件各得一份结果。`--split-images` 让每张单图各自成一份文档。
 - **[2026.11.02]** [pip SDK 1.0.4](https://pypi.org/project/minicpm-ocr/1.0.4/) 发布：JSON 输出格式与在线文档解析 API 保持一致，默认自动校正页面方向，并支持 GIF 图片输入。
 - **[2026.10.30]** Web Demo 已开源，支持自行部署和中英文界面切换，详见 [Web Demo 部署教程](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/webdemo_deploy_zh.md)。
@@ -216,9 +217,9 @@ Read and execute https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/SKILL_jev
 
 ### MiniCPM-V Demo — iOS、Android 与 HarmonyOS
 
-MiniCPM-OCR 1.0 支持完全在设备本地完成文档解析，离线也能使用。该文档识别功能目前仅在 iOS 上提供。
+MiniCPM-OCR 1.0 支持完全在设备本地完成文档解析，离线也能使用。文档识别功能已在 **iOS、Android 与 HarmonyOS** 的 Demo App 中提供。
 
-[端侧 Demo 教程](https://github.com/OpenBMB/MiniCPM-V-Apps/blob/main/README_zh.md)
+[端侧 Demo 使用教程](https://github.com/OpenBMB/MiniCPM-V-Apps/blob/main/README_zh.md) &emsp;·&emsp; [安装 iOS 版](https://testflight.apple.com/join/yNKyFZwW) / [安装 Android 与 HarmonyOS 版](https://github.com/OpenBMB/MiniCPM-V-Apps/releases/latest)
 
 <a id="手动部署"></a>
 
