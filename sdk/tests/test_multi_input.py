@@ -262,3 +262,55 @@ def test_split_images_sets_file_scope():
 
     overrides = _build_parse_overrides(_args(inputs=[Path("/in/a.png")], split_images=True))
     assert overrides["pipeline"] == {"image_document_scope": "file"}
+
+
+def test_raw_inputs_deduplicate_single_file_against_list(tmp_path, monkeypatch):
+    from minicpmvocr.pipeline._inputs import _collect_raw_inputs
+
+    for name in ("a.png", "b.png", "c.png"):
+        Image.new("RGB", (10, 10)).save(tmp_path / name)
+    monkeypatch.chdir(tmp_path)
+    cfg = {"input": {
+        "file_paths": [str(tmp_path / "b.png"), str(tmp_path / "a.png")],
+        "file_path": "./b.png",
+        "files_dir": str(tmp_path),
+    }}
+    assert _collect_raw_inputs(cfg) == [
+        tmp_path / "b.png", tmp_path / "a.png", tmp_path / "c.png",
+    ]
+
+
+def test_raw_inputs_keep_distinct_single_file_after_list(tmp_path):
+    from minicpmvocr.pipeline._inputs import _collect_raw_inputs
+
+    for name in ("a.png", "b.png"):
+        Image.new("RGB", (10, 10)).save(tmp_path / name)
+    cfg = {"input": {
+        "file_paths": [str(tmp_path / "b.png")],
+        "file_path": str(tmp_path / "a.png"),
+        "image_dir": str(tmp_path),
+    }}
+    assert _collect_raw_inputs(cfg) == [tmp_path / "b.png", tmp_path / "a.png"]
+
+
+def test_duplicate_single_file_does_not_consume_page_limit(tmp_path):
+    from minicpmvocr.pipeline._inputs import _iter_source_pages
+
+    inputs = tmp_path / "inputs"
+    inputs.mkdir()
+    for name in ("a.png", "b.png"):
+        Image.new("RGB", (10, 10)).save(inputs / name)
+    cfg = {
+        "input": {
+            "file_paths": [str(inputs / "a.png")],
+            "file_path": str(inputs / "a.png"),
+            "image_dir": str(inputs),
+            "limit": 2,
+        },
+        "pipeline": {"render_workers": 1},
+    }
+    pages = _iter_source_pages(cfg, tmp_path / "runtime" / "intermediate")
+    assert [page["image_id"] for page in pages] == ["a", "b"]
+    sources = read_sources(tmp_path)["sources"]
+    assert [source["path"] for source in sources] == [str(inputs / "a.png"), str(inputs / "b.png")]
+    assert [source["image_ids"] for source in sources] == [["a"], ["b"]]
