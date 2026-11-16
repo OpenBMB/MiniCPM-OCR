@@ -44,7 +44,7 @@
 - **[2026.11.02]** [pip SDK 1.0.4](https://pypi.org/project/minicpm-ocr/1.0.4/) 发布：JSON 输出格式与在线文档解析 API 保持一致，默认自动校正页面方向，并支持 GIF 图片输入。
 - **[2026.10.30]** Web Demo 已开源，支持自行部署和中英文界面切换，详见 [Web Demo 部署教程](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/docs/webdemo_deploy_zh.md)。
 - **[2026.10.29]** [SDK 1.0.3](https://pypi.org/project/minicpm-ocr/1.0.3/) 发布：Markdown 输出保留图片区域的识别文字，并附上对应裁图的链接；[Skill](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md#skill) 新增 Ollama 部署指南。
-- 🚀🚀🚀 **[2026.10.27] MiniCPM-OCR 1.0 与 MiniCPM-OCR Jev 正式发布并开源！** 同步提供[模型权重](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md#model-weights)、[pip SDK](https://pypi.org/project/minicpm-ocr/)、[Skill](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md#skill) 和[免费 API](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md#api)。
+- 🚀🚀🚀 **[2026.10.27] MiniCPM-OCR 1.0 与 MiniCPM-OCR Jev 正式发布并开源！** 同步提供[模型权重](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md#model-weights)、[pip SDK](https://pypi.org/project/minicpm-ocr/)、[Skill](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md#skill) 和[免费 API](https://github.com/OpenBMB/MiniCPM-OCR/blob/main/README_zh.md#api)。 MiniCPM-OCR 1.0 参考适配版本：[vLLM](./docs/minicpm_ocr_tutorial.md)（源码提交 [`fa3b9d1`](https://github.com/vllm-project/vllm/commit/fa3b9d1377219247060d3c8b49eae199c9e7e154)）、[SGLang](./docs/sglang_deploy_zh.md)（源码提交 [`aaab6bf`](https://github.com/tc-mb/sglang/commit/aaab6bfc3de5354b052f2e96d5e566d70b9f69a2)）、[llama.cpp b11901](./docs/llamacpp_deploy_zh.md) 和 [Ollama v0.40.12](./docs/ollama_deploy_zh.md)，部署方法详见对应指南。
 
 ## MiniCPM-OCR 1.0
 
