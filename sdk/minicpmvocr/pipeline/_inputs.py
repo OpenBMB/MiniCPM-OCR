@@ -71,8 +71,9 @@ def _collect_raw_inputs(cfg: Dict) -> List[Path]:
         p = Path(file_path)
         if p.is_file() and p.suffix.lower() in SUPPORTED_INPUT_SUFFIXES:
             rp = str(p.resolve())
-            seen.add(rp)
-            paths.append(p)
+            if rp not in seen:
+                seen.add(rp)
+                paths.append(p)
 
     image_dir = cfg["input"].get("image_dir", "")
     if image_dir:
