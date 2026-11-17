@@ -132,17 +132,21 @@ def collect_stream(stream_format: str, lines: Iterable[bytes], on_text: Callable
                 on_text(text)
             if chunk.get("done"):
                 final = chunk
+        if not final:
+            raise DialectError("incomplete NDJSON response: missing done marker")
         final = dict(final)
         final["message"] = dict(final.get("message") or {}, content="".join(pieces))
         return final
 
     finish_reason = None
+    completed = False
     usage: Dict = {}
     for line in lines:
         if not line.startswith(b"data:"):
             continue
         data = line[len(b"data:"):].strip()
         if data == b"[DONE]":
+            completed = True
             break
         chunk = json.loads(data)
         if chunk.get("error"):
@@ -157,6 +161,8 @@ def collect_stream(stream_format: str, lines: Iterable[bytes], on_text: Callable
                 pieces.append(text)
                 on_text(text)
             finish_reason = choice.get("finish_reason") or finish_reason
+    if not completed and finish_reason is None:
+        raise DialectError("incomplete SSE response: missing completion marker")
     return {
         "choices": [{"message": {"content": "".join(pieces)}, "finish_reason": finish_reason}],
         "usage": usage,
