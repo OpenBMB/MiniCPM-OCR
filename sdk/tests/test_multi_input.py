@@ -262,3 +262,46 @@ def test_split_images_sets_file_scope():
 
     overrides = _build_parse_overrides(_args(inputs=[Path("/in/a.png")], split_images=True))
     assert overrides["pipeline"] == {"image_document_scope": "file"}
+
+
+def test_output_names_avoid_prefix_and_suffix_collisions():
+    from minicpmvocr.cli import _output_names
+
+    sources = [
+        {"source_id": "s001", "path": "/x/a.png"},
+        {"source_id": "s002", "path": "/y/a.pdf"},
+        {"source_id": "s003", "path": "/z/s001_a.png"},
+        {"source_id": "s004", "path": "/z/s001_a_2.png"},
+        {"source_id": "s005", "path": "/z/s001_a_3.png"},
+    ]
+    names = _output_names(sources)
+    assert names == {
+        "s001": "s001_a", "s002": "s002_a", "s003": "s001_a_4",
+        "s004": "s001_a_2", "s005": "s001_a_3",
+    }
+    assert _output_names(sources) == names
+
+
+def test_parse_many_does_not_overwrite_colliding_results(tmp_path, capsys):
+    import json
+    from minicpmvocr.cli import _parse_many
+
+    run_dir = tmp_path / "run"
+    paths = ["/x/a.png", "/y/a.png", "/z/s001_a.png"]
+    texts = ["first document", "second document", "third document"]
+    _write_run(
+        run_dir,
+        [(path, "image", [f"image{i}"]) for i, path in enumerate(paths)],
+        {f"image{i}": (text, []) for i, text in enumerate(texts)},
+        scope="file",
+    )
+    out = tmp_path / "out"
+    args = SimpleNamespace(
+        stdout=False, output=str(out), stream=False, page_delimiter="\n",
+        no_merge_pages=False, json="", inputs=paths,
+    )
+    assert _parse_many(args, {"pipeline": {}, "prompt": {}}, run_dir, {}, {}) == 0
+    assert len(list(out.glob("*.md"))) == 3
+    assert {p.read_text() for p in out.glob("*.md")} == set(texts)
+    records = [json.loads(p.read_text()) for p in out.glob("*.json")]
+    assert {r["path"]: r["markdown"] for r in records} == dict(zip(paths, texts))

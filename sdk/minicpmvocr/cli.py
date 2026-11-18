@@ -445,10 +445,24 @@ def _output_names(sources: list) -> dict:
     'source_id -> file stem; a stem shared by two inputs gets its source_id in front.'
     stems = [Path(source.get("path") or source.get("source_id") or "input").stem for source in sources]
     shared = {stem for stem in stems if stems.count(stem) > 1}
+    preferred = [
+        f"{source.get('source_id', '')}_{stem}" if stem in shared else stem
+        for source, stem in zip(sources, stems)
+    ]
+    reserved = set(preferred)
     names = {}
-    for source, stem in zip(sources, stems):
-        prefix = f"{source.get('source_id', '')}_" if stem in shared else ""
-        names[source.get("source_id", "")] = f"{prefix}{stem}"
+    used = set()
+    for source, base in zip(sources, preferred):
+        name = base
+        if name in used:
+            suffix = 2
+            name = f"{base}_{suffix}"
+            # Do not take a later input's otherwise unambiguous filename.
+            while name in used or name in reserved:
+                suffix += 1
+                name = f"{base}_{suffix}"
+        names[source.get("source_id", "")] = name
+        used.add(name)
     return names
 
 
