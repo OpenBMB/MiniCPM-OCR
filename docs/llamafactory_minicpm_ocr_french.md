@@ -284,3 +284,38 @@ Text Recognition:
 # Fine-tuned model
 de mon domicile du 3 Rue Gambetta, 57000 METZ, en date du 28 février
 ```
+
+## 扩展：关键信息提取（KIE）微调
+
+以上训练配置同样适用于 KIE 场景，只需替换训练数据。KIE 任务的 JSONL 格式与文本识别格式相同，区别仅在 prompt 和 assistant 输出：
+
+**数据格式示例**
+
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "<image>\nExtract the \"店名\", \"金额\". Format the output as a JSON object with keys: \"店名\", \"金额\". If an item is not in the image, use \"###\"."
+    },
+    {
+      "role": "assistant",
+      "content": "{\"店名\": \"某超市\", \"金额\": \"32.50\"}"
+    }
+  ],
+  "images": [
+    "/path/to/receipt.jpg"
+  ]
+}
+```
+
+prompt 固定格式为：
+
+```
+Extract the "字段1", "字段2". Format the output as a JSON object with keys: "字段1", "字段2". If an item is not in the image, use "###".
+```
+
+- 两处字段列表必须完全一致，字段名用英文双引号包裹。
+- 图片中不存在的字段，assistant 输出 `"###"` 作为占位值。
+- 训练配置与文本识别任务完全相同，无需修改任何训练参数。
+- 评测建议使用字段级 exact match 或 F1，而非 CER/WER。
