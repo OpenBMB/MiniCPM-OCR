@@ -162,3 +162,72 @@ def test_client_does_not_stream_several_candidates(monkeypatch):
     client, session = _client(monkeypatch, [_Reply(body=PLAIN)])
     client.recognize(IMAGE, prompt="p", max_new_tokens=64, n=3, on_delta=lambda text, restart: None)
     assert session.posts[0]["stream"] is False
+
+
+@pytest.mark.parametrize("lines", [[], [b""], [b": ping"], _sse(_delta("partial"), done=False)])
+def test_sse_stream_rejects_eof_without_completion(lines):
+    with pytest.raises(DialectError, match="incomplete"):
+        collect_stream("sse", lines, lambda text: None)
+
+
+@pytest.mark.parametrize("lines", [[], [b""], [b'{"message":{"content":"partial"},"done":false}']])
+def test_ndjson_stream_rejects_eof_without_completion(lines):
+    with pytest.raises(DialectError, match="incomplete"):
+        collect_stream("ndjson", lines, lambda text: None)
+
+
+def test_sse_finish_reason_is_sufficient_without_done_sentinel():
+    body = collect_stream("sse", _sse(_delta("whole", "stop"), done=False), lambda text: None)
+    assert body["choices"][0]["message"]["content"] == "whole"
+
+
+def test_client_retries_cleanly_truncated_stream_and_marks_restart(monkeypatch):
+    broken = _Reply(lines=_sse(_delta("partial"), done=False))
+    whole = _Reply(lines=_sse(_delta("whole", "stop")))
+    client, session = _client(monkeypatch, [broken, whole])
+    heard = []
+    result = client.recognize(IMAGE, prompt="p", max_new_tokens=64,
+                             on_delta=lambda text, restart: heard.append((text, restart)))
+    assert result["text"] == "whole"
+    assert heard == [("partial", False), ("whole", True)]
+    assert len(session.posts) == 2
+    assert broken.closed and whole.closed
+
+
+def test_sse_done_sentinel_without_finish_reason_is_preserved():
+    body = collect_stream("sse", _sse(_delta("whole")), lambda text: None)
+    assert body["choices"][0]["message"]["content"] == "whole"
+
+
+def test_other_choice_finishing_does_not_complete_first_choice():
+    lines = _sse(_delta("partial"), {"choices": [{"index": 1, "finish_reason": "stop"}]}, done=False)
+    with pytest.raises(DialectError, match="incomplete"):
+        collect_stream("sse", lines, lambda text: None)
+
+
+def test_client_retries_truncated_ndjson_and_marks_restart(monkeypatch):
+    broken = _Reply(lines=[b'{"message":{"content":"partial"},"done":false}'])
+    whole = _Reply(lines=[b'{"message":{"content":"whole"},"done":true,"done_reason":"stop"}'])
+    client, session = _client(monkeypatch, [broken, whole])
+    client.dialect = DIALECTS["ollama"]
+    heard = []
+    result = client.recognize(IMAGE, prompt="p", max_new_tokens=64,
+                             on_delta=lambda text, restart: heard.append((text, restart)))
+    assert result["text"] == "whole"
+    assert heard == [("partial", False), ("whole", True)]
+    assert len(session.posts) == 2
+    assert broken.closed and whole.closed
+
+
+def test_client_raises_after_clean_truncation_when_retry_deadline_expires(monkeypatch):
+    from minicpmvocr.backends.client import EngineError
+
+    broken = _Reply(lines=_sse(_delta("partial"), done=False))
+    client, session = _client(monkeypatch, [broken])
+    client.engine_cfg["request_ready_timeout_sec"] = 0
+    heard = []
+    with pytest.raises(EngineError, match="incomplete SSE response"):
+        client.recognize(IMAGE, prompt="p", max_new_tokens=64,
+                         on_delta=lambda text, restart: heard.append((text, restart)))
+    assert heard == [("partial", False)]
+    assert len(session.posts) == 1 and broken.closed
