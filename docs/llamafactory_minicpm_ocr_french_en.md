@@ -270,3 +270,38 @@ Text Recognition:
 # Fine-tuned model
 de mon domicile du 3 Rue Gambetta, 57000 METZ, en date du 28 février
 ```
+
+## Extension: Fine-tuning for Key Information Extraction (KIE)
+
+The same training configuration works for KIE tasks. The only change is the training data. The JSONL format is identical to the text-recognition format; only the prompt and assistant output differ:
+
+**Data format reference**
+
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "<image>\nExtract the \"store_name\", \"amount\". Format the output as a JSON object with keys: \"store_name\", \"amount\". If an item is not in the image, use \"###\"."
+    },
+    {
+      "role": "assistant",
+      "content": "{\"store_name\": \"SuperMart\", \"amount\": \"32.50\"}"
+    }
+  ],
+  "images": [
+    "/path/to/receipt.jpg"
+  ]
+}
+```
+
+The prompt template is:
+
+```
+Extract the "field1", "field2". Format the output as a JSON object with keys: "field1", "field2". If an item is not in the image, use "###".
+```
+
+- Both field lists must be identical; each field name is wrapped in English double quotes.
+- Missing fields are represented by `"###"` in the assistant output.
+- All training parameters remain unchanged.
+- Evaluate with field-level exact match or F1 rather than CER/WER.
